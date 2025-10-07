@@ -92,6 +92,76 @@ app.get('/api/calls', async (req, res) => {
     }
 });
 
+// Get historical calls (by year and optional month)
+app.get('/api/calls/historical', async (req, res) => {
+    try {
+        const { year, month } = req.query;
+        
+        if (!year) {
+            return res.status(400).json({
+                success: false,
+                message: 'יש לספק שנה'
+            });
+        }
+
+        // Build date range
+        let startDate, endDate;
+        
+        if (month) {
+            // Specific month
+            startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+            endDate = new Date(parseInt(year), parseInt(month), 1);
+        } else {
+            // Entire year
+            startDate = new Date(parseInt(year), 0, 1);
+            endDate = new Date(parseInt(year) + 1, 0, 1);
+        }
+
+        // Get calls data
+        const { data: calls, error: callsError } = await supabase
+            .from('calls')
+            .select('*')
+            .gte('created_at', startDate.toISOString())
+            .lt('created_at', endDate.toISOString())
+            .order('created_at', { ascending: false });
+
+        if (callsError) {
+            console.error('Supabase error:', callsError);
+            return res.status(400).json({
+                success: false,
+                message: 'שגיאה בטעינת הנתונים',
+                error: callsError.message
+            });
+        }
+
+        // Calculate statistics
+        const stats = {
+            totalCalls: calls.length,
+            urgentCalls: calls.filter(call => call.call_type === 'דחוף').length,
+            atanCalls: calls.filter(call => call.call_type === 'אט"ן').length,
+            aranCalls: calls.filter(call => call.call_type === 'ארן').length,
+            natbagCalls: calls.filter(call => call.call_type === 'נתבג').length
+        };
+
+        res.json({
+            success: true,
+            calls: calls || [],
+            stats,
+            period: {
+                year: parseInt(year),
+                month: month ? parseInt(month) : null
+            }
+        });
+    } catch (error) {
+        console.error('Server error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'שגיאת שרת פנימית',
+            error: error.message
+        });
+    }
+});
+
 // Create a new call
 app.post('/api/calls', async (req, res) => {
     try {

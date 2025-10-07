@@ -1087,3 +1087,107 @@ textarea:focus {
         border: 2px solid var(--white);
     }
 }
+
+/* ===== HISTORICAL VIEW STYLES ===== */
+.history-modal .modal-content {
+    max-width: 900px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.history-filters {
+    background: var(--gray-50);
+    padding: 20px;
+    border-radius: var(--radius-lg);
+    margin-bottom: 20px;
+    border: 1px solid var(--gray-200);
+}
+
+.history-filters .form-row {
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.historical-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.historical-stat-card {
+    background: linear-gradient(135deg, var(--mda-red) 0%, var(--mda-red-dark) 100%);
+    color: var(--white);
+    padding: 20px;
+    border-radius: var(--radius-xl);
+    text-align: center;
+    box-shadow: var(--shadow-lg);
+    transition: transform var(--transition-fast) ease;
+}
+
+.historical-stat-card:hover {
+    transform: translateY(-2px);
+}
+
+.historical-stat-number {
+    font-size: 2em;
+    font-weight: 700;
+    margin-bottom: 5px;
+    line-height: 1;
+}
+
+.historical-stat-label {
+    font-size: 0.9em;
+    opacity: 0.9;
+    font-weight: 400;
+}
+
+#historicalCallsList {
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    padding: 15px;
+    background: var(--white);
+}
+
+#historicalCallsList .call-item {
+    margin-bottom: 15px;
+    border-bottom: 1px solid var(--gray-100);
+    padding-bottom: 15px;
+}
+
+#historicalCallsList .call-item:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.historical-period-title {
+    font-size: 1.2em;
+    font-weight: 600;
+    color: var(--gray-800);
+    margin-bottom: 15px;
+    text-align: center;
+    padding: 15px;
+    background: var(--gray-50);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--gray-200);
+}
+
+.historical-loading {
+    text-align: center;
+    padding: 40px;
+    color: var(--gray-500);
+}
+
+.historical-empty {
+    text-align: center;
+    padding: 40px;
+    color: var(--gray-500);
+}
+
+.historical-empty-icon {
+    font-size: 3em;
+    margin-bottom: 15px;
+}
