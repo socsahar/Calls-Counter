@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "build": "echo 'Build process placeholder'"
+    "build": "echo 'Build process placeholder'",
+    "ping": "node scripts/ping-keepalive.js",
+    "ping-test": "curl -s -w 'Status: %{http_code}, Time: %{time_total}s\\n' https://calls-counter.onrender.com/"
   },
   "keywords": [
     "mda",
