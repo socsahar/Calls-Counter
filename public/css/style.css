@@ -110,31 +110,71 @@ body {
 .header-actions {
     display: flex;
     align-items: center;
-    gap: var(--space-4);
+    gap: var(--space-3);
+}
+
+@media (max-width: 768px) {
+    .header-actions {
+        gap: var(--space-2);
+    }
+    
+    .settings-btn {
+        padding: var(--space-2) var(--space-3);
+        font-size: 0.8rem;
+    }
+    
+    .settings-icon {
+        font-size: 1rem;
+    }
 }
 
 .settings-btn {
-    background: rgba(255, 255, 255, 0.2);
-    color: var(--white);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: var(--radius-sm);
-    padding: var(--space-2) var(--space-3);
-    font-size: var(--font-size-sm);
-    font-weight: 500;
+    background: linear-gradient(135deg, var(--white) 0%, var(--gray-50) 100%);
+    color: var(--mda-red);
+    border: 2px solid var(--white);
+    border-radius: var(--radius-lg);
+    padding: var(--space-3) var(--space-4);
+    font-size: 0.9rem;
+    font-weight: 600;
     cursor: pointer;
-    transition: all var(--transition-normal);
+    transition: all var(--transition-fast) ease;
     display: flex;
     align-items: center;
     gap: var(--space-2);
+    box-shadow: var(--shadow-md);
+    font-family: 'Rubik', sans-serif;
+    text-decoration: none;
+    backdrop-filter: blur(10px);
 }
 
 .settings-btn:hover {
-    background: rgba(255, 255, 255, 0.3);
-    border-color: rgba(255, 255, 255, 0.5);
+    background: linear-gradient(135deg, var(--white) 0%, var(--white) 100%);
+    border-color: var(--mda-red-light);
+    color: var(--mda-red-dark);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.settings-btn:active {
+    transform: translateY(0);
+    box-shadow: var(--shadow-md);
 }
 
 .settings-icon {
-    font-size: var(--font-size-base);
+    font-size: 1.1rem;
+    opacity: 0.9;
+    transition: all var(--transition-fast) ease;
+}
+
+.settings-btn:hover .settings-icon {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+.settings-btn:focus {
+    outline: none;
+    border-color: var(--mda-red);
+    box-shadow: var(--shadow-lg), 0 0 0 3px rgba(220, 38, 38, 0.2);
 }
 
 .logo {
