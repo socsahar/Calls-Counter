@@ -1,0 +1,5 @@
+# Build command for Render
+npm install
+
+# Start command for Render
+npm start

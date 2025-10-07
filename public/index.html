@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>מעקב נסיעות - CallCounter</title>
+    <meta name="description" content="מערכת מעקב נסיעות למד״א - אופנוע 5248">
+    <meta name="theme-color" content="#dc2626">
+    
+    <!-- PWA Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="מעקב נסיעות">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏍️</text></svg>">
+    
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-container">
+            <div class="logo">
+                <span class="logo-icon">🏍️</span>
+                <h1 class="logo-text">מעקב נסיעות</h1>
+            </div>
+            <div class="header-actions">
+                <button class="settings-btn" id="vehicleSettingsBtn">
+                    <span class="settings-icon">⚙️</span>
+                    הגדרות רכב
+                </button>
+                <div class="motorcycle-badge">
+                    <span class="badge-label">רכב</span>
+                    <span class="badge-number" id="currentVehicle">5248</span>
+                    <span class="badge-type" id="currentVehicleType">אופנוע</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Quick Stats -->
+        <section class="stats-section">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">📊</div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="totalCalls">0</div>
+                        <div class="stat-label">סה״כ נסיעות היום</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">📅</div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="weeklyCalls">0</div>
+                        <div class="stat-label">נסיעות השבוע</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🗓️</div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="monthlyCalls">0</div>
+                        <div class="stat-label">נסיעות החודש</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">⏱️</div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="weeklyHours">0</div>
+                        <div class="stat-label">שעות שבועיות</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">📈</div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="monthlyHours">0</div>
+                        <div class="stat-label">שעות חודשיות</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Call Entry Form -->
+        <section class="form-section">
+            <div class="form-container">
+                <h2 class="form-title">רישום נסיעה חדשה</h2>
+                
+                <form id="callForm" class="call-form">
+                    <div class="form-group">
+                        <label for="callType" class="form-label">סוג הקריאה</label>
+                        <select id="callType" class="form-input" required>
+                            <option value="">בחר סוג קריאה</option>
+                            <option value="urgent">דחוף</option>
+                            <option value="atan">אט"ן</option>
+                            <option value="aran">ארן</option>
+                            <option value="natbag">נתבג</option>
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="callDate" class="form-label">תאריך</label>
+                            <input type="date" id="callDate" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="startTime" class="form-label">שעת התחלה</label>
+                            <input type="time" id="startTime" class="form-input" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="endTime" class="form-label">שעת סיום</label>
+                            <input type="time" id="endTime" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <!-- Empty for spacing -->
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="location" class="form-label">מיקום</label>
+                        <input type="text" id="location" class="form-input" placeholder="כתובת או תיאור המיקום" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="description" class="form-label">תיאור הקריאה</label>
+                        <textarea id="description" class="form-textarea" placeholder="תיאור קצר של הקריאה..." rows="3"></textarea>
+                    </div>
+
+                    <button type="submit" class="submit-btn">
+                        <span class="btn-icon">✅</span>
+                        רשום נסיעה
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <!-- Recent Calls -->
+        <section class="calls-section">
+            <div class="calls-container">
+                <div class="calls-header">
+                    <h2 class="section-title">נסיעות אחרונות</h2>
+                    <div class="filters-container">
+                        <input type="text" id="filterSearch" class="filter-search" placeholder="חיפוש לפי כתובת, תיאור...">
+                        <select id="filterCallType" class="filter-select">
+                            <option value="">כל הסוגים</option>
+                            <option value="urgent">דחוף</option>
+                            <option value="atan">אט"ן</option>
+                            <option value="aran">ארן</option>
+                            <option value="natbag">נתבג</option>
+                        </select>
+                        <select id="filterVehicleType" class="filter-select">
+                            <option value="">כל הרכבים</option>
+                            <option value="motorcycle">אופנוע</option>
+                            <option value="picanto">פיקנטו</option>
+                            <option value="ambulance">אמבולנס</option>
+                        </select>
+                        <input type="date" id="filterDate" class="filter-select" placeholder="תאריך">
+                        <button class="filter-clear-btn" id="clearFiltersBtn">נקה סינון</button>
+                    </div>
+                </div>
+                <div id="callsList" class="calls-list">
+                    <div class="empty-state">
+                        <div class="empty-icon">📋</div>
+                        <p class="empty-text">אין נסיעות שנרשמו היום</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Context Menu for Call Items -->
+    <div id="contextMenu" class="context-menu hidden">
+        <div class="context-menu-item" data-action="edit">
+            <span class="context-icon">✏️</span>
+            עריכה
+        </div>
+        <div class="context-menu-item" data-action="delete">
+            <span class="context-icon">🗑️</span>
+            מחיקה
+        </div>
+    </div>
+
+    <!-- Vehicle Settings Modal -->
+    <div id="vehicleSettingsModal" class="modal hidden">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">הגדרות רכב</h3>
+                <button class="modal-close" id="vehicleSettingsClose">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="vehicleSettingsForm">
+                    <div class="form-group">
+                        <label for="vehicleNumber" class="form-label">מספר רכב</label>
+                        <input type="text" id="vehicleNumber" class="form-input" required placeholder="לדוגמה: 5248">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="vehicleType" class="form-label">סוג רכב</label>
+                        <select id="vehicleType" class="form-input" required>
+                            <option value="">בחר סוג רכב</option>
+                            <option value="motorcycle">🏍️ אופנוע</option>
+                            <option value="picanto">🚗 פיקנטו</option>
+                            <option value="ambulance">🚑 אמבולנס</option>
+                        </select>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary" id="vehicleSettingsCancel">ביטול</button>
+                        <button type="submit" class="btn-primary">שמור הגדרות</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="modal hidden">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">עריכת קריאה</h3>
+                <button class="modal-close" id="editModalClose">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="editForm" class="call-form">
+                    <input type="hidden" id="editCallId">
+                    
+                    <div class="form-group">
+                        <label for="editCallType" class="form-label">סוג הקריאה</label>
+                        <select id="editCallType" class="form-input" required>
+                            <option value="urgent">דחוף</option>
+                            <option value="atan">אט"ן</option>
+                            <option value="aran">ארן</option>
+                            <option value="natbag">נתבג</option>
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editCallDate" class="form-label">תאריך</label>
+                            <input type="date" id="editCallDate" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editStartTime" class="form-label">שעת התחלה</label>
+                            <input type="time" id="editStartTime" class="form-input" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editEndTime" class="form-label">שעת סיום</label>
+                            <input type="time" id="editEndTime" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <!-- Empty for spacing -->
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editLocation" class="form-label">מיקום</label>
+                        <input type="text" id="editLocation" class="form-input" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editDescription" class="form-label">תיאור הקריאה</label>
+                        <textarea id="editDescription" class="form-textarea" rows="3"></textarea>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary" id="editModalCancel">ביטול</button>
+                        <button type="submit" class="btn-primary">עדכן קריאה</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <p class="footer-text">מערכת רישום ומעקב נסיעות | סהר מלול</p>
+            <p class="footer-version">CallCounter v1.0</p>
+        </div>
+    </footer>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="loading-spinner"></div>
+        <p class="loading-text">שומר נתונים...</p>
+    </div>
+
+    <!-- Success Toast -->
+    <div id="successToast" class="toast toast-success hidden">
+        <span class="toast-icon">✅</span>
+        <span class="toast-message">נסיעה נרשמה בהצלחה!</span>
+    </div>
+
+    <!-- Error Toast -->
+    <div id="errorToast" class="toast toast-error hidden">
+        <span class="toast-icon">❌</span>
+        <span class="toast-message">שגיאה ברישום הנסיעה</span>
+    </div>
+
+    <script src="/js/app.js"></script>
+</body>
+</html>
