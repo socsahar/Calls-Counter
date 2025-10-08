@@ -515,6 +515,22 @@ class CallCounter {
         }
     }
 
+    // Helper function to format decimal hours to "Xh Ym" format
+    formatHoursAndMinutes(decimalHours) {
+        if (!decimalHours || decimalHours === 0) return '0h 0m';
+        
+        const hours = Math.floor(decimalHours);
+        const minutes = Math.round((decimalHours - hours) * 60);
+        
+        if (hours === 0) {
+            return `${minutes}m`;
+        } else if (minutes === 0) {
+            return `${hours}h`;
+        } else {
+            return `${hours}h ${minutes}m`;
+        }
+    }
+
     updateStatsDisplay() {
         const totalCallsEl = document.getElementById('totalCalls');
         const weeklyCallsEl = document.getElementById('weeklyCalls');
@@ -525,8 +541,8 @@ class CallCounter {
         if (totalCallsEl) totalCallsEl.textContent = this.stats.totalCalls || 0;
         if (weeklyCallsEl) weeklyCallsEl.textContent = this.stats.weeklyCalls || 0;
         if (monthlyCallsEl) monthlyCallsEl.textContent = this.stats.monthlyCalls || 0;
-        if (weeklyHoursEl) weeklyHoursEl.textContent = this.stats.weeklyHours || 0;
-        if (monthlyHoursEl) monthlyHoursEl.textContent = this.stats.monthlyHours || 0;
+        if (weeklyHoursEl) weeklyHoursEl.textContent = this.formatHoursAndMinutes(this.stats.weeklyHours);
+        if (monthlyHoursEl) monthlyHoursEl.textContent = this.formatHoursAndMinutes(this.stats.monthlyHours);
     }
 
     updateCallsDisplay() {

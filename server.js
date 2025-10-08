@@ -507,9 +507,6 @@ app.get('/api/stats', async (req, res) => {
         
         if (!dateError && callsByDate) {
             todayCalls = callsByDate;
-            if (isLocalDevelopment) {
-                console.log(`📅 Found ${callsByDate.length} calls using call_date field for ${today}`);
-            }
         } else {
             // Fallback to created_at timestamp filtering
             const startOfDay = new Date();
@@ -538,13 +535,6 @@ app.get('/api/stats', async (req, res) => {
             .order('created_at', { ascending: false })
             .limit(10);
             
-        console.log('🔍 Recent calls in database:', allCalls?.map(call => ({
-            id: call.id,
-            type: call.call_type,
-            call_date: call.call_date,
-            created_at: call.created_at
-        })));
-        
         // Get weekly and monthly stats
         const { data: weeklyData, error: weeklyError } = await supabase.rpc('get_weekly_stats');
         const { data: monthlyData, error: monthlyError } = await supabase.rpc('get_monthly_stats');
