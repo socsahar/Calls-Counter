@@ -58,6 +58,9 @@ class HistoryViewer {
             // Ensure loading overlay is hidden at start
             this.setLoading(false);
             
+            // Load and display vehicle information
+            await this.loadVehicleDisplay();
+            
             this.bindEvents();
             this.populateYearOptions();
             
@@ -330,6 +333,71 @@ class HistoryViewer {
         }).join('');
 
         callsList.innerHTML = callsHtml;
+    }
+
+    // Vehicle display methods
+    async loadVehicleDisplay() {
+        try {
+            const response = await fetch('/api/vehicle/current', {
+                headers: this.getAuthHeaders()
+            });
+            if (response.ok) {
+                const result = await response.json();
+                if (result.success && result.data) {
+                    this.currentVehicle = {
+                        number: result.data.vehicle_number,
+                        type: result.data.vehicle_type
+                    };
+                    this.updateVehicleDisplay();
+                }
+            }
+        } catch (error) {
+            console.error('Error loading vehicle display:', error);
+        }
+    }
+
+    updateVehicleDisplay() {
+        // Update desktop badge
+        const numberElement = document.getElementById('currentVehicle');
+        const typeElement = document.getElementById('currentVehicleType');
+        
+        // Update mobile badge
+        const mobileNumberElement = document.getElementById('mobileCurrentVehicle');
+        const mobileTypeElement = document.getElementById('mobileCurrentVehicleType');
+        
+        if (numberElement) {
+            numberElement.textContent = this.currentVehicle.number;
+        }
+        if (mobileNumberElement) {
+            mobileNumberElement.textContent = this.currentVehicle.number;
+        }
+        
+        if (typeElement) {
+            const typeMap = {
+                'אופנוע': 'אופנוע',
+                'פיקנטו': 'פיקנטו', 
+                'אמבולנס': 'אמבולנס',
+                'כונן אישי': 'כונן אישי',
+                'motorcycle': 'אופנוע',
+                'picanto': 'פיקנטו',
+                'ambulance': 'אמבולנס',
+                'personal_standby': 'כונן אישי'
+            };
+            typeElement.textContent = typeMap[this.currentVehicle.type] || this.currentVehicle.type;
+        }
+        if (mobileTypeElement) {
+            const typeMap = {
+                'אופנוע': 'אופנוע',
+                'פיקנטו': 'פיקנטו', 
+                'אמבולנס': 'אמבולנס',
+                'כונן אישי': 'כונן אישי',
+                'motorcycle': 'אופנוע',
+                'picanto': 'פיקנטו',
+                'ambulance': 'אמבולנס',
+                'personal_standby': 'כונן אישי'
+            };
+            mobileTypeElement.textContent = typeMap[this.currentVehicle.type] || this.currentVehicle.type;
+        }
     }
 
     // Utility methods
