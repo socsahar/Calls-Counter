@@ -97,8 +97,8 @@ class CallCounter {
             currentStatus: 'זמין'
         };
         this.currentVehicle = {
-            number: '5248',
-            type: 'motorcycle'
+            number: this.getUserVehicleNumber(),
+            type: this.getUserVehicleType()
         };
         
         this.init();
@@ -113,6 +113,50 @@ class CallCounter {
         } : {
             'Content-Type': 'application/json'
         };
+    }
+
+    // Helper method to get user's vehicle number from their MDA code
+    getUserVehicleNumber() {
+        const userData = localStorage.getItem('userData') || sessionStorage.getItem('userData');
+        if (userData) {
+            const user = JSON.parse(userData);
+            return user.mdaCode || '5248'; // Fallback to 5248 if no MDA code
+        }
+        return '5248'; // Default fallback
+    }
+
+    // Helper method to auto-detect vehicle type based on MDA code
+    getUserVehicleType() {
+        const mdaCode = this.getUserVehicleNumber();
+        return this.detectVehicleType(mdaCode);
+    }
+
+    // Vehicle type detection function (same logic as server)
+    detectVehicleType(mdaCode) {
+        if (!mdaCode || mdaCode.length < 2) return 'ambulance';
+        
+        const firstDigit = mdaCode.charAt(0);
+        const firstTwoDigits = mdaCode.substring(0, 2);
+        
+        // 5-digit codes starting with "12" are personal standby
+        if (mdaCode.length === 5 && firstTwoDigits === '12') {
+            return 'personal_standby';
+        }
+        
+        // 4-digit codes
+        if (mdaCode.length === 4) {
+            if (firstDigit === '5') return 'motorcycle';
+            if (firstDigit === '6') return 'picanto';
+            if (['1', '2', '3', '4', '7', '8', '9'].includes(firstDigit)) return 'ambulance';
+        }
+        
+        // 2 or 3 digit codes starting with 1,2,3,4,7,8,9 are ambulances
+        if ((mdaCode.length === 2 || mdaCode.length === 3) && 
+            ['1', '2', '3', '4', '7', '8', '9'].includes(firstDigit)) {
+            return 'ambulance';
+        }
+        
+        return 'ambulance'; // default
     }
 
     // Initialize user info display
@@ -132,6 +176,12 @@ class CallCounter {
         try {
             // Ensure loading overlay is hidden at start
             this.setLoading(false);
+            
+            // Update vehicle info based on user's MDA code
+            this.currentVehicle = {
+                number: this.getUserVehicleNumber(),
+                type: this.getUserVehicleType()
+            };
             
             await this.loadVehicleSettings();
             this.initUserInfo();
@@ -698,7 +748,8 @@ class CallCounter {
         const vehicleTypeNames = {
             motorcycle: 'אופנוע',
             picanto: 'פיקנטו',
-            ambulance: 'אמבולנס'
+            ambulance: 'אמבולנס',
+            personal_standby: 'כונן אישי'
         };
 
         const duration = call.duration_minutes 
@@ -748,10 +799,10 @@ class CallCounter {
             }
         } catch (error) {
             console.error('Error loading vehicle settings:', error);
-            // Fallback to defaults if API fails
+            // Fallback to user's MDA code if API fails
             this.currentVehicle = {
-                number: '5248',
-                type: 'motorcycle'
+                number: this.getUserVehicleNumber(),
+                type: this.getUserVehicleType()
             };
         }
         
@@ -769,7 +820,8 @@ class CallCounter {
         const vehicleTypeNames = {
             motorcycle: 'אופנוע',
             picanto: 'פיקנטו',
-            ambulance: 'אמבולנס'
+            ambulance: 'אמבולנס',
+            personal_standby: 'כונן אישי'
         };
 
         const currentVehicleEl = document.getElementById('currentVehicle');

@@ -10,6 +10,28 @@ class HistoryViewer {
         this.init();
     }
 
+    // Helper method to get authentication headers
+    getAuthHeaders() {
+        const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+        return token ? {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        } : {
+            'Content-Type': 'application/json'
+        };
+    }
+
+    // Check authentication before loading data
+    checkAuthentication() {
+        const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+        
+        if (!token) {
+            window.location.href = '/login.html';
+            return false;
+        }
+        return true;
+    }
+
     // Helper function to format decimal hours to "Xh Ym" format
     formatHoursAndMinutes(decimalHours) {
         if (!decimalHours || decimalHours === 0) return '0h 0m';
@@ -28,6 +50,11 @@ class HistoryViewer {
 
     async init() {
         try {
+            // Check authentication first
+            if (!this.checkAuthentication()) {
+                return;
+            }
+
             // Ensure loading overlay is hidden at start
             this.setLoading(false);
             
@@ -132,8 +159,16 @@ class HistoryViewer {
                 params.append('month', month);
             }
 
-            const response = await fetch(`/api/calls/historical?${params}`);
+            const response = await fetch(`/api/calls/historical?${params}`, {
+                headers: this.getAuthHeaders()
+            });
+            
             if (!response.ok) {
+                if (response.status === 401) {
+                    // Redirect to login if unauthorized
+                    window.location.href = '/login.html';
+                    return;
+                }
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
@@ -289,7 +324,9 @@ class HistoryViewer {
     // Vehicle settings methods
     async loadVehicleSettings() {
         try {
-            const response = await fetch('/api/vehicle/current');
+            const response = await fetch('/api/vehicle/current', {
+                headers: this.getAuthHeaders()
+            });
             if (response.ok) {
                 const result = await response.json();
                 if (result.success && result.data) {
@@ -319,9 +356,11 @@ class HistoryViewer {
                 'אופנוע': 'אופנוע',
                 'פיקנטו': 'פיקנטו', 
                 'אמבולנס': 'אמבולנס',
+                'כונן אישי': 'כונן אישי',
                 'motorcycle': 'אופנוע',
                 'picanto': 'פיקנטו',
-                'ambulance': 'אמבולנס'
+                'ambulance': 'אמבולנס',
+                'personal_standby': 'כונן אישי'
             };
             typeElement.textContent = typeMap[this.currentVehicle.type] || this.currentVehicle.type;
         }
@@ -339,7 +378,8 @@ class HistoryViewer {
             const typeMap = {
                 'אופנוע': 'motorcycle',
                 'פיקנטו': 'picanto',
-                'אמבולנס': 'ambulance'
+                'אמבולנס': 'ambulance',
+                'כונן אישי': 'personal_standby'
             };
             typeSelect.value = typeMap[this.currentVehicle.type] || this.currentVehicle.type;
         }
@@ -359,11 +399,9 @@ class HistoryViewer {
         try {
             this.setLoading(true);
 
-            const response = await fetch('/api/vehicle/settings', {
+            const response = await fetch('/api/vehicle/current', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: this.getAuthHeaders(),
                 body: JSON.stringify({
                     vehicle_number: vehicleNumber,
                     vehicle_type: vehicleType

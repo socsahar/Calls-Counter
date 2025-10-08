@@ -926,25 +926,33 @@ app.delete('/api/calls/:id', authenticateToken, async (req, res) => {
 });
 
 // Get current vehicle settings
-app.get('/api/vehicle/current', async (req, res) => {
+app.get('/api/vehicle/current', authenticateToken, async (req, res) => {
     try {
-        const { data, error } = await supabase.rpc('get_current_vehicle');
+        // Get user's MDA code and auto-detect vehicle type
+        const userMdaCode = req.user ? req.user.mdaCode : '5248';
+        const detectedVehicleType = detectVehicleType(userMdaCode);
 
-        if (error) {
-            console.error('Supabase error:', error);
-            return res.status(400).json({
-                success: false,
-                message: 'שגיאה בטעינת הגדרות הרכב',
-                error: error.message
-            });
+        // Try to get user-specific vehicle settings first
+        const { data, error } = await supabase
+            .from('user_vehicle_settings')
+            .select('vehicle_number, vehicle_type')
+            .eq('user_id', req.user.user_id)
+            .single();
+
+        let currentVehicle;
+        if (data && !error) {
+            // User has custom vehicle settings
+            currentVehicle = {
+                vehicle_number: data.vehicle_number,
+                vehicle_type: data.vehicle_type
+            };
+        } else {
+            // Use user's MDA code as default vehicle
+            currentVehicle = {
+                vehicle_number: userMdaCode,
+                vehicle_type: detectedVehicleType
+            };
         }
-
-        // If no current vehicle set, return default
-        const currentVehicle = data && data.length > 0 ? data[0] : {
-            vehicle_number: '5248',
-            vehicle_type: 'motorcycle',
-            driver_name: 'סהר מלול'
-        };
 
         res.json({
             success: true,
@@ -961,7 +969,7 @@ app.get('/api/vehicle/current', async (req, res) => {
 });
 
 // Update current vehicle settings
-app.post('/api/vehicle/current', async (req, res) => {
+app.post('/api/vehicle/current', authenticateToken, async (req, res) => {
     try {
         const { vehicle_number, vehicle_type } = req.body;
 
@@ -972,10 +980,19 @@ app.post('/api/vehicle/current', async (req, res) => {
             });
         }
 
-        const { data, error } = await supabase.rpc('set_current_vehicle', {
-            new_vehicle_number: vehicle_number,
-            new_vehicle_type: vehicle_type
-        });
+        // Update or insert user-specific vehicle settings
+        const { data, error } = await supabase
+            .from('user_vehicle_settings')
+            .upsert({
+                user_id: req.user.user_id,
+                vehicle_number: vehicle_number,
+                vehicle_type: vehicle_type,
+                updated_at: new Date().toISOString()
+            }, {
+                onConflict: 'user_id'
+            })
+            .select()
+            .single();
 
         if (error) {
             console.error('Supabase error:', error);
