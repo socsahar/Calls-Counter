@@ -1085,8 +1085,26 @@ app.get('/api/health', (req, res) => {
         message: 'Server is running',
         timestamp: new Date().toISOString(),
         platform: process.platform,
-        node_version: process.version
+        node_version: process.version,
+        git_commit: process.env.RENDER_GIT_COMMIT || 'unknown',
+        deployment_time: process.env.RENDER_DEPLOYED_AT || 'unknown'
     });
+});
+
+// Simple diagnostic endpoint
+app.get('/api/status', (req, res) => {
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.send(`MDA CallCounter Status
+====================
+Time: ${new Date().toISOString()}
+Platform: ${process.platform}
+Node: ${process.version}
+Git Commit: ${process.env.RENDER_GIT_COMMIT || 'unknown'}
+Deployed At: ${process.env.RENDER_DEPLOYED_AT || 'unknown'}
+User Agent: ${req.headers['user-agent'] || 'unknown'}
+IP: ${req.ip || req.connection.remoteAddress || 'unknown'}
+
+If you see this message, the server is working correctly!`);
 });
 
 // Root route explicitly
