@@ -500,8 +500,9 @@ class CallCounter {
 
     async loadCalls() {
         try {
-            // Load all calls first, then we can filter on frontend if needed
-            const response = await fetch('/api/calls');
+            // Load only today's calls for the "Latest Calls" section
+            const today = new Date().toISOString().split('T')[0];
+            const response = await fetch(`/api/calls?date=${today}`);
             const result = await response.json();
 
             if (result.success) {
