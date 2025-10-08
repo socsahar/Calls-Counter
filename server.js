@@ -171,9 +171,12 @@ const authenticateToken = async (req, res, next) => {
             req.user = {
                 user_id: decoded.userId,
                 username: decoded.username,
-                mda_code: decoded.mdaCode
+                mda_code: decoded.mdaCode,
+                mdaCode: decoded.mdaCode,  // Add both formats for compatibility
+                full_name: decoded.fullName || 'משתמש'
             };
         }
+        console.log('🔐 Authenticated user:', req.user.username, 'MDA:', req.user.mda_code);
         next();
     } catch (error) {
         console.error('Token verification error:', error);
@@ -423,6 +426,22 @@ app.get('/api/auth/me', authenticateToken, (req, res) => {
     });
 });
 
+// Debug endpoint to check user info
+app.get('/api/debug/user', authenticateToken, async (req, res) => {
+    try {
+        res.json({
+            success: true,
+            user: req.user,
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
 // Check if username exists
 app.get('/api/auth/check-username', async (req, res) => {
     try {
@@ -496,8 +515,10 @@ app.get('/api/calls', authenticateToken, async (req, res) => {
         
         // CRITICAL: Filter by user_id to ensure data isolation
         if (req.user && req.user.user_id) {
+            console.log('📞 Loading calls for user:', req.user.username, 'ID:', req.user.user_id);
             query = query.eq('user_id', req.user.user_id);
         } else {
+            console.error('📞 No user found in request:', req.user);
             // If no user is authenticated, return empty data
             return res.json({ 
                 success: true, 
@@ -533,6 +554,7 @@ app.get('/api/calls', authenticateToken, async (req, res) => {
             });
         }
 
+        console.log('📞 Loaded', data ? data.length : 0, 'calls for user', req.user.username);
         res.json({ 
             success: true, 
             data: data || [],

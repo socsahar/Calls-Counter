@@ -2,14 +2,17 @@
 
 // Check authentication before initializing the app
 function checkAuthentication() {
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
     
     if (!token) {
+        console.log('🔐 No auth token found, redirecting to login');
         window.location.href = '/login.html';
         return false;
     }
 
-    // Validate token with server
+    console.log('🔐 Auth token found, proceeding with initialization');
+    
+    // Do async validation in background without blocking initialization
     fetch('/api/auth/validate', {
         headers: {
             'Authorization': `Bearer ${token}`
@@ -45,6 +48,12 @@ function checkAuthentication() {
             if (typeof updateVehicleBadge === 'function') {
                 updateVehicleBadge();
             }
+            
+            // Refresh data if CallCounter is initialized
+            if (window.callCounter) {
+                window.callCounter.loadStats();
+                window.callCounter.loadCalls();
+            }
         }
     })
     .catch(error => {
@@ -60,24 +69,7 @@ function checkAuthentication() {
     return true;
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    // Check authentication first
-    if (!checkAuthentication()) {
-        return;
-    }
-
-    const contextMenu = document.getElementById('contextMenu');
-    if (contextMenu) {
-        contextMenu.addEventListener('click', (event) => {
-            const action = event.target.closest('.context-menu-item')?.dataset.action;
-            const callId = contextMenu.dataset.callId;
-            if (action && callId && window.callCounter) {
-                window.callCounter.handleContextMenuAction(action, callId);
-                window.callCounter.hideContextMenu();
-            }
-        });
-    }
-});
+// Context menu initialization will be handled in CallCounter init
 
 // MDA CallCounter - Client-side JavaScript
 class CallCounter {
@@ -1435,7 +1427,27 @@ window.addEventListener('offline', () => {
 // Initialize the application when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🏍️ MDA CallCounter - Starting initialization...');
+    
+    // Check authentication first
+    if (!checkAuthentication()) {
+        return;
+    }
+    
+    // Initialize CallCounter
     window.callCounter = new CallCounter();
+    
+    // Setup context menu
+    const contextMenu = document.getElementById('contextMenu');
+    if (contextMenu) {
+        contextMenu.addEventListener('click', (event) => {
+            const action = event.target.closest('.context-menu-item')?.dataset.action;
+            const callId = contextMenu.dataset.callId;
+            if (action && callId && window.callCounter) {
+                window.callCounter.handleContextMenuAction(action, callId);
+                window.callCounter.hideContextMenu();
+            }
+        });
+    }
     
     // Add some helpful dev tools in development
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
