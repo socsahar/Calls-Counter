@@ -484,7 +484,7 @@ app.post('/api/auth/logout', authenticateToken, async (req, res) => {
 // API Routes
 
 // Get all calls for today
-app.get('/api/calls', optionalAuth, async (req, res) => {
+app.get('/api/calls', authenticateToken, async (req, res) => {
     try {
         const { date, call_type, vehicle_type, vehicle_number } = req.query;
         const targetDate = date || new Date().toISOString().split('T')[0];
@@ -549,7 +549,7 @@ app.get('/api/calls', optionalAuth, async (req, res) => {
 });
 
 // Get historical calls (by year and optional month)
-app.get('/api/calls/historical', optionalAuth, async (req, res) => {
+app.get('/api/calls/historical', authenticateToken, async (req, res) => {
     try {
         const { year, month } = req.query;
         
@@ -1019,7 +1019,7 @@ app.post('/api/vehicle/current', authenticateToken, async (req, res) => {
 });
 
 // Get statistics  
-app.get('/api/stats', optionalAuth, async (req, res) => {
+app.get('/api/stats', authenticateToken, async (req, res) => {
     try {
         // CRITICAL: Ensure user authentication for stats
         if (!req.user || !req.user.user_id) {

@@ -117,45 +117,91 @@ class CallCounter {
 
     // Helper method to get user's vehicle number from their MDA code
     getUserVehicleNumber() {
-        const userData = localStorage.getItem('userData') || sessionStorage.getItem('userData');
-        if (userData) {
-            const user = JSON.parse(userData);
-            return user.mdaCode || '5248'; // Fallback to 5248 if no MDA code
+        try {
+            // Try both localStorage and sessionStorage
+            const userData = localStorage.getItem('userData') || sessionStorage.getItem('userData');
+            console.log('📱 Getting user vehicle number, userData:', userData);
+            
+            if (userData) {
+                const user = JSON.parse(userData);
+                console.log('📱 Parsed user data:', user);
+                const mdaCode = user.mdaCode || user.mda_code;
+                console.log('📱 User MDA code:', mdaCode);
+                return mdaCode || '5248'; // Fallback to 5248 if no MDA code
+            }
+            
+            console.log('📱 No user data found, using fallback 5248');
+            return '5248'; // Default fallback
+        } catch (error) {
+            console.error('📱 Error getting user vehicle number:', error);
+            return '5248';
         }
-        return '5248'; // Default fallback
     }
 
     // Helper method to auto-detect vehicle type based on MDA code
     getUserVehicleType() {
-        const mdaCode = this.getUserVehicleNumber();
-        return this.detectVehicleType(mdaCode);
+        try {
+            const mdaCode = this.getUserVehicleNumber();
+            console.log('📱 Detecting vehicle type for MDA code:', mdaCode);
+            const vehicleType = this.detectVehicleType(mdaCode);
+            console.log('📱 Detected vehicle type:', vehicleType);
+            return vehicleType;
+        } catch (error) {
+            console.error('📱 Error detecting vehicle type:', error);
+            return 'motorcycle'; // Safe fallback
+        }
     }
 
     // Vehicle type detection function (same logic as server)
     detectVehicleType(mdaCode) {
-        if (!mdaCode || mdaCode.length < 2) return 'ambulance';
+        console.log('🚗 Detecting vehicle type for code:', mdaCode);
         
-        const firstDigit = mdaCode.charAt(0);
-        const firstTwoDigits = mdaCode.substring(0, 2);
+        if (!mdaCode || typeof mdaCode !== 'string') {
+            console.log('🚗 Invalid MDA code, defaulting to ambulance');
+            return 'ambulance';
+        }
+        
+        const codeStr = mdaCode.toString().trim();
+        if (codeStr.length < 2) {
+            console.log('🚗 Code too short, defaulting to ambulance');
+            return 'ambulance';
+        }
+        
+        const firstDigit = codeStr.charAt(0);
+        const firstTwoDigits = codeStr.substring(0, 2);
+        
+        console.log('🚗 Code analysis - length:', codeStr.length, 'first digit:', firstDigit, 'first two:', firstTwoDigits);
         
         // 5-digit codes starting with "12" are personal standby
-        if (mdaCode.length === 5 && firstTwoDigits === '12') {
+        if (codeStr.length === 5 && firstTwoDigits === '12') {
+            console.log('🚗 Detected: personal standby');
             return 'personal_standby';
         }
         
         // 4-digit codes
-        if (mdaCode.length === 4) {
-            if (firstDigit === '5') return 'motorcycle';
-            if (firstDigit === '6') return 'picanto';
-            if (['1', '2', '3', '4', '7', '8', '9'].includes(firstDigit)) return 'ambulance';
+        if (codeStr.length === 4) {
+            if (firstDigit === '5') {
+                console.log('🚗 Detected: motorcycle');
+                return 'motorcycle';
+            }
+            if (firstDigit === '6') {
+                console.log('🚗 Detected: picanto');
+                return 'picanto';
+            }
+            if (['1', '2', '3', '4', '7', '8', '9'].includes(firstDigit)) {
+                console.log('🚗 Detected: ambulance (4-digit)');
+                return 'ambulance';
+            }
         }
         
         // 2 or 3 digit codes starting with 1,2,3,4,7,8,9 are ambulances
-        if ((mdaCode.length === 2 || mdaCode.length === 3) && 
+        if ((codeStr.length === 2 || codeStr.length === 3) && 
             ['1', '2', '3', '4', '7', '8', '9'].includes(firstDigit)) {
+            console.log('🚗 Detected: ambulance (2-3 digit)');
             return 'ambulance';
         }
         
+        console.log('🚗 No specific detection, defaulting to ambulance');
         return 'ambulance'; // default
     }
 
@@ -177,14 +223,18 @@ class CallCounter {
             // Ensure loading overlay is hidden at start
             this.setLoading(false);
             
-            // Update vehicle info based on user's MDA code
+            // Initialize user info first
+            this.initUserInfo();
+            
+            // Update vehicle info based on user's MDA code - do this after user info is loaded
+            console.log('🏍️ Initializing vehicle settings...');
             this.currentVehicle = {
                 number: this.getUserVehicleNumber(),
                 type: this.getUserVehicleType()
             };
+            console.log('🏍️ Initial vehicle settings:', this.currentVehicle);
             
             await this.loadVehicleSettings();
-            this.initUserInfo();
             
             // Update vehicle badge if the function exists
             if (typeof updateVehicleBadge === 'function') {
@@ -642,36 +692,69 @@ class CallCounter {
 
     async loadStats() {
         try {
+            console.log('📊 Loading stats...');
             const response = await fetch('/api/stats', {
                 headers: this.getAuthHeaders()
             });
+            
+            console.log('📊 Stats response status:', response.status);
+            
+            if (!response.ok) {
+                if (response.status === 401) {
+                    console.log('📊 Authentication failed, redirecting to login');
+                    window.location.href = '/login.html';
+                    return;
+                }
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
             const result = await response.json();
+            console.log('📊 Stats result:', result);
 
             if (result.success) {
                 this.stats = result.data;
                 this.updateStatsDisplay();
+            } else {
+                console.error('📊 Error in stats result:', result.message);
             }
         } catch (error) {
-            console.error('Error loading stats:', error);
+            console.error('📊 Error loading stats:', error);
         }
     }
 
     async loadCalls() {
         try {
+            console.log('📞 Loading calls...');
             // Load only today's calls for the "Latest Calls" section
             const today = new Date().toISOString().split('T')[0];
             const response = await fetch(`/api/calls?date=${today}`, {
                 headers: this.getAuthHeaders()
             });
+            
+            console.log('📞 Calls response status:', response.status);
+            
+            if (!response.ok) {
+                if (response.status === 401) {
+                    console.log('📞 Authentication failed, redirecting to login');
+                    window.location.href = '/login.html';
+                    return;
+                }
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
             const result = await response.json();
+            console.log('📞 Calls result:', result);
 
             if (result.success) {
                 this.calls = result.data;
                 this.filteredCalls = [...this.calls];
+                console.log('📞 Loaded', this.calls.length, 'calls');
                 this.updateCallsDisplay();
+            } else {
+                console.error('📞 Error in calls result:', result.message);
             }
         } catch (error) {
-            console.error('Error loading calls:', error);
+            console.error('📞 Error loading calls:', error);
         }
     }
 
