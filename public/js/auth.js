@@ -2,12 +2,23 @@
 class AuthManager {
     constructor() {
         this.isLoading = false;
-        this.init();
+        console.log('🔐 AuthManager constructor called');
+        
+        // Delay initialization to ensure DOM is ready
+        setTimeout(() => {
+            this.init();
+        }, 50);
     }
 
     init() {
-        this.bindEvents();
-        this.setLoading(false);
+        try {
+            console.log('🔐 AuthManager init started');
+            this.bindEvents();
+            this.setLoading(false);
+            console.log('🔐 AuthManager init completed');
+        } catch (error) {
+            console.error('🔐 AuthManager init error:', error);
+        }
     }
 
     bindEvents() {
@@ -20,23 +31,40 @@ class AuthManager {
         // Register form
         const registerForm = document.getElementById('registerForm');
         if (registerForm) {
-            // Add mobile-specific event handling
+            console.log('📱 Found register form, binding events...');
+            
+            // Primary form submit handler
             registerForm.addEventListener('submit', (event) => {
-                console.log('📱 Register form submitted (mobile compatible)');
+                console.log('📱 Register form submitted');
+                event.preventDefault();
+                event.stopPropagation();
                 this.handleRegister(event);
             });
             
-            // Also add click handler for submit button as fallback
+            // Backup button click handler (for mobile compatibility)
             const registerBtn = document.getElementById('registerBtn');
             if (registerBtn) {
+                console.log('📱 Found register button, adding click handler...');
                 registerBtn.addEventListener('click', (event) => {
                     console.log('📱 Register button clicked');
-                    if (event.target.type !== 'submit') {
-                        event.preventDefault();
-                        this.handleRegister(event);
-                    }
+                    // Prevent default and directly call registration handler
+                    event.preventDefault();
+                    event.stopPropagation();
+                    
+                    // Create a synthetic event for the handler
+                    const syntheticEvent = {
+                        preventDefault: () => {},
+                        stopPropagation: () => {},
+                        target: registerForm
+                    };
+                    
+                    this.handleRegister(syntheticEvent);
                 });
+            } else {
+                console.error('📱 Register button not found!');
             }
+        } else {
+            console.error('📱 Register form not found!');
         }
 
         // Password confirmation validation
@@ -111,43 +139,69 @@ class AuthManager {
     }
 
     async handleRegister(event) {
-        event.preventDefault();
-        
-        console.log('📱 Starting registration process...');
-        
-        if (this.isLoading) {
-            console.log('📱 Already loading, ignoring duplicate submission');
-            return;
-        }
-        
-        const formData = {
-            fullName: document.getElementById('fullName').value.trim(),
-            username: document.getElementById('username').value.trim(),
-            password: document.getElementById('password').value,
-            confirmPassword: document.getElementById('confirmPassword').value,
-            mdaCode: document.getElementById('mdaCode').value.trim()
-        };
-
-        // Only add optional fields if they exist in the form
-        const phoneField = document.getElementById('phone');
-        const emailField = document.getElementById('email');
-        
-        if (phoneField) {
-            formData.phone = phoneField.value.trim();
-        }
-        
-        if (emailField) {
-            formData.email = emailField.value.trim();
-        }
-
-        console.log('📱 Form data collected:', { ...formData, password: '***', confirmPassword: '***' });
-
-        if (!this.validateRegisterForm(formData)) {
-            console.log('📱 Form validation failed');
-            return;
-        }
-
         try {
+            if (event && event.preventDefault) {
+                event.preventDefault();
+            }
+            
+            console.log('📱 Starting registration process...');
+            
+            if (this.isLoading) {
+                console.log('📱 Already loading, ignoring duplicate submission');
+                return;
+            }
+            
+            // Wait a moment to ensure DOM is ready
+            await new Promise(resolve => setTimeout(resolve, 50));
+            
+            const formData = {};
+            
+            // Safely get form field values with null checks
+            const fullNameField = document.getElementById('fullName');
+            const usernameField = document.getElementById('username');
+            const passwordField = document.getElementById('password');
+            const confirmPasswordField = document.getElementById('confirmPassword');
+            const mdaCodeField = document.getElementById('mdaCode');
+            
+            console.log('📱 Form fields found:', {
+                fullName: !!fullNameField,
+                username: !!usernameField,
+                password: !!passwordField,
+                confirmPassword: !!confirmPasswordField,
+                mdaCode: !!mdaCodeField
+            });
+            
+            if (!fullNameField || !usernameField || !passwordField || !confirmPasswordField || !mdaCodeField) {
+                console.error('📱 Missing required form fields');
+                this.showError('שגיאה: לא ניתן לגשת לשדות הטופס. אנא רענן את הדף ונסה שוב.');
+                return;
+            }
+            
+            formData.fullName = fullNameField.value.trim();
+            formData.username = usernameField.value.trim();
+            formData.password = passwordField.value;
+            formData.confirmPassword = confirmPasswordField.value;
+            formData.mdaCode = mdaCodeField.value.trim();
+
+            // Only add optional fields if they exist in the form
+            const phoneField = document.getElementById('phone');
+            const emailField = document.getElementById('email');
+            
+            if (phoneField) {
+                formData.phone = phoneField.value.trim();
+            }
+            
+            if (emailField) {
+                formData.email = emailField.value.trim();
+            }
+
+            console.log('📱 Form data collected:', { ...formData, password: '***', confirmPassword: '***' });
+
+            if (!this.validateRegisterForm(formData)) {
+                console.log('📱 Form validation failed');
+                return;
+            }
+
             this.setLoading(true);
             console.log('📱 Sending registration request...');
             
@@ -406,10 +460,28 @@ class AuthManager {
 }
 
 // Initialize auth manager when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('🔐 Auth system initialized');
-    window.authManager = new AuthManager();
-});
+function initializeAuthManager() {
+    console.log('🔐 Initializing Auth system...');
+    
+    // Ensure DOM is fully loaded
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                console.log('🔐 Auth system initialized (DOMContentLoaded)');
+                window.authManager = new AuthManager();
+            }, 100);
+        });
+    } else {
+        // DOM is already loaded
+        setTimeout(() => {
+            console.log('🔐 Auth system initialized (immediate)');
+            window.authManager = new AuthManager();
+        }, 100);
+    }
+}
+
+// Initialize immediately
+initializeAuthManager();
 
 // Export for use in other scripts
 window.AuthManager = AuthManager;
