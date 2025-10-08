@@ -714,6 +714,16 @@ function getVehicleEmoji(vehicleType) {
     }
 }
 
+function getVehicleHebrewName(vehicleType) {
+    switch(vehicleType) {
+        case 'motorcycle': return 'אופנוע';
+        case 'picanto': return 'פיקנטו';
+        case 'ambulance': return 'אמבולנס';
+        case 'personal_standby': return 'כונן אישי';
+        default: return 'אמבולנס';
+    }
+}
+
 // Create a new call
 app.post('/api/calls', authenticateToken, async (req, res) => {
     try {
@@ -744,7 +754,7 @@ app.post('/api/calls', authenticateToken, async (req, res) => {
         // Get user's MDA code and auto-detect vehicle type
         console.log('📞 Server: Getting user MDA code...');
         console.log('📞 Server: req.user object:', JSON.stringify(req.user, null, 2));
-        const userMdaCode = req.user && req.user.mdaCode ? req.user.mdaCode : null;
+        const userMdaCode = req.user && req.user.mda_code ? req.user.mda_code : null;
         
         console.log('📞 Server: Using MDA code:', userMdaCode);
         console.log('📞 Server: MDA code type:', typeof userMdaCode);
@@ -753,7 +763,8 @@ app.post('/api/calls', authenticateToken, async (req, res) => {
         
         const detectedVehicleType = detectVehicleType(userMdaCode);
         const vehicleEmoji = getVehicleEmoji(detectedVehicleType);
-        console.log('📞 Server: Detected vehicle type:', detectedVehicleType, 'emoji:', vehicleEmoji);
+        const vehicleHebrewName = getVehicleHebrewName(detectedVehicleType);
+        console.log('📞 Server: Detected vehicle type:', detectedVehicleType, 'emoji:', vehicleEmoji, 'hebrew:', vehicleHebrewName);
 
         // Calculate duration if end_time is provided
         let duration_minutes = null;
@@ -799,7 +810,7 @@ app.post('/api/calls', authenticateToken, async (req, res) => {
             description: description || null,
             duration_minutes,
             vehicle_number: userMdaCode,
-            vehicle_type: `${vehicleEmoji} ${detectedVehicleType}`,
+            vehicle_type: `${vehicleEmoji} ${vehicleHebrewName}`,
             created_at: new Date().toISOString()
         };
 
