@@ -95,6 +95,20 @@
     box-sizing: border-box;
 }
 
+/* Fix for mobile viewport and safe areas */
+html {
+    /* Prevent zoom on iOS */
+    -webkit-text-size-adjust: 100%;
+    /* Support for safe areas (iPhone X+) */
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+/* Mobile viewport fix */
+@viewport {
+    width: device-width;
+    zoom: 1.0;
+}
+
 :root {
     /* MDA Brand Colors */
     --mda-red: #dc2626;
@@ -174,6 +188,11 @@ body {
     direction: rtl;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    /* Fix for mobile viewport issues */
+    margin: 0;
+    padding: 0;
+    /* Ensure content doesn't get cut off on mobile */
+    padding-top: env(safe-area-inset-top);
 }
 
 /* ===== HEADER ===== */
@@ -186,6 +205,10 @@ body {
     top: 0;
     z-index: 100;
     border-bottom: 3px solid var(--mda-red-dark);
+    /* Mobile fixes */
+    min-height: 60px;
+    display: flex;
+    align-items: center;
 }
 
 .header-container {
@@ -240,18 +263,229 @@ body {
     color: var(--white);
 }
 
+/* ===== MOBILE BURGER MENU ===== */
+.mobile-menu-btn {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 40px;
+    height: 40px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    position: relative;
+}
+
+.burger-line {
+    width: 24px;
+    height: 2px;
+    background: var(--white);
+    margin: 3px 0;
+    transition: all 0.3s ease;
+    border-radius: 1px;
+}
+
+.mobile-menu-btn.active .burger-line:nth-child(1) {
+    transform: rotate(45deg) translate(6px, 6px);
+}
+
+.mobile-menu-btn.active .burger-line:nth-child(2) {
+    opacity: 0;
+}
+
+.mobile-menu-btn.active .burger-line:nth-child(3) {
+    transform: rotate(-45deg) translate(6px, -6px);
+}
+
+.mobile-menu-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(5px);
+}
+
+.mobile-menu-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.mobile-menu {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 280px;
+    height: 100vh;
+    background: var(--white);
+    box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+    overflow-y: auto;
+}
+
+.mobile-menu-overlay.active .mobile-menu {
+    transform: translateX(0);
+}
+
+.mobile-menu-header {
+    background: var(--mda-red);
+    color: var(--white);
+    padding: var(--space-4);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.mobile-menu-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.mobile-menu-close {
+    background: none;
+    border: none;
+    color: var(--white);
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: var(--space-1);
+    border-radius: 4px;
+    transition: background 0.2s ease;
+}
+
+.mobile-menu-close:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.mobile-menu-content {
+    padding: var(--space-4);
+}
+
+.mobile-menu-user {
+    margin-bottom: var(--space-5);
+    padding: var(--space-3);
+    background: var(--gray-50);
+    border-radius: 8px;
+    border: 1px solid var(--gray-200);
+}
+
+.mobile-motorcycle-badge {
+    text-align: center;
+}
+
+.mobile-badge-label {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--gray-600);
+    margin-bottom: var(--space-1);
+}
+
+.mobile-badge-number {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--mda-red);
+    margin-bottom: var(--space-1);
+}
+
+.mobile-badge-type {
+    display: block;
+    font-size: 0.9rem;
+    color: var(--gray-700);
+}
+
+.mobile-menu-nav {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.mobile-menu-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: right;
+    width: 100%;
+}
+
+.mobile-menu-item:hover {
+    background: var(--gray-50);
+    border-color: var(--mda-red);
+    transform: translateY(-1px);
+}
+
+.mobile-menu-icon {
+    font-size: 1.2rem;
+    min-width: 24px;
+}
+
+.mobile-menu-text {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--gray-800);
+}
+
+.mobile-logout-btn {
+    background: var(--mda-red);
+    color: var(--white);
+    border-color: var(--mda-red);
+    margin-top: var(--space-3);
+}
+
+.mobile-logout-btn:hover {
+    background: var(--mda-red-dark);
+    border-color: var(--mda-red-dark);
+}
+
+.mobile-logout-btn .mobile-menu-text {
+    color: var(--white);
+}
+
 @media (max-width: 768px) {
+    .header {
+        padding: var(--space-3) 0;
+        min-height: 56px;
+        /* Ensure header is not cut off on mobile */
+        position: -webkit-sticky;
+        position: sticky;
+        top: env(safe-area-inset-top, 0);
+        width: 100%;
+        box-sizing: border-box;
+    }
+    
+    .header-container {
+        padding: 0 var(--space-3);
+        min-height: 48px;
+        align-items: center;
+    }
+    
+    /* Hide desktop header actions on mobile */
     .header-actions {
-        gap: var(--space-2);
+        display: none;
     }
     
-    .settings-btn {
-        padding: var(--space-2) var(--space-3);
-        font-size: 0.8rem;
+    /* Show mobile burger menu button */
+    .mobile-menu-btn {
+        display: flex;
     }
     
-    .settings-icon {
-        font-size: 1rem;
+    /* Fix for mobile viewport cutting off content */
+    .motorcycle-badge {
+        display: none; /* Hidden on mobile, shown in menu instead */
     }
 }
 

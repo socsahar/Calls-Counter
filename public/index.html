@@ -2,10 +2,15 @@
 <html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>מעקב נסיעות - CallCounter</title>
     <meta name="description" content="מערכת מעקב נסיעות לכונן">
     <meta name="theme-color" content="#dc2626">
+    
+    <!-- Cache Control -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     
     <!-- PWA Meta Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -15,7 +20,7 @@
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏍️</text></svg>">
     
-    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/style.css?v=1.0.1">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -43,6 +48,15 @@
                 <span class="logo-icon">🏍️</span>
                 <h1 class="logo-text">מעקב נסיעות</h1>
             </div>
+            
+            <!-- Mobile burger menu button -->
+            <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="תפריט">
+                <span class="burger-line"></span>
+                <span class="burger-line"></span>
+                <span class="burger-line"></span>
+            </button>
+            
+            <!-- Desktop header actions -->
             <div class="header-actions">
                 <button class="settings-btn" id="historyBtn">
                     <span class="settings-icon">📊</span>
@@ -64,6 +78,39 @@
             </div>
         </div>
     </header>
+
+    <!-- Mobile Menu Overlay -->
+    <div class="mobile-menu-overlay" id="mobileMenuOverlay">
+        <div class="mobile-menu">
+            <div class="mobile-menu-header">
+                <div class="mobile-menu-title">תפריט</div>
+                <button class="mobile-menu-close" id="mobileMenuClose">×</button>
+            </div>
+            <div class="mobile-menu-content">
+                <div class="mobile-menu-user">
+                    <div class="mobile-motorcycle-badge" id="mobileBadge">
+                        <span class="mobile-badge-label">רכב</span>
+                        <span class="mobile-badge-number" id="mobileCurrentVehicle">-</span>
+                        <span class="mobile-badge-type" id="mobileCurrentVehicleType">טוען...</span>
+                    </div>
+                </div>
+                <nav class="mobile-menu-nav">
+                    <button class="mobile-menu-item" id="mobileHistoryBtn">
+                        <span class="mobile-menu-icon">📊</span>
+                        <span class="mobile-menu-text">היסטוריה</span>
+                    </button>
+                    <button class="mobile-menu-item" id="mobileVehicleSettingsBtn">
+                        <span class="mobile-menu-icon">⚙️</span>
+                        <span class="mobile-menu-text">הגדרות רכב</span>
+                    </button>
+                    <button class="mobile-menu-item mobile-logout-btn" id="mobileLogoutBtn">
+                        <span class="mobile-menu-icon">🚪</span>
+                        <span class="mobile-menu-text">יציאה</span>
+                    </button>
+                </nav>
+            </div>
+        </div>
+    </div>
 
     <!-- Main Content -->
     <main class="main-content">
@@ -332,7 +379,7 @@
         <span class="toast-message">שגיאה ברישום הנסיעה</span>
     </div>
 
-    <script src="/js/app.js"></script>
+    <script src="/js/app.js?v=1.0.1"></script>
     <script>
         // Vehicle type detection functions
         function detectVehicleType(mdaCode) {
@@ -471,10 +518,22 @@
                 document.getElementById('currentVehicle').textContent = userData.mda_code;
                 document.getElementById('currentVehicleType').innerHTML = vehicleEmoji + ' ' + vehicleHebrewName;
                 
+                // Update mobile badge as well
+                const mobileVehicle = document.getElementById('mobileCurrentVehicle');
+                const mobileVehicleType = document.getElementById('mobileCurrentVehicleType');
+                if (mobileVehicle) mobileVehicle.textContent = userData.mda_code;
+                if (mobileVehicleType) mobileVehicleType.innerHTML = vehicleEmoji + ' ' + vehicleHebrewName;
+                
                 console.log('🏍️ Vehicle updated:', userData.mda_code, vehicleType, vehicleHebrewName);
             } else {
                 document.getElementById('currentVehicle').textContent = '-';
                 document.getElementById('currentVehicleType').textContent = 'לא זוהה';
+                
+                // Update mobile badge as well
+                const mobileVehicle = document.getElementById('mobileCurrentVehicle');
+                const mobileVehicleType = document.getElementById('mobileCurrentVehicleType');
+                if (mobileVehicle) mobileVehicle.textContent = '-';
+                if (mobileVehicleType) mobileVehicleType.textContent = 'לא זוהה';
             }
         }
         

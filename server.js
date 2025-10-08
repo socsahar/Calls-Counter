@@ -82,34 +82,58 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Set proper MIME types for static files
+// Set proper MIME types and cache control for different content types
 app.use((req, res, next) => {
     // Set proper content types for various file extensions
     if (req.path.endsWith('.js')) {
         res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+        // Short cache for JS files to allow quick updates
+        res.setHeader('Cache-Control', 'public, max-age=300, must-revalidate'); // 5 minutes
     } else if (req.path.endsWith('.css')) {
         res.setHeader('Content-Type', 'text/css; charset=utf-8');
+        // Short cache for CSS files to allow quick updates
+        res.setHeader('Cache-Control', 'public, max-age=300, must-revalidate'); // 5 minutes
     } else if (req.path.endsWith('.html')) {
         res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        // No cache for HTML files to ensure fresh content
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
     } else if (req.path.endsWith('.json')) {
         res.setHeader('Content-Type', 'application/json; charset=utf-8');
+        // No cache for JSON API responses
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    } else if (req.path.startsWith('/api/')) {
+        // API endpoints should never be cached
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
     }
     
     // Add mobile-friendly headers
     res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('Cache-Control', 'public, max-age=3600');
     
     next();
 });
 
-// Serve static files with proper configuration
+// Serve static files with proper cache control
 app.use(express.static(path.join(__dirname, 'public'), {
-    setHeaders: (res, path, stat) => {
-        // Set cache headers for static assets
-        if (path.endsWith('.js') || path.endsWith('.css')) {
+    setHeaders: (res, filePath, stat) => {
+        // Different cache strategies based on file type
+        if (filePath.endsWith('.js') || filePath.endsWith('.css')) {
+            // Short cache for JS/CSS to allow quick updates
+            res.setHeader('Cache-Control', 'public, max-age=300, must-revalidate'); // 5 minutes
+        } else if (filePath.endsWith('.html')) {
+            // No cache for HTML files to ensure fresh content
+            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+            res.setHeader('Pragma', 'no-cache');
+            res.setHeader('Expires', '0');
+        } else if (filePath.match(/\.(png|jpg|jpeg|gif|ico|svg)$/)) {
+            // Longer cache for images (they rarely change)
             res.setHeader('Cache-Control', 'public, max-age=86400'); // 24 hours
-        } else if (path.endsWith('.html')) {
-            res.setHeader('Cache-Control', 'public, max-age=3600'); // 1 hour
+        } else {
+            // Default: short cache for other files
+            res.setHeader('Cache-Control', 'public, max-age=300, must-revalidate'); // 5 minutes
         }
     }
 }));
@@ -293,13 +317,29 @@ app.post('/api/auth/login', async (req, res) => {
         }
 
         // Authenticate user using database function
+        console.log('🔐 Login attempt for username:', username);
+        
         const { data: userData, error: authError } = await supabase
             .rpc('authenticate_user', {
                 p_username: username,
                 p_password: password
             });
 
-        if (authError || !userData || userData.length === 0) {
+        console.log('🔐 Auth result:', { 
+            userData: userData ? userData.length : 'null', 
+            error: authError ? authError.message : 'none' 
+        });
+
+        if (authError) {
+            console.error('🔐 Authentication error:', authError);
+            return res.status(401).json({
+                success: false,
+                message: 'שגיאה בהזדהות: ' + authError.message
+            });
+        }
+
+        if (!userData || userData.length === 0) {
+            console.log('🔐 No user data returned for username:', username);
             return res.status(401).json({
                 success: false,
                 message: 'שם משתמש או סיסמה שגויים'
@@ -454,6 +494,19 @@ app.get('/api/calls', optionalAuth, async (req, res) => {
             .select('*')
             .order('created_at', { ascending: false });
         
+        // CRITICAL: Filter by user_id to ensure data isolation
+        if (req.user && req.user.user_id) {
+            query = query.eq('user_id', req.user.user_id);
+        } else {
+            // If no user is authenticated, return empty data
+            return res.json({ 
+                success: true, 
+                data: [],
+                count: 0,
+                message: 'נדרשת הזדהות לצפייה בנתונים'
+            });
+        }
+        
         // Apply filters only if provided
         if (date) {
             query = query.gte('call_date', targetDate)
@@ -526,10 +579,19 @@ app.get('/api/calls/historical', optionalAuth, async (req, res) => {
 
         console.log(`📅 Historical query range: ${startDateStr} to ${endDateStr}`);
 
-        // Get calls data using call_date field for consistency
+        // CRITICAL: Filter by user_id to ensure data isolation
+        if (!req.user || !req.user.user_id) {
+            return res.status(401).json({
+                success: false,
+                message: 'נדרשת הזדהות לצפייה בנתונים היסטוריים'
+            });
+        }
+
+        // Get calls data using call_date field for consistency - FILTERED BY USER
         const { data: calls, error: callsError } = await supabase
             .from('calls')
             .select('*')
+            .eq('user_id', req.user.user_id)  // CRITICAL: Only user's own data
             .gte('call_date', startDateStr)
             .lt('call_date', endDateStr)
             .order('call_date', { ascending: false });
@@ -729,15 +791,15 @@ app.post('/api/calls', authenticateToken, async (req, res) => {
 });
 
 // Update call (mark as completed)
-app.put('/api/calls/:id', async (req, res) => {
+app.put('/api/calls/:id', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
         const { call_type, call_date, start_time, end_time, location, description } = req.body;
 
-        // Get the current call to calculate duration
+        // CRITICAL: First check if the call belongs to the authenticated user
         const { data: currentCall } = await supabase
             .from('calls')
-            .select('start_time')
+            .select('start_time, user_id')
             .eq('id', id)
             .single();
 
@@ -745,6 +807,14 @@ app.put('/api/calls/:id', async (req, res) => {
             return res.status(404).json({
                 success: false,
                 message: 'קריאה לא נמצאה'
+            });
+        }
+
+        // CRITICAL: Ensure user can only update their own calls
+        if (currentCall.user_id !== req.user.user_id) {
+            return res.status(403).json({
+                success: false,
+                message: 'אין הרשאה לעדכן קריאה זו'
             });
         }
 
@@ -800,14 +870,37 @@ app.put('/api/calls/:id', async (req, res) => {
 });
 
 // Delete call
-app.delete('/api/calls/:id', async (req, res) => {
+app.delete('/api/calls/:id', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
+
+        // CRITICAL: First check if the call belongs to the authenticated user
+        const { data: existingCall } = await supabase
+            .from('calls')
+            .select('user_id')
+            .eq('id', id)
+            .single();
+
+        if (!existingCall) {
+            return res.status(404).json({
+                success: false,
+                message: 'קריאה לא נמצאה'
+            });
+        }
+
+        // CRITICAL: Ensure user can only delete their own calls
+        if (existingCall.user_id !== req.user.user_id) {
+            return res.status(403).json({
+                success: false,
+                message: 'אין הרשאה למחוק קריאה זו'
+            });
+        }
 
         const { error } = await supabase
             .from('calls')
             .delete()
-            .eq('id', id);
+            .eq('id', id)
+            .eq('user_id', req.user.user_id);  // Double-check user ownership
 
         if (error) {
             console.error('Supabase error:', error);
@@ -907,59 +1000,44 @@ app.post('/api/vehicle/current', async (req, res) => {
         });
     }
 });
-app.delete('/api/calls/:id', async (req, res) => {
-    try {
-        const { id } = req.params;
-
-        const { error } = await supabase
-            .from('calls')
-            .delete()
-            .eq('id', id);
-
-        if (error) {
-            console.error('Supabase error:', error);
-            return res.status(400).json({
-                success: false,
-                message: 'שגיאה במחיקת הקריאה',
-                error: error.message
-            });
-        }
-
-        res.json({
-            success: true,
-            message: 'קריאה נמחקה בהצלחה'
-        });
-    } catch (error) {
-        console.error('Server error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'שגיאת שרת פנימית',
-            error: error.message
-        });
-    }
-});
 
 // Get statistics  
 app.get('/api/stats', optionalAuth, async (req, res) => {
     try {
+        // CRITICAL: Ensure user authentication for stats
+        if (!req.user || !req.user.user_id) {
+            return res.json({
+                success: true,
+                todayStats: {
+                    total: 0,
+                    urgent: 0,
+                    atan: 0,
+                    aran: 0,
+                    natbag: 0
+                },
+                message: 'נדרשת הזדהות לצפייה בסטטיסטיקות'
+            });
+        }
+        
         // Get current date in local timezone (where the server is running)
         const now = new Date();
         const today = now.toISOString().split('T')[0]; // YYYY-MM-DD format
         
         // Alternative approach: Get calls from today based on call_date field if it exists, 
-        // otherwise use created_at timestamp
+        // otherwise use created_at timestamp - FILTERED BY USER
         let todayCalls = [];
         
-        // First try using call_date field
+        // First try using call_date field - WITH USER FILTER
         const { data: callsByDate, error: dateError } = await supabase
             .from('calls')
             .select('*')
+            .eq('user_id', req.user.user_id)  // CRITICAL: Only user's own data
             .eq('call_date', today);
         
         if (!dateError && callsByDate) {
             todayCalls = callsByDate;
         } else {
-            // Fallback to created_at timestamp filtering
+            // Fallback to created_at timestamp filtering - WITH USER FILTER
             const startOfDay = new Date();
             startOfDay.setHours(0, 0, 0, 0);
             const endOfDay = new Date();
@@ -968,21 +1046,23 @@ app.get('/api/stats', optionalAuth, async (req, res) => {
             const { data: callsByTime, error: timeError } = await supabase
                 .from('calls')
                 .select('*')
+                .eq('user_id', req.user.user_id)  // CRITICAL: Only user's own data
                 .gte('created_at', startOfDay.toISOString())
                 .lte('created_at', endOfDay.toISOString());
                 
             todayCalls = callsByTime || [];
-            console.log(`⏰ Found ${todayCalls.length} calls using created_at timestamp for today`);
+            console.log(`⏰ Found ${todayCalls.length} calls using created_at timestamp for today (user: ${req.user.user_id})`);
             
             if (timeError) {
                 console.error('Time-based query error:', timeError);
             }
         }
         
-        // Also get all calls to verify what's in the database
+        // Also get recent calls to verify what's in the database - FILTERED BY USER
         const { data: allCalls, error: allError } = await supabase
             .from('calls')
             .select('id, call_type, call_date, created_at')
+            .eq('user_id', req.user.user_id)  // CRITICAL: Only user's own data
             .order('created_at', { ascending: false })
             .limit(10);
             
@@ -1105,6 +1185,38 @@ User Agent: ${req.headers['user-agent'] || 'unknown'}
 IP: ${req.ip || req.connection.remoteAddress || 'unknown'}
 
 If you see this message, the server is working correctly!`);
+});
+
+// Debug endpoint to check users (temporary)
+app.get('/api/debug/users', async (req, res) => {
+    try {
+        const { data: users, error } = await supabase
+            .from('users')
+            .select('user_id, username, full_name, mda_code, created_at')
+            .order('created_at', { ascending: false })
+            .limit(10);
+
+        if (error) {
+            return res.status(500).json({
+                success: false,
+                message: 'Database error',
+                error: error.message
+            });
+        }
+
+        res.json({
+            success: true,
+            message: 'Users found',
+            count: users ? users.length : 0,
+            users: users || []
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Server error',
+            error: error.message
+        });
+    }
 });
 
 // Root route explicitly

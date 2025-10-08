@@ -223,6 +223,9 @@ class CallCounter {
             });
         }
 
+        // Mobile menu handlers
+        this.initMobileMenu();
+
         // Vehicle settings modal close buttons
         const vehicleSettingsClose = document.getElementById('vehicleSettingsClose');
         const vehicleSettingsCancel = document.getElementById('vehicleSettingsCancel');
@@ -1119,6 +1122,113 @@ class CallCounter {
             sessionStorage.removeItem('userData');
             localStorage.removeItem('userData');
             window.location.href = '/login.html';
+        }
+    }
+
+    // Mobile menu initialization
+    initMobileMenu() {
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const mobileMenuOverlay = document.getElementById('mobileMenuOverlay');
+        const mobileMenuClose = document.getElementById('mobileMenuClose');
+        
+        // Mobile menu button
+        if (mobileMenuBtn) {
+            mobileMenuBtn.addEventListener('click', () => {
+                this.openMobileMenu();
+            });
+        }
+        
+        // Close button
+        if (mobileMenuClose) {
+            mobileMenuClose.addEventListener('click', () => {
+                this.closeMobileMenu();
+            });
+        }
+        
+        // Overlay click to close
+        if (mobileMenuOverlay) {
+            mobileMenuOverlay.addEventListener('click', (e) => {
+                if (e.target === mobileMenuOverlay) {
+                    this.closeMobileMenu();
+                }
+            });
+        }
+        
+        // Mobile menu items
+        const mobileHistoryBtn = document.getElementById('mobileHistoryBtn');
+        const mobileVehicleSettingsBtn = document.getElementById('mobileVehicleSettingsBtn');
+        const mobileLogoutBtn = document.getElementById('mobileLogoutBtn');
+        
+        if (mobileHistoryBtn) {
+            mobileHistoryBtn.addEventListener('click', () => {
+                window.location.href = '/history.html';
+            });
+        }
+        
+        if (mobileVehicleSettingsBtn) {
+            mobileVehicleSettingsBtn.addEventListener('click', () => {
+                this.closeMobileMenu();
+                this.loadVehicleSettings();
+                document.getElementById('vehicleSettingsModal').classList.remove('hidden');
+            });
+        }
+        
+        if (mobileLogoutBtn) {
+            mobileLogoutBtn.addEventListener('click', () => {
+                if (confirm('האם אתה בטוח שברצונך להתנתק?')) {
+                    this.logout();
+                }
+            });
+        }
+        
+        // Update mobile badge when vehicle changes
+        this.updateMobileBadge();
+    }
+    
+    openMobileMenu() {
+        const overlay = document.getElementById('mobileMenuOverlay');
+        const btn = document.getElementById('mobileMenuBtn');
+        
+        if (overlay) {
+            overlay.classList.add('active');
+            document.body.style.overflow = 'hidden'; // Prevent scroll
+        }
+        
+        if (btn) {
+            btn.classList.add('active');
+        }
+        
+        // Update mobile badge
+        this.updateMobileBadge();
+    }
+    
+    closeMobileMenu() {
+        const overlay = document.getElementById('mobileMenuOverlay');
+        const btn = document.getElementById('mobileMenuBtn');
+        
+        if (overlay) {
+            overlay.classList.remove('active');
+            document.body.style.overflow = ''; // Restore scroll
+        }
+        
+        if (btn) {
+            btn.classList.remove('active');
+        }
+    }
+    
+    updateMobileBadge() {
+        // Sync mobile badge with main badge
+        const currentVehicle = document.getElementById('currentVehicle');
+        const currentVehicleType = document.getElementById('currentVehicleType');
+        const mobileCurrentVehicle = document.getElementById('mobileCurrentVehicle');
+        const mobileCurrentVehicleType = document.getElementById('mobileCurrentVehicleType');
+        
+        if (currentVehicle && mobileCurrentVehicle) {
+            mobileCurrentVehicle.textContent = currentVehicle.textContent;
+        }
+        
+        if (currentVehicleType && mobileCurrentVehicleType) {
+            mobileCurrentVehicleType.innerHTML = currentVehicleType.innerHTML;
         }
     }
 
