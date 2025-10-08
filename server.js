@@ -683,19 +683,8 @@ function detectVehicleType(mdaCode) {
     const firstDigit = codeStr.charAt(0);
     const firstTwoDigits = codeStr.substring(0, 2);
     
-    // Personal standby detection - multiple patterns
-    // 5-digit codes starting with "12"
-    if (codeStr.length === 5 && firstTwoDigits === '12') {
-        return 'personal_standby';
-    }
-    
-    // 4-digit codes starting with "12" 
-    if (codeStr.length === 4 && firstTwoDigits === '12') {
-        return 'personal_standby';
-    }
-    
-    // Other personal standby patterns - codes with specific patterns
-    if (codeStr.length >= 4 && (codeStr.includes('12') || firstTwoDigits === '99')) {
+    // Personal standby detection - 5-digit codes starting with 1 or 2
+    if (codeStr.length === 5 && (firstDigit === '1' || firstDigit === '2')) {
         return 'personal_standby';
     }
     
@@ -1137,6 +1126,7 @@ app.get('/api/stats', authenticateToken, async (req, res) => {
         const { data: weeklyCalls, error: weeklyError } = await supabase
             .from('calls')
             .select('id, duration_minutes')
+            .eq('user_id', req.user.user_id)  // CRITICAL: Only user's own data
             .gte('call_date', weekStartStr)
             .lt('call_date', weekEndStr);
 
@@ -1151,6 +1141,7 @@ app.get('/api/stats', authenticateToken, async (req, res) => {
         const { data: monthlyCalls, error: monthlyError } = await supabase
             .from('calls')
             .select('id, duration_minutes')
+            .eq('user_id', req.user.user_id)  // CRITICAL: Only user's own data
             .gte('call_date', monthStartStr)
             .lt('call_date', monthEndStr);
 
