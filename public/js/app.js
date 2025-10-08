@@ -1163,9 +1163,7 @@ class CallCounter {
             
             const response = await fetch(`/api/calls/${callId}`, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: this.getAuthHeaders(),
                 body: JSON.stringify(formData)
             });
 
@@ -1193,7 +1191,8 @@ class CallCounter {
             this.setLoading(true);
             
             const response = await fetch(`/api/calls/${callId}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: this.getAuthHeaders()
             });
 
             const result = await response.json();
