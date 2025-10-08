@@ -673,15 +673,23 @@ class CallCounter {
         try {
             this.setLoading(true);
             
+            console.log('📞 Submitting call with data:', callData);
+            console.log('📞 Auth headers:', this.getAuthHeaders());
+            
             const response = await fetch('/api/calls', {
                 method: 'POST',
                 headers: this.getAuthHeaders(),
                 body: JSON.stringify(callData)
             });
 
+            console.log('📞 Response status:', response.status);
             const result = await response.json();
+            console.log('📞 Response result:', result);
 
             if (!response.ok) {
+                console.error('📞 Call submission failed:', result);
+                console.error('📞 Server error message:', result.message);
+                console.error('📞 Server error details:', result.error);
                 throw new Error(result.message || 'שגיאה ברישום הקריאה');
             }
 

@@ -717,6 +717,10 @@ function getVehicleEmoji(vehicleType) {
 // Create a new call
 app.post('/api/calls', authenticateToken, async (req, res) => {
     try {
+        console.log('📞 Server: Received call creation request');
+        console.log('📞 Server: Request body:', req.body);
+        console.log('📞 Server: User info:', req.user);
+        
         const {
             call_type,
             call_date,
@@ -727,7 +731,10 @@ app.post('/api/calls', authenticateToken, async (req, res) => {
         } = req.body;
 
         // Validation
+        console.log('📞 Server: Validating required fields...');
         if (!call_type || !call_date || !start_time || !location) {
+            console.log('📞 Server: Validation failed - missing required fields');
+            console.log('📞 Server: call_type:', call_type, 'call_date:', call_date, 'start_time:', start_time, 'location:', location);
             return res.status(400).json({
                 success: false,
                 message: 'נתונים חסרים: סוג קריאה, תאריך, שעת התחלה ומיקום הם שדות חובה'
@@ -735,9 +742,13 @@ app.post('/api/calls', authenticateToken, async (req, res) => {
         }
 
         // Get user's MDA code and auto-detect vehicle type
-        const userMdaCode = req.user ? req.user.mdaCode : '5248';
+        console.log('📞 Server: Getting user MDA code...');
+        const userMdaCode = req.user && req.user.mdaCode ? req.user.mdaCode : null;
+        
+        console.log('📞 Server: Using MDA code:', userMdaCode);
         const detectedVehicleType = detectVehicleType(userMdaCode);
         const vehicleEmoji = getVehicleEmoji(detectedVehicleType);
+        console.log('📞 Server: Detected vehicle type:', detectedVehicleType, 'emoji:', vehicleEmoji);
 
         // Calculate duration if end_time is provided
         let duration_minutes = null;
@@ -786,6 +797,8 @@ app.post('/api/calls', authenticateToken, async (req, res) => {
             vehicle_type: `${vehicleEmoji} ${detectedVehicleType}`,
             created_at: new Date().toISOString()
         };
+
+        console.log('📞 Server: Final call data:', callData);
 
         const { data, error } = await supabase
             .from('calls')
