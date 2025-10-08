@@ -22,13 +22,22 @@ class AuthManager {
     }
 
     bindEvents() {
+        // Detect which page we're on
+        const isLoginPage = window.location.pathname.includes('login.html') || document.getElementById('loginForm');
+        const isRegisterPage = window.location.pathname.includes('register.html') || document.getElementById('registerForm');
+        
+        console.log('🔐 Page detection - Login:', isLoginPage, 'Register:', isRegisterPage);
+
         // Login form
         const loginForm = document.getElementById('loginForm');
         if (loginForm) {
+            console.log('🔐 Found login form, binding events...');
             loginForm.addEventListener('submit', this.handleLogin.bind(this));
+        } else if (isLoginPage) {
+            console.error('🔐 Login form not found on login page!');
         }
 
-        // Register form
+        // Register form (only bind if register elements exist or we're on register page)
         const registerForm = document.getElementById('registerForm');
         if (registerForm) {
             console.log('📱 Found register form, binding events...');
@@ -60,14 +69,14 @@ class AuthManager {
                     
                     this.handleRegister(syntheticEvent);
                 });
-            } else {
-                console.error('📱 Register button not found!');
+            } else if (isRegisterPage) {
+                console.error('📱 Register button not found on register page!');
             }
-        } else {
-            console.error('📱 Register form not found!');
+        } else if (isRegisterPage) {
+            console.error('📱 Register form not found on register page!');
         }
 
-        // Password confirmation validation
+        // Password confirmation validation (only on register page)
         const confirmPassword = document.getElementById('confirmPassword');
         if (confirmPassword) {
             confirmPassword.addEventListener('input', this.validatePasswordMatch.bind(this));
@@ -75,7 +84,7 @@ class AuthManager {
 
         // Real-time username validation (only on register page)
         const username = document.getElementById('username');
-        if (username && document.getElementById('registerForm')) {
+        if (username && (registerForm || isRegisterPage)) {
             username.addEventListener('blur', this.validateUsername.bind(this));
         }
     }
