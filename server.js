@@ -15,6 +15,24 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// Helper function to convert English call types to Hebrew for backward compatibility
+function normalizeCallType(callType) {
+    const callTypeMap = {
+        'urgent': 'דחוף',
+        'atan': 'אט"ן', 
+        'aran': 'ארן',
+        'natbag': 'נתבג',
+        // Already Hebrew - return as is
+        'דחוף': 'דחוף',
+        'אט"ן': 'אט"ן',
+        'אט״ן': 'אט"ן', // Handle different quote marks
+        'ארן': 'ארן',
+        'נתבג': 'נתבג'
+    };
+    
+    return callTypeMap[callType] || callType;
+}
+
 // Security middleware
 app.use(helmet({
     contentSecurityPolicy: {
@@ -134,13 +152,21 @@ app.get('/api/calls/historical', async (req, res) => {
             });
         }
 
-        // Calculate statistics
+        // Calculate statistics (handle both Hebrew and English call types)
         const stats = {
             totalCalls: calls.length,
-            urgentCalls: calls.filter(call => call.call_type === 'דחוף').length,
-            atanCalls: calls.filter(call => call.call_type === 'אט"ן').length,
-            aranCalls: calls.filter(call => call.call_type === 'ארן').length,
-            natbagCalls: calls.filter(call => call.call_type === 'נתבג').length
+            urgentCalls: calls.filter(call => 
+                call.call_type === 'דחוף' || call.call_type === 'urgent'
+            ).length,
+            atanCalls: calls.filter(call => 
+                call.call_type === 'אט"ן' || call.call_type === 'אט״ן' || call.call_type === 'atan'
+            ).length,
+            aranCalls: calls.filter(call => 
+                call.call_type === 'ארן' || call.call_type === 'aran'
+            ).length,
+            natbagCalls: calls.filter(call => 
+                call.call_type === 'נתבג' || call.call_type === 'natbag'
+            ).length
         };
 
         res.json({
@@ -193,7 +219,7 @@ app.post('/api/calls', async (req, res) => {
         }
 
         const callData = {
-            call_type,
+            call_type: normalizeCallType(call_type),
             call_date,
             start_time,
             end_time: end_time || null,
@@ -259,7 +285,7 @@ app.put('/api/calls/:id', async (req, res) => {
             updated_at: new Date().toISOString()
         };
 
-        if (call_type !== undefined) updateData.call_type = call_type;
+        if (call_type !== undefined) updateData.call_type = normalizeCallType(call_type);
         if (call_date !== undefined) updateData.call_date = call_date;
         if (start_time !== undefined) updateData.start_time = start_time;
         if (end_time !== undefined) {

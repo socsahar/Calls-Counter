@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>היסטוריית קריאות - CallCounter</title>
+    <meta name="description" content="היסטוריית קריאות למד״א - אופנוע 5248">
+    <meta name="theme-color" content="#dc2626">
+    
+    <!-- PWA Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="היסטוריית קריאות">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏍️</text></svg>">
+    
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-container">
+            <div class="logo">
+                <span class="logo-icon">🏍️</span>
+                <h1 class="logo-text">היסטוריית קריאות</h1>
+            </div>
+            <div class="header-actions">
+                <button class="settings-btn" id="backBtn">
+                    <span class="settings-icon">🔙</span>
+                    חזרה
+                </button>
+                <button class="settings-btn" id="vehicleSettingsBtn">
+                    <span class="settings-icon">⚙️</span>
+                    הגדרות רכב
+                </button>
+                <div class="motorcycle-badge">
+                    <span class="badge-label">רכב</span>
+                    <span class="badge-number" id="currentVehicle">5248</span>
+                    <span class="badge-type" id="currentVehicleType">אופנוע</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Historical View Controls -->
+        <section class="form-section">
+            <div class="form-container">
+                <h2 class="form-title">בחירת תקופה</h2>
+                
+                <div class="history-filters">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="historyYear" class="form-label">שנה:</label>
+                            <select id="historyYear" class="form-input">
+                                <!-- Years will be populated dynamically -->
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="historyMonth" class="form-label">חודש:</label>
+                            <select id="historyMonth" class="form-input">
+                                <option value="">כל השנה</option>
+                                <option value="1">ינואר</option>
+                                <option value="2">פברואר</option>
+                                <option value="3">מרץ</option>
+                                <option value="4">אפריל</option>
+                                <option value="5">מאי</option>
+                                <option value="6">יוני</option>
+                                <option value="7">יולי</option>
+                                <option value="8">אוגוסט</option>
+                                <option value="9">ספטמבר</option>
+                                <option value="10">אוקטובר</option>
+                                <option value="11">נובמבר</option>
+                                <option value="12">דצמבר</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button id="loadHistoricalCalls" class="submit-btn">
+                        <span class="btn-icon">📊</span>
+                        טען קריאות
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Historical Statistics -->
+        <section class="stats-section" id="historicalStatsSection" style="display: none;">
+            <div id="historicalStats" class="stats-grid">
+                <!-- Statistics will be populated here -->
+            </div>
+        </section>
+
+        <!-- Historical Calls List -->
+        <section class="calls-section">
+            <div class="calls-container">
+                <div class="calls-header">
+                    <h2 class="section-title" id="historicalTitle">בחר תקופה להצגת קריאות</h2>
+                </div>
+                <div id="historicalCallsList" class="calls-list">
+                    <div class="empty-state">
+                        <div class="empty-icon">📋</div>
+                        <p class="empty-text">בחר שנה וחודש כדי להציג קריאות</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Vehicle Settings Modal -->
+    <div id="vehicleSettingsModal" class="modal hidden">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">הגדרות רכב</h3>
+                <button class="modal-close" id="vehicleSettingsClose">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="vehicleSettingsForm">
+                    <div class="form-group">
+                        <label for="vehicleNumber" class="form-label">מספר רכב</label>
+                        <input type="text" id="vehicleNumber" class="form-input" required placeholder="לדוגמה: 5248">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="vehicleType" class="form-label">סוג רכב</label>
+                        <select id="vehicleType" class="form-input" required>
+                            <option value="">בחר סוג רכב</option>
+                            <option value="motorcycle">🏍️ אופנוע</option>
+                            <option value="picanto">🚗 פיקנטו</option>
+                            <option value="ambulance">🚑 אמבולנס</option>
+                        </select>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary" id="vehicleSettingsCancel">ביטול</button>
+                        <button type="submit" class="btn-primary">שמור הגדרות</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <p class="footer-text">מערכת רישום ומעקב נסיעות | סהר מלול</p>
+            <p class="footer-version">CallCounter v1.0 - היסטוריה</p>
+        </div>
+    </footer>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="loading-spinner"></div>
+        <p class="loading-text">טוען נתונים...</p>
+    </div>
+
+    <!-- Success Toast -->
+    <div id="successToast" class="toast toast-success hidden">
+        <span class="toast-icon">✅</span>
+        <span class="toast-message">נתונים נטענו בהצלחה!</span>
+    </div>
+
+    <!-- Error Toast -->
+    <div id="errorToast" class="toast toast-error hidden">
+        <span class="toast-icon">❌</span>
+        <span class="toast-message">שגיאה בטעינת הנתונים</span>
+    </div>
+
+    <script src="/js/history.js"></script>
+</body>
+</html>

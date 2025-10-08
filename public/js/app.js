@@ -112,7 +112,7 @@ class CallCounter {
         const historyBtn = document.getElementById('historyBtn');
         if (historyBtn) {
             historyBtn.addEventListener('click', () => {
-                this.showHistoryModal();
+                window.location.href = '/history.html';
             });
         }
 
@@ -141,22 +141,6 @@ class CallCounter {
         if (editModalCancel) {
             editModalCancel.addEventListener('click', () => {
                 document.getElementById('editModal').classList.add('hidden');
-            });
-        }
-
-        // Historical view modal close button
-        const historyModalClose = document.getElementById('historyModalClose');
-        if (historyModalClose) {
-            historyModalClose.addEventListener('click', () => {
-                document.getElementById('historyModal').classList.add('hidden');
-            });
-        }
-
-        // Load historical calls button
-        const loadHistoricalBtn = document.getElementById('loadHistoricalCalls');
-        if (loadHistoricalBtn) {
-            loadHistoricalBtn.addEventListener('click', () => {
-                this.loadHistoricalCalls();
             });
         }
 
@@ -572,8 +556,14 @@ class CallCounter {
 
     createCallHTML(call) {
         const callTypeNames = {
+            'דחוף': 'דחוף',
+            'אט״ן': 'אט״ן', 
+            'אט"ן': 'אט״ן',
+            'ארן': 'ארן',
+            'נתבג': 'נתבג',
+            // Backward compatibility with English values
             urgent: 'דחוף',
-            atan: 'אט"ן',
+            atan: 'אט״ן',
             aran: 'ארן',
             natbag: 'נתבג'
         };
@@ -1022,174 +1012,6 @@ class CallCounter {
         }
     }
 
-    // Historical view methods
-    showHistoryModal() {
-        this.populateYearOptions();
-        document.getElementById('historyModal').classList.remove('hidden');
-    }
-
-    populateYearOptions() {
-        const yearSelect = document.getElementById('historyYear');
-        if (!yearSelect) return;
-
-        const currentYear = new Date().getFullYear();
-        yearSelect.innerHTML = '';
-        
-        // Add years from current year back to 2020
-        for (let year = currentYear; year >= 2020; year--) {
-            const option = document.createElement('option');
-            option.value = year;
-            option.textContent = year;
-            if (year === currentYear) {
-                option.selected = true;
-            }
-            yearSelect.appendChild(option);
-        }
-    }
-
-    async loadHistoricalCalls() {
-        const year = document.getElementById('historyYear').value;
-        const month = document.getElementById('historyMonth').value;
-        
-        if (!year) {
-            this.showToast('יש לבחור שנה', 'error');
-            return;
-        }
-
-        try {
-            this.setLoading(true);
-            
-            // Build query parameters
-            const params = new URLSearchParams();
-            params.append('year', year);
-            if (month) {
-                params.append('month', month);
-            }
-
-            const response = await fetch(`/api/calls/historical?${params}`);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
-            
-            this.displayHistoricalStats(data.stats, year, month);
-            this.displayHistoricalCalls(data.calls, year, month);
-            
-        } catch (error) {
-            console.error('Error loading historical calls:', error);
-            this.showToast('שגיאה בטעינת הנתונים ההיסטוריים', 'error');
-        } finally {
-            this.setLoading(false);
-        }
-    }
-
-    displayHistoricalStats(stats, year, month) {
-        const statsContainer = document.getElementById('historicalStats');
-        if (!statsContainer) return;
-
-        const monthNames = {
-            1: 'ינואר', 2: 'פברואר', 3: 'מרץ', 4: 'אפריל',
-            5: 'מאי', 6: 'יוני', 7: 'יולי', 8: 'אוגוסט',
-            9: 'ספטמבר', 10: 'אוקטובר', 11: 'נובמבר', 12: 'דצמבר'
-        };
-
-        const periodText = month ? `${monthNames[parseInt(month)]} ${year}` : `שנת ${year}`;
-
-        statsContainer.innerHTML = `
-            <div class="historical-period-title">
-                סטטיסטיקות ${periodText}
-            </div>
-            <div class="historical-stats">
-                <div class="historical-stat-card">
-                    <div class="historical-stat-number">${stats.totalCalls || 0}</div>
-                    <div class="historical-stat-label">סה״כ קריאות</div>
-                </div>
-                <div class="historical-stat-card">
-                    <div class="historical-stat-number">${stats.urgentCalls || 0}</div>
-                    <div class="historical-stat-label">קריאות דחופות</div>
-                </div>
-                <div class="historical-stat-card">
-                    <div class="historical-stat-number">${stats.atanCalls || 0}</div>
-                    <div class="historical-stat-label">קריאות אט״ן</div>
-                </div>
-                <div class="historical-stat-card">
-                    <div class="historical-stat-number">${Math.round((stats.totalCalls || 0) * 0.5)}</div>
-                    <div class="historical-stat-label">שעות משוערות</div>
-                </div>
-            </div>
-        `;
-    }
-
-    displayHistoricalCalls(calls, year, month) {
-        const callsList = document.getElementById('historicalCallsList');
-        if (!callsList) return;
-
-        if (!calls || calls.length === 0) {
-            const monthNames = {
-                1: 'ינואר', 2: 'פברואר', 3: 'מרץ', 4: 'אפריל',
-                5: 'מאי', 6: 'יוני', 7: 'יולי', 8: 'אוגוסט',
-                9: 'ספטמבר', 10: 'אוקטובר', 11: 'נובמבר', 12: 'דצמבר'
-            };
-            const periodText = month ? `${monthNames[parseInt(month)]} ${year}` : `שנת ${year}`;
-            
-            callsList.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-icon">📋</div>
-                    <p class="empty-text">לא נמצאו קריאות עבור ${periodText}</p>
-                </div>
-            `;
-            return;
-        }
-
-        const callsHtml = calls.map(call => {
-            const callDate = new Date(call.created_at);
-            const formattedDate = callDate.toLocaleDateString('he-IL');
-            const formattedTime = callDate.toLocaleTimeString('he-IL', { 
-                hour: '2-digit', 
-                minute: '2-digit' 
-            });
-
-            const callTypeMap = {
-                'דחוף': { text: 'דחוף', class: 'urgent' },
-                'אט"ן': { text: 'אט״ן', class: 'atan' },
-                'ארן': { text: 'ארן', class: 'aran' },
-                'נתבג': { text: 'נתבג', class: 'natbag' }
-            };
-
-            const callTypeInfo = callTypeMap[call.call_type] || { text: call.call_type, class: 'default' };
-
-            return `
-                <div class="call-item">
-                    <div class="call-header">
-                        <div class="call-type call-type-${callTypeInfo.class}">
-                            ${callTypeInfo.text}
-                        </div>
-                        <div class="call-time">
-                            ${formattedDate} • ${formattedTime}
-                        </div>
-                    </div>
-                    <div class="call-details">
-                        <div class="call-location">
-                            <strong>מיקום:</strong> ${call.location}
-                        </div>
-                        ${call.description ? `
-                            <div class="call-description">
-                                <strong>תיאור:</strong> ${call.description}
-                            </div>
-                        ` : ''}
-                        ${call.destination ? `
-                            <div class="call-destination">
-                                <strong>יעד:</strong> ${call.destination}
-                            </div>
-                        ` : ''}
-                    </div>
-                </div>
-            `;
-        }).join('');
-
-        callsList.innerHTML = callsHtml;
-    }
 }
 
 // Service Worker registration for PWA functionality

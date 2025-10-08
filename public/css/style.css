@@ -1231,3 +1231,43 @@ textarea:focus {
     font-size: 3em;
     margin-bottom: 15px;
 }
+
+/* ===== HISTORY PAGE SPECIFIC STYLES ===== */
+.history-filters {
+    background: var(--gray-50);
+    padding: 20px;
+    border-radius: var(--radius-lg);
+    margin-bottom: 0;
+    border: 1px solid var(--gray-200);
+}
+
+.history-filters .form-title {
+    margin-bottom: 20px;
+    color: var(--gray-800);
+    text-align: center;
+}
+
+/* Back button styling */
+.settings-btn[id="backBtn"] {
+    background: linear-gradient(135deg, var(--mda-red) 0%, var(--mda-red-dark) 100%);
+    color: var(--white);
+    border-color: var(--mda-red);
+}
+
+.settings-btn[id="backBtn"]:hover {
+    background: linear-gradient(135deg, var(--mda-red-dark) 0%, var(--mda-red) 100%);
+    border-color: var(--mda-red-dark);
+    color: var(--white);
+}
+
+/* History page responsive adjustments */
+@media (max-width: 768px) {
+    .history-filters .form-row {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .history-filters .form-group {
+        margin-bottom: 15px;
+    }
+}

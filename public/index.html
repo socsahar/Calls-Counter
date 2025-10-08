@@ -99,10 +99,10 @@
                         <label for="callType" class="form-label">סוג הקריאה</label>
                         <select id="callType" class="form-input" required>
                             <option value="">בחר סוג קריאה</option>
-                            <option value="urgent">דחוף</option>
-                            <option value="atan">אט"ן</option>
-                            <option value="aran">ארן</option>
-                            <option value="natbag">נתבג</option>
+                            <option value="דחוף">דחוף</option>
+                            <option value="אט״ן">אט״ן</option>
+                            <option value="ארן">ארן</option>
+                            <option value="נתבג">נתבג</option>
                         </select>
                     </div>
 
@@ -154,10 +154,10 @@
                         <input type="text" id="filterSearch" class="filter-search" placeholder="חיפוש לפי כתובת, תיאור...">
                         <select id="filterCallType" class="filter-select">
                             <option value="">כל הסוגים</option>
-                            <option value="urgent">דחוף</option>
-                            <option value="atan">אט"ן</option>
-                            <option value="aran">ארן</option>
-                            <option value="natbag">נתבג</option>
+                            <option value="דחוף">דחוף</option>
+                            <option value="אט״ן">אט״ן</option>
+                            <option value="ארן">ארן</option>
+                            <option value="נתבג">נתבג</option>
                         </select>
                         <select id="filterVehicleType" class="filter-select">
                             <option value="">כל הרכבים</option>
@@ -188,59 +188,6 @@
         <div class="context-menu-item" data-action="delete">
             <span class="context-icon">🗑️</span>
             מחיקה
-        </div>
-    </div>
-
-    <!-- Historical View Modal -->
-    <div id="historyModal" class="modal hidden">
-        <div class="modal-overlay"></div>
-        <div class="modal-content history-modal">
-            <div class="modal-header">
-                <h3 class="modal-title">היסטוריית קריאות</h3>
-                <button class="modal-close" id="historyModalClose">×</button>
-            </div>
-            <div class="modal-body">
-                <div class="history-filters">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="historyYear" class="form-label">שנה:</label>
-                            <select id="historyYear" class="form-input">
-                                <!-- Years will be populated dynamically -->
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="historyMonth" class="form-label">חודש:</label>
-                            <select id="historyMonth" class="form-input">
-                                <option value="">כל השנה</option>
-                                <option value="1">ינואר</option>
-                                <option value="2">פברואר</option>
-                                <option value="3">מרץ</option>
-                                <option value="4">אפריל</option>
-                                <option value="5">מאי</option>
-                                <option value="6">יוני</option>
-                                <option value="7">יולי</option>
-                                <option value="8">אוגוסט</option>
-                                <option value="9">ספטמבר</option>
-                                <option value="10">אוקטובר</option>
-                                <option value="11">נובמבר</option>
-                                <option value="12">דצמבר</option>
-                            </select>
-                        </div>
-                    </div>
-                    <button id="loadHistoricalCalls" class="btn-primary">טען קריאות</button>
-                </div>
-                
-                <div id="historicalStats" class="historical-stats">
-                    <!-- Statistics will be populated here -->
-                </div>
-                
-                <div id="historicalCallsList" class="calls-list">
-                    <div class="empty-state">
-                        <div class="empty-icon">📋</div>
-                        <p class="empty-text">בחר שנה וחודש כדי להציג קריאות</p>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -293,10 +240,10 @@
                     <div class="form-group">
                         <label for="editCallType" class="form-label">סוג הקריאה</label>
                         <select id="editCallType" class="form-input" required>
-                            <option value="urgent">דחוף</option>
-                            <option value="atan">אט"ן</option>
-                            <option value="aran">ארן</option>
-                            <option value="natbag">נתבג</option>
+                            <option value="דחוף">דחוף</option>
+                            <option value="אט״ן">אט״ן</option>
+                            <option value="ארן">ארן</option>
+                            <option value="נתבג">נתבג</option>
                         </select>
                     </div>
 
