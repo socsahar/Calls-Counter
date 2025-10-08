@@ -58,7 +58,6 @@ class HistoryViewer {
             // Ensure loading overlay is hidden at start
             this.setLoading(false);
             
-            await this.loadVehicleSettings();
             this.bindEvents();
             this.populateYearOptions();
             
@@ -78,26 +77,38 @@ class HistoryViewer {
             });
         }
 
-        // Vehicle settings button
-        const vehicleSettingsBtn = document.getElementById('vehicleSettingsBtn');
-        if (vehicleSettingsBtn) {
-            vehicleSettingsBtn.addEventListener('click', () => {
-                this.loadVehicleSettings();
-                document.getElementById('vehicleSettingsModal').classList.remove('hidden');
+        // Mobile menu functionality
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const mobileMenuOverlay = document.getElementById('mobileMenuOverlay');
+        const mobileMenuClose = document.getElementById('mobileMenuClose');
+        const mobileBackBtn = document.getElementById('mobileBackBtn');
+
+        if (mobileMenuBtn) {
+            mobileMenuBtn.addEventListener('click', () => {
+                mobileMenuOverlay.classList.add('active');
+                mobileMenuBtn.classList.add('active');
             });
         }
 
-        // Vehicle settings modal close buttons
-        const vehicleSettingsClose = document.getElementById('vehicleSettingsClose');
-        const vehicleSettingsCancel = document.getElementById('vehicleSettingsCancel');
-        if (vehicleSettingsClose) {
-            vehicleSettingsClose.addEventListener('click', () => {
-                document.getElementById('vehicleSettingsModal').classList.add('hidden');
+        if (mobileMenuClose) {
+            mobileMenuClose.addEventListener('click', () => {
+                mobileMenuOverlay.classList.remove('active');
+                mobileMenuBtn.classList.remove('active');
             });
         }
-        if (vehicleSettingsCancel) {
-            vehicleSettingsCancel.addEventListener('click', () => {
-                document.getElementById('vehicleSettingsModal').classList.add('hidden');
+
+        if (mobileMenuOverlay) {
+            mobileMenuOverlay.addEventListener('click', (e) => {
+                if (e.target === mobileMenuOverlay) {
+                    mobileMenuOverlay.classList.remove('active');
+                    mobileMenuBtn.classList.remove('active');
+                }
+            });
+        }
+
+        if (mobileBackBtn) {
+            mobileBackBtn.addEventListener('click', () => {
+                window.location.href = '/';
             });
         }
 
@@ -319,114 +330,6 @@ class HistoryViewer {
         }).join('');
 
         callsList.innerHTML = callsHtml;
-    }
-
-    // Vehicle settings methods
-    async loadVehicleSettings() {
-        try {
-            const response = await fetch('/api/vehicle/current', {
-                headers: this.getAuthHeaders()
-            });
-            if (response.ok) {
-                const result = await response.json();
-                if (result.success && result.data) {
-                    this.currentVehicle = {
-                        number: result.data.vehicle_number,
-                        type: result.data.vehicle_type
-                    };
-                    this.updateVehicleDisplay();
-                    this.populateVehicleForm();
-                }
-            }
-        } catch (error) {
-            console.error('Error loading vehicle settings:', error);
-        }
-    }
-
-    updateVehicleDisplay() {
-        const numberElement = document.getElementById('currentVehicle');
-        const typeElement = document.getElementById('currentVehicleType');
-        
-        if (numberElement) {
-            numberElement.textContent = this.currentVehicle.number;
-        }
-        
-        if (typeElement) {
-            const typeMap = {
-                'אופנוע': 'אופנוע',
-                'פיקנטו': 'פיקנטו', 
-                'אמבולנס': 'אמבולנס',
-                'כונן אישי': 'כונן אישי',
-                'motorcycle': 'אופנוע',
-                'picanto': 'פיקנטו',
-                'ambulance': 'אמבולנס',
-                'personal_standby': 'כונן אישי'
-            };
-            typeElement.textContent = typeMap[this.currentVehicle.type] || this.currentVehicle.type;
-        }
-    }
-
-    populateVehicleForm() {
-        const numberInput = document.getElementById('vehicleNumber');
-        const typeSelect = document.getElementById('vehicleType');
-        
-        if (numberInput) {
-            numberInput.value = this.currentVehicle.number;
-        }
-        
-        if (typeSelect) {
-            const typeMap = {
-                'אופנוע': 'motorcycle',
-                'פיקנטו': 'picanto',
-                'אמבולנס': 'ambulance',
-                'כונן אישי': 'personal_standby'
-            };
-            typeSelect.value = typeMap[this.currentVehicle.type] || this.currentVehicle.type;
-        }
-    }
-
-    async handleVehicleSettingsSubmit(event) {
-        event.preventDefault();
-        
-        const vehicleNumber = document.getElementById('vehicleNumber').value;
-        const vehicleType = document.getElementById('vehicleType').value;
-        
-        if (!vehicleNumber || !vehicleType) {
-            this.showToast('יש למלא את כל השדות', 'error');
-            return;
-        }
-
-        try {
-            this.setLoading(true);
-
-            const response = await fetch('/api/vehicle/current', {
-                method: 'POST',
-                headers: this.getAuthHeaders(),
-                body: JSON.stringify({
-                    vehicle_number: vehicleNumber,
-                    vehicle_type: vehicleType
-                })
-            });
-
-            const result = await response.json();
-
-            if (result.success) {
-                this.currentVehicle = {
-                    number: vehicleNumber,
-                    type: vehicleType
-                };
-                this.updateVehicleDisplay();
-                this.showToast('הגדרות הרכב נשמרו בהצלחה', 'success');
-                document.getElementById('vehicleSettingsModal').classList.add('hidden');
-            } else {
-                throw new Error(result.message || 'שגיאה בשמירת ההגדרות');
-            }
-        } catch (error) {
-            console.error('Error saving vehicle settings:', error);
-            this.showToast('שגיאה בשמירת הגדרות הרכב', 'error');
-        } finally {
-            this.setLoading(false);
-        }
     }
 
     // Utility methods

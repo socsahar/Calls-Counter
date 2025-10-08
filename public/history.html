@@ -33,14 +33,19 @@
                 <span class="logo-icon">🏍️</span>
                 <h1 class="logo-text">היסטוריית קריאות</h1>
             </div>
+            
+            <!-- Mobile burger menu button -->
+            <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="תפריט">
+                <span class="burger-line"></span>
+                <span class="burger-line"></span>
+                <span class="burger-line"></span>
+            </button>
+            
+            <!-- Desktop header actions -->
             <div class="header-actions">
                 <button class="settings-btn" id="backBtn">
                     <span class="settings-icon">🔙</span>
                     חזרה
-                </button>
-                <button class="settings-btn" id="vehicleSettingsBtn">
-                    <span class="settings-icon">⚙️</span>
-                    הגדרות רכב
                 </button>
                 <div class="motorcycle-badge">
                     <span class="badge-label">רכב</span>
@@ -50,6 +55,31 @@
             </div>
         </div>
     </header>
+
+    <!-- Mobile Menu Overlay -->
+    <div class="mobile-menu-overlay" id="mobileMenuOverlay">
+        <div class="mobile-menu">
+            <div class="mobile-menu-header">
+                <div class="mobile-menu-title">תפריט</div>
+                <button class="mobile-menu-close" id="mobileMenuClose">×</button>
+            </div>
+            <div class="mobile-menu-content">
+                <div class="mobile-menu-user">
+                    <div class="mobile-motorcycle-badge" id="mobileBadge">
+                        <span class="mobile-badge-label">רכב</span>
+                        <span class="mobile-badge-number" id="mobileCurrentVehicle">-</span>
+                        <span class="mobile-badge-type" id="mobileCurrentVehicleType">טוען...</span>
+                    </div>
+                </div>
+                <nav class="mobile-menu-nav">
+                    <button class="mobile-menu-item" id="mobileBackBtn">
+                        <span class="mobile-menu-icon">🔙</span>
+                        <span class="mobile-menu-text">חזרה לעמוד הראשי</span>
+                    </button>
+                </nav>
+            </div>
+        </div>
+    </div>
 
     <!-- Main Content -->
     <main class="main-content">
@@ -115,41 +145,6 @@
             </div>
         </section>
     </main>
-
-    <!-- Vehicle Settings Modal -->
-    <div id="vehicleSettingsModal" class="modal hidden">
-        <div class="modal-overlay"></div>
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title">הגדרות רכב</h3>
-                <button class="modal-close" id="vehicleSettingsClose">×</button>
-            </div>
-            <div class="modal-body">
-                <form id="vehicleSettingsForm">
-                    <div class="form-group">
-                        <label for="vehicleNumber" class="form-label">מספר רכב</label>
-                        <input type="text" id="vehicleNumber" class="form-input" required placeholder="לדוגמה: 5248">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="vehicleType" class="form-label">סוג רכב</label>
-                        <select id="vehicleType" class="form-input" required>
-                            <option value="">בחר סוג רכב</option>
-                            <option value="motorcycle">🏍️ אופנוע</option>
-                            <option value="picanto">🚗 פיקנטו</option>
-                            <option value="ambulance">🚑 אמבולנס</option>
-                            <option value="personal_standby">👨‍⚕️ כונן אישי</option>
-                        </select>
-                    </div>
-
-                    <div class="modal-actions">
-                        <button type="button" class="btn-secondary" id="vehicleSettingsCancel">ביטול</button>
-                        <button type="submit" class="btn-primary">שמור הגדרות</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
 
     <!-- Footer -->
     <footer class="footer">

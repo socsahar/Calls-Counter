@@ -62,10 +62,6 @@
                     <span class="settings-icon">📊</span>
                     היסטוריה
                 </button>
-                <button class="settings-btn" id="vehicleSettingsBtn">
-                    <span class="settings-icon">⚙️</span>
-                    הגדרות רכב
-                </button>
                 <button class="settings-btn logout-btn" id="logoutBtn">
                     <span class="settings-icon">🚪</span>
                     יציאה
@@ -98,10 +94,6 @@
                     <button class="mobile-menu-item" id="mobileHistoryBtn">
                         <span class="mobile-menu-icon">📊</span>
                         <span class="mobile-menu-text">היסטוריה</span>
-                    </button>
-                    <button class="mobile-menu-item" id="mobileVehicleSettingsBtn">
-                        <span class="mobile-menu-icon">⚙️</span>
-                        <span class="mobile-menu-text">הגדרות רכב</span>
                     </button>
                     <button class="mobile-menu-item mobile-logout-btn" id="mobileLogoutBtn">
                         <span class="mobile-menu-icon">🚪</span>
@@ -255,41 +247,6 @@
         <div class="context-menu-item" data-action="delete">
             <span class="context-icon">🗑️</span>
             מחיקה
-        </div>
-    </div>
-
-    <!-- Vehicle Settings Modal -->
-    <div id="vehicleSettingsModal" class="modal hidden">
-        <div class="modal-overlay"></div>
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title">הגדרות רכב</h3>
-                <button class="modal-close" id="vehicleSettingsClose">×</button>
-            </div>
-            <div class="modal-body">
-                <form id="vehicleSettingsForm">
-                    <div class="form-group">
-                        <label for="vehicleNumber" class="form-label">מספר רכב</label>
-                        <input type="text" id="vehicleNumber" class="form-input" required placeholder="לדוגמה: 5248">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="vehicleType" class="form-label">סוג רכב</label>
-                        <select id="vehicleType" class="form-input" required>
-                            <option value="">בחר סוג רכב</option>
-                            <option value="motorcycle">🏍️ אופנוע</option>
-                            <option value="picanto">🚗 פיקנטו</option>
-                            <option value="ambulance">🚑 אמבולנס</option>
-                            <option value="personal_standby">👨‍⚕️ כונן אישי</option>
-                        </select>
-                    </div>
-
-                    <div class="modal-actions">
-                        <button type="button" class="btn-secondary" id="vehicleSettingsCancel">ביטול</button>
-                        <button type="submit" class="btn-primary">שמור הגדרות</button>
-                    </div>
-                </form>
-            </div>
         </div>
     </div>
 

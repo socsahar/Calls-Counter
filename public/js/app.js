@@ -306,15 +306,6 @@ class CallCounter {
             clearFiltersBtn.addEventListener('click', this.clearFilters.bind(this));
         }
 
-        // Vehicle settings button
-        const vehicleSettingsBtn = document.getElementById('vehicleSettingsBtn');
-        if (vehicleSettingsBtn) {
-            vehicleSettingsBtn.addEventListener('click', () => {
-                this.loadVehicleSettings();
-                document.getElementById('vehicleSettingsModal').classList.remove('hidden');
-            });
-        }
-
         // Historical view button
         const historyBtn = document.getElementById('historyBtn');
         if (historyBtn) {
@@ -690,6 +681,10 @@ class CallCounter {
                 console.error('📞 Call submission failed:', result);
                 console.error('📞 Server error message:', result.message);
                 console.error('📞 Server error details:', result.error);
+                
+                // Show detailed error to user for debugging
+                alert(`Error ${response.status}: ${result.message || 'Unknown error'}\n\nDetails: ${JSON.stringify(result, null, 2)}`);
+                
                 throw new Error(result.message || 'שגיאה ברישום הקריאה');
             }
 
@@ -1363,20 +1358,11 @@ class CallCounter {
         
         // Mobile menu items
         const mobileHistoryBtn = document.getElementById('mobileHistoryBtn');
-        const mobileVehicleSettingsBtn = document.getElementById('mobileVehicleSettingsBtn');
         const mobileLogoutBtn = document.getElementById('mobileLogoutBtn');
         
         if (mobileHistoryBtn) {
             mobileHistoryBtn.addEventListener('click', () => {
                 window.location.href = '/history.html';
-            });
-        }
-        
-        if (mobileVehicleSettingsBtn) {
-            mobileVehicleSettingsBtn.addEventListener('click', () => {
-                this.closeMobileMenu();
-                this.loadVehicleSettings();
-                document.getElementById('vehicleSettingsModal').classList.remove('hidden');
             });
         }
         
