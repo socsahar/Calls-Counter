@@ -743,9 +743,14 @@ app.post('/api/calls', authenticateToken, async (req, res) => {
 
         // Get user's MDA code and auto-detect vehicle type
         console.log('📞 Server: Getting user MDA code...');
+        console.log('📞 Server: req.user object:', JSON.stringify(req.user, null, 2));
         const userMdaCode = req.user && req.user.mdaCode ? req.user.mdaCode : null;
         
         console.log('📞 Server: Using MDA code:', userMdaCode);
+        console.log('📞 Server: MDA code type:', typeof userMdaCode);
+        console.log('📞 Server: MDA code is null?', userMdaCode === null);
+        console.log('📞 Server: MDA code is undefined?', userMdaCode === undefined);
+        
         const detectedVehicleType = detectVehicleType(userMdaCode);
         const vehicleEmoji = getVehicleEmoji(detectedVehicleType);
         console.log('📞 Server: Detected vehicle type:', detectedVehicleType, 'emoji:', vehicleEmoji);
