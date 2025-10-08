@@ -211,6 +211,28 @@ class CallCounter {
         return 'ambulance'; // default
     }
 
+    // Get vehicle emoji based on vehicle type text
+    getVehicleEmojiFromType(vehicleTypeText) {
+        if (!vehicleTypeText) return '🚑';
+        
+        const text = vehicleTypeText.toLowerCase();
+        
+        // Check for Hebrew names
+        if (text.includes('אופנוע')) return '🏍️';
+        if (text.includes('פיקנטו')) return '🚗';
+        if (text.includes('אמבולנס')) return '🚑';
+        if (text.includes('כונן אישי')) return '👨‍⚕️';
+        
+        // Check for English names
+        if (text.includes('motorcycle')) return '🏍️';
+        if (text.includes('picanto')) return '🚗';
+        if (text.includes('ambulance')) return '🚑';
+        if (text.includes('personal_standby')) return '👨‍⚕️';
+        
+        // Default to ambulance
+        return '🚑';
+    }
+
     // Initialize user info display
     initUserInfo() {
         const userData = localStorage.getItem('userData');
@@ -870,7 +892,7 @@ class CallCounter {
                 </div>
                 <div class="call-date">📅 ${callDate}</div>
                 <div class="call-location">📍 ${call.location}</div>
-                <div class="call-vehicle">🚗 ${vehicleType} ${call.vehicle_number}</div>
+                <div class="call-vehicle">${this.getVehicleEmojiFromType(vehicleType)} ${vehicleType} ${call.vehicle_number}</div>
                 ${call.description ? `<div class="call-description">${call.description}</div>` : ''}
                 <div class="call-footer">
                     <span class="call-duration">${duration}</span>
