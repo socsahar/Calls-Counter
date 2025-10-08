@@ -257,16 +257,29 @@
         function updateUserBadge(user) {
             if (!user) return;
             
-            // Detect vehicle type and get appropriate emoji
-            const vehicleType = detectVehicleType(user.mda_code);
+            // Detect vehicle type and get appropriate details
+            const vehicleType = detectVehicleType(user.mda_code || user.mdaCode);
             const vehicleEmoji = getVehicleEmoji(vehicleType);
+            const vehicleHebrewName = getVehicleHebrewName(vehicleType);
             
-            // Update the motorcycle badge to show user info with appropriate emoji
+            // Update the vehicle badge to show proper vehicle info
             const vehicleNumber = document.getElementById('currentVehicle');
             const vehicleTypeElement = document.getElementById('currentVehicleType');
             if (vehicleNumber && vehicleTypeElement) {
-                vehicleNumber.textContent = user.mda_code;
-                vehicleTypeElement.textContent = `${vehicleEmoji} ${user.full_name || user.fullName}`;
+                vehicleNumber.textContent = user.mda_code || user.mdaCode;
+                vehicleTypeElement.innerHTML = `${vehicleEmoji} ${vehicleHebrewName}`;
+            }
+            
+            console.log('🏍️ History page vehicle updated:', user.mda_code || user.mdaCode, vehicleType, vehicleHebrewName);
+        }
+        
+        function getVehicleHebrewName(vehicleType) {
+            switch(vehicleType) {
+                case 'motorcycle': return 'אופנוע';
+                case 'picanto': return 'פיקנטו';
+                case 'ambulance': return 'אמבולנס';
+                case 'personal_standby': return 'כונן אישי';
+                default: return 'אמבולנס';
             }
         }
     </script>

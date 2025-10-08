@@ -44,15 +44,27 @@ function checkAuthentication() {
             }
             console.log('🔐 Authentication validated for user:', data.user.fullName);
             
-            // Update vehicle badge if the function exists
-            if (typeof updateVehicleBadge === 'function') {
-                updateVehicleBadge();
-            }
-            
             // Refresh data if CallCounter is initialized
             if (window.callCounter) {
-                window.callCounter.loadStats();
-                window.callCounter.loadCalls();
+                // Update vehicle info with fresh user data
+                window.callCounter.currentVehicle = {
+                    number: window.callCounter.getUserVehicleNumber(),
+                    type: window.callCounter.getUserVehicleType()
+                };
+                window.callCounter.updateVehicleDisplay();
+                
+                // Retry loading vehicle settings now that auth is confirmed
+                setTimeout(async () => {
+                    await window.callCounter.loadVehicleSettings();
+                    window.callCounter.updateVehicleDisplay();
+                    await window.callCounter.loadStats();
+                    await window.callCounter.loadCalls();
+                }, 100);
+            } else {
+                // Update vehicle badge if CallCounter not initialized yet
+                if (typeof updateVehicleBadge === 'function') {
+                    updateVehicleBadge();
+                }
             }
         }
     })
@@ -226,17 +238,21 @@ class CallCounter {
             };
             console.log('🏍️ Initial vehicle settings:', this.currentVehicle);
             
-            await this.loadVehicleSettings();
+            // Update vehicle display immediately with detected info
+            this.updateVehicleDisplay();
             
-            // Update vehicle badge if the function exists
-            if (typeof updateVehicleBadge === 'function') {
-                updateVehicleBadge();
-            }
-            
+            // Bind events first
             this.bindEvents();
             this.setCurrentTime();
-            await this.loadStats();
-            await this.loadCalls();
+            
+            // Wait a moment for authentication to complete, then load data
+            setTimeout(async () => {
+                console.log('🏍️ Loading vehicle settings and data...');
+                await this.loadVehicleSettings();
+                this.updateVehicleDisplay();
+                await this.loadStats();
+                await this.loadCalls();
+            }, 500);
             
             // Refresh data every 30 seconds
             setInterval(() => {
@@ -863,22 +879,41 @@ class CallCounter {
     // Vehicle Management Methods
     async loadVehicleSettings() {
         try {
-            const response = await fetch('/api/vehicle/current');
+            console.log('🚗 Loading vehicle settings with headers:', this.getAuthHeaders());
+            const response = await fetch('/api/vehicle/current', {
+                headers: this.getAuthHeaders()
+            });
+            
+            console.log('🚗 Vehicle settings response status:', response.status);
+            
+            if (!response.ok) {
+                if (response.status === 401) {
+                    console.log('🚗 Vehicle settings: Authentication failed');
+                    // Don't redirect here, just use fallback
+                } else {
+                    console.error('🚗 Vehicle settings API error:', response.status);
+                }
+                throw new Error(`HTTP ${response.status}`);
+            }
+            
             const result = await response.json();
+            console.log('🚗 Vehicle settings result:', result);
 
             if (result.success && result.data) {
                 this.currentVehicle = {
                     number: result.data.vehicle_number,
                     type: result.data.vehicle_type
                 };
+                console.log('🚗 Updated vehicle from API:', this.currentVehicle);
             }
         } catch (error) {
-            console.error('Error loading vehicle settings:', error);
+            console.error('🚗 Error loading vehicle settings, using fallback:', error);
             // Fallback to user's MDA code if API fails
             this.currentVehicle = {
                 number: this.getUserVehicleNumber(),
                 type: this.getUserVehicleType()
             };
+            console.log('🚗 Using fallback vehicle:', this.currentVehicle);
         }
         
         this.updateVehicleDisplay();
@@ -892,6 +927,15 @@ class CallCounter {
     }
 
     updateVehicleDisplay() {
+        console.log('🚗 Updating vehicle display with:', this.currentVehicle);
+        
+        // Use the HTML updateVehicleBadge function if available for consistency
+        if (typeof updateVehicleBadge === 'function') {
+            console.log('🚗 Calling HTML updateVehicleBadge function');
+            updateVehicleBadge();
+        }
+        
+        // Fallback to direct update if HTML function not available
         const vehicleTypeNames = {
             motorcycle: 'אופנוע',
             picanto: 'פיקנטו',
@@ -899,11 +943,39 @@ class CallCounter {
             personal_standby: 'כונן אישי'
         };
 
+        const vehicleEmojis = {
+            motorcycle: '🏍️',
+            picanto: '🚗',
+            ambulance: '🚑',
+            personal_standby: '👨‍⚕️'
+        };
+
         const currentVehicleEl = document.getElementById('currentVehicle');
         const currentVehicleTypeEl = document.getElementById('currentVehicleType');
         
-        if (currentVehicleEl) currentVehicleEl.textContent = this.currentVehicle.number;
-        if (currentVehicleTypeEl) currentVehicleTypeEl.textContent = vehicleTypeNames[this.currentVehicle.type] || this.currentVehicle.type;
+        if (currentVehicleEl) {
+            currentVehicleEl.textContent = this.currentVehicle.number;
+        }
+        
+        if (currentVehicleTypeEl) {
+            const emoji = vehicleEmojis[this.currentVehicle.type] || '🚑';
+            const name = vehicleTypeNames[this.currentVehicle.type] || this.currentVehicle.type;
+            currentVehicleTypeEl.innerHTML = `${emoji} ${name}`;
+        }
+        
+        // Also update mobile badge if present
+        const mobileVehicleEl = document.getElementById('mobileCurrentVehicle');
+        const mobileVehicleTypeEl = document.getElementById('mobileCurrentVehicleType');
+        
+        if (mobileVehicleEl) {
+            mobileVehicleEl.textContent = this.currentVehicle.number;
+        }
+        
+        if (mobileVehicleTypeEl) {
+            const emoji = vehicleEmojis[this.currentVehicle.type] || '🚑';
+            const name = vehicleTypeNames[this.currentVehicle.type] || this.currentVehicle.type;
+            mobileVehicleTypeEl.innerHTML = `${emoji} ${name}`;
+        }
     }
 
     async handleVehicleSettingsSubmit(event) {
