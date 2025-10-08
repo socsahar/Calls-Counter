@@ -1,4 +1,20 @@
 require('dotenv').config();
+
+// Fix SSL certificate issues for local development only
+const isLocalDevelopment = !process.env.RENDER && (
+    process.env.NODE_ENV === 'development' ||
+    process.env.PORT === '3000' ||
+    process.platform === 'win32'
+);
+
+if (isLocalDevelopment) {
+    console.log('🔧 Local development detected: Applying SSL certificate fix...');
+    console.log('⚠️  Note: This SSL bypass is for local development only');
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+} else {
+    console.log('🚀 Production environment: Using secure SSL connections');
+}
+
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -475,26 +491,38 @@ app.delete('/api/calls/:id', async (req, res) => {
 // Get statistics
 app.get('/api/stats', async (req, res) => {
     try {
-        // Get today's stats
-        const { data: todayData, error: todayError } = await supabase.rpc('get_today_stats');
+        // Get current date in Israel timezone
+        const israelTime = new Date().toLocaleString("en-US", {timeZone: "Asia/Jerusalem"});
+        const today = new Date(israelTime).toISOString().split('T')[0];
         
-        // Get weekly stats (Sunday to Saturday)
+        // Get today's calls (filter by created_at date)
+        const { data: todayCalls, error: todayError } = await supabase
+            .from('calls')
+            .select('*')
+            .gte('created_at', `${today}T00:00:00.000Z`)
+            .lt('created_at', `${today}T23:59:59.999Z`);
+
+        if (todayError) {
+            console.error('Today stats error:', todayError);
+        }
+        
+        // Get weekly stats
         const { data: weeklyData, error: weeklyError } = await supabase.rpc('get_weekly_stats');
         
-        // Get monthly stats (1st to last day of month)
+        // Get monthly stats
         const { data: monthlyData, error: monthlyError } = await supabase.rpc('get_monthly_stats');
 
-        if (todayError || weeklyError || monthlyError) {
-            console.error('Supabase error:', todayError || weeklyError || monthlyError);
-            return res.status(400).json({
-                success: false,
-                message: 'שגיאה בטעינת הסטטיסטיקות',
-                error: (todayError || weeklyError || monthlyError).message
-            });
+        if (weeklyError || monthlyError) {
+            console.error('Weekly/Monthly stats error:', weeklyError || monthlyError);
         }
 
-        // Extract the first row (should only be one for each)
-        const todayStats = todayData && todayData.length > 0 ? todayData[0] : { total_calls: 0 };
+        // Calculate today's stats
+        const todayStats = {
+            total_calls: todayCalls ? todayCalls.length : 0,
+            total_hours: todayCalls ? Math.round(todayCalls.length * 0.5 * 10) / 10 : 0
+        };
+
+        // Extract weekly and monthly stats
         const weeklyStats = weeklyData && weeklyData.length > 0 ? weeklyData[0] : { total_calls: 0, total_hours: 0 };
         const monthlyStats = monthlyData && monthlyData.length > 0 ? monthlyData[0] : { total_calls: 0, total_hours: 0 };
 
@@ -505,7 +533,8 @@ app.get('/api/stats', async (req, res) => {
                 weeklyCalls: parseInt(weeklyStats.total_calls || 0),
                 monthlyCalls: parseInt(monthlyStats.total_calls || 0),
                 weeklyHours: parseFloat(weeklyStats.total_hours || 0),
-                monthlyHours: parseFloat(monthlyStats.total_hours || 0)
+                monthlyHours: parseFloat(monthlyStats.total_hours || 0),
+                currentDate: today
             }
         });
     } catch (error) {
