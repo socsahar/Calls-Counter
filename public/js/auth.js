@@ -20,7 +20,23 @@ class AuthManager {
         // Register form
         const registerForm = document.getElementById('registerForm');
         if (registerForm) {
-            registerForm.addEventListener('submit', this.handleRegister.bind(this));
+            // Add mobile-specific event handling
+            registerForm.addEventListener('submit', (event) => {
+                console.log('📱 Register form submitted (mobile compatible)');
+                this.handleRegister(event);
+            });
+            
+            // Also add click handler for submit button as fallback
+            const registerBtn = document.getElementById('registerBtn');
+            if (registerBtn) {
+                registerBtn.addEventListener('click', (event) => {
+                    console.log('📱 Register button clicked');
+                    if (event.target.type !== 'submit') {
+                        event.preventDefault();
+                        this.handleRegister(event);
+                    }
+                });
+            }
         }
 
         // Password confirmation validation
@@ -97,24 +113,43 @@ class AuthManager {
     async handleRegister(event) {
         event.preventDefault();
         
-        if (this.isLoading) return;
+        console.log('📱 Starting registration process...');
+        
+        if (this.isLoading) {
+            console.log('📱 Already loading, ignoring duplicate submission');
+            return;
+        }
         
         const formData = {
             fullName: document.getElementById('fullName').value.trim(),
             username: document.getElementById('username').value.trim(),
             password: document.getElementById('password').value,
             confirmPassword: document.getElementById('confirmPassword').value,
-            mdaCode: document.getElementById('mdaCode').value.trim(),
-            phone: document.getElementById('phone').value.trim(),
-            email: document.getElementById('email').value.trim()
+            mdaCode: document.getElementById('mdaCode').value.trim()
         };
 
+        // Only add optional fields if they exist in the form
+        const phoneField = document.getElementById('phone');
+        const emailField = document.getElementById('email');
+        
+        if (phoneField) {
+            formData.phone = phoneField.value.trim();
+        }
+        
+        if (emailField) {
+            formData.email = emailField.value.trim();
+        }
+
+        console.log('📱 Form data collected:', { ...formData, password: '***', confirmPassword: '***' });
+
         if (!this.validateRegisterForm(formData)) {
+            console.log('📱 Form validation failed');
             return;
         }
 
         try {
             this.setLoading(true);
+            console.log('📱 Sending registration request...');
             
             const response = await fetch('/api/auth/register', {
                 method: 'POST',
@@ -124,7 +159,9 @@ class AuthManager {
                 body: JSON.stringify(formData)
             });
 
+            console.log('📱 Response status:', response.status);
             const result = await response.json();
+            console.log('📱 Response data:', result);
 
             if (!response.ok) {
                 throw new Error(result.message || 'שגיאה בהרשמה');
@@ -138,7 +175,7 @@ class AuthManager {
             }, 2000);
 
         } catch (error) {
-            console.error('Register error:', error);
+            console.error('📱 Register error:', error);
             this.showError(error.message || 'שגיאה בהרשמה למערכת');
         } finally {
             this.setLoading(false);
@@ -200,12 +237,13 @@ class AuthManager {
             return false;
         }
 
-        if (data.email && !this.isValidEmail(data.email)) {
+        // Validate optional fields only if they are provided
+        if (data.email && data.email.length > 0 && !this.isValidEmail(data.email)) {
             this.showError('כתובת האימייל אינה תקינה');
             return false;
         }
 
-        if (data.phone && !this.isValidPhone(data.phone)) {
+        if (data.phone && data.phone.length > 0 && !this.isValidPhone(data.phone)) {
             this.showError('מספר הטלפון אינו תקין');
             return false;
         }
