@@ -70,12 +70,49 @@ app.use(helmet({
 
 // General middleware
 app.use(compression());
-app.use(cors());
+
+// CORS configuration for mobile compatibility
+app.use(cors({
+    origin: true,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Serve static files
-app.use(express.static(path.join(__dirname, 'public')));
+// Set proper MIME types for static files
+app.use((req, res, next) => {
+    // Set proper content types for various file extensions
+    if (req.path.endsWith('.js')) {
+        res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+    } else if (req.path.endsWith('.css')) {
+        res.setHeader('Content-Type', 'text/css; charset=utf-8');
+    } else if (req.path.endsWith('.html')) {
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    } else if (req.path.endsWith('.json')) {
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    }
+    
+    // Add mobile-friendly headers
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    
+    next();
+});
+
+// Serve static files with proper configuration
+app.use(express.static(path.join(__dirname, 'public'), {
+    setHeaders: (res, path, stat) => {
+        // Set cache headers for static assets
+        if (path.endsWith('.js') || path.endsWith('.css')) {
+            res.setHeader('Cache-Control', 'public, max-age=86400'); // 24 hours
+        } else if (path.endsWith('.html')) {
+            res.setHeader('Cache-Control', 'public, max-age=3600'); // 1 hour
+        }
+    }
+}));
 
 // ================================================
 // AUTHENTICATION MIDDLEWARE
@@ -1047,13 +1084,41 @@ app.get('/api/health', (req, res) => {
         success: true,
         message: 'Server is running',
         timestamp: new Date().toISOString(),
-        motorcycle: process.env.MOTORCYCLE_NUMBER || '5248'
+        platform: process.platform,
+        node_version: process.version
+    });
+});
+
+// Root route explicitly
+app.get('/', (req, res) => {
+    console.log('Root route accessed:', req.headers['user-agent']);
+    res.sendFile(path.join(__dirname, 'public', 'index.html'), (err) => {
+        if (err) {
+            console.error('Error serving index.html:', err);
+            res.status(500).send('Server Error');
+        }
     });
 });
 
 // Catch all other routes and serve index.html (SPA support)
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    console.log('Catch-all route accessed:', req.path, 'User-Agent:', req.headers['user-agent']);
+    
+    // Prevent serving index.html for API routes
+    if (req.path.startsWith('/api/')) {
+        return res.status(404).json({
+            success: false,
+            message: 'API endpoint not found',
+            path: req.path
+        });
+    }
+    
+    res.sendFile(path.join(__dirname, 'public', 'index.html'), (err) => {
+        if (err) {
+            console.error('Error serving index.html for path:', req.path, err);
+            res.status(500).send('Server Error');
+        }
+    });
 });
 
 // Error handling middleware

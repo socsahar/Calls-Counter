@@ -56,10 +56,10 @@
                     <span class="settings-icon">🚪</span>
                     יציאה
                 </button>
-                <div class="motorcycle-badge">
+                <div class="motorcycle-badge" id="vehicleBadge">
                     <span class="badge-label">רכב</span>
-                    <span class="badge-number" id="currentVehicle">5248</span>
-                    <span class="badge-type" id="currentVehicleType">אופנוע</span>
+                    <span class="badge-number" id="currentVehicle">-</span>
+                    <span class="badge-type" id="currentVehicleType">טוען...</span>
                 </div>
             </div>
         </div>
@@ -459,8 +459,39 @@
             }
         }
         
+        // Initialize vehicle badge with user data
+        function updateVehicleBadge() {
+            const userData = JSON.parse(localStorage.getItem('userData') || sessionStorage.getItem('userData') || '{}');
+            
+            if (userData.mda_code) {
+                const vehicleType = detectVehicleType(userData.mda_code);
+                const vehicleEmoji = getVehicleEmoji(vehicleType);
+                const vehicleHebrewName = getVehicleHebrewName(vehicleType);
+                
+                document.getElementById('currentVehicle').textContent = userData.mda_code;
+                document.getElementById('currentVehicleType').innerHTML = vehicleEmoji + ' ' + vehicleHebrewName;
+                
+                console.log('🏍️ Vehicle updated:', userData.mda_code, vehicleType, vehicleHebrewName);
+            } else {
+                document.getElementById('currentVehicle').textContent = '-';
+                document.getElementById('currentVehicleType').textContent = 'לא זוהה';
+            }
+        }
+        
         // Initialize disclaimer after page load
         initDisclaimer();
+        
+        // Update vehicle badge when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            updateVehicleBadge();
+        });
+        
+        // Also update when authentication is validated
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'userData') {
+                updateVehicleBadge();
+            }
+        });
     </script>
 </body>
 </html>

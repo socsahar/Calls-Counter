@@ -1,5 +1,11 @@
-# Build command for Render
-npm install
-
-# Start command for Render
-npm start
+services:
+  - type: web
+    name: calls-counter
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    plan: free
+    envVars:
+      - key: NODE_ENV
+        value: production
+    healthCheckPath: /api/health

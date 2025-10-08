@@ -40,6 +40,11 @@ function checkAuthentication() {
                 sessionStorage.setItem('userData', JSON.stringify(data.user));
             }
             console.log('🔐 Authentication validated for user:', data.user.fullName);
+            
+            // Update vehicle badge if the function exists
+            if (typeof updateVehicleBadge === 'function') {
+                updateVehicleBadge();
+            }
         }
     })
     .catch(error => {
@@ -130,6 +135,12 @@ class CallCounter {
             
             await this.loadVehicleSettings();
             this.initUserInfo();
+            
+            // Update vehicle badge if the function exists
+            if (typeof updateVehicleBadge === 'function') {
+                updateVehicleBadge();
+            }
+            
             this.bindEvents();
             this.setCurrentTime();
             await this.loadStats();
