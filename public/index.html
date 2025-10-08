@@ -433,30 +433,18 @@
 
         // Wait for app.js to complete authentication, then update UI
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('🏍️ DOM loaded, setting up vehicle badge updates');
-            
             // Initial update attempt
             updateVehicleBadge();
             
             // Wait a bit for app.js authentication to complete
             setTimeout(() => {
-                console.log('🏍️ First delayed update attempt');
                 updateVehicleBadge();
             }, 500);
 
             // Update again after a longer delay to catch any delayed auth updates
             setTimeout(() => {
-                console.log('🏍️ Second delayed update attempt');
                 updateVehicleBadge();
             }, 2000);
-            
-            // Periodic updates to catch any changes
-            setInterval(() => {
-                const userData = localStorage.getItem('userData') || sessionStorage.getItem('userData');
-                if (userData) {
-                    updateVehicleBadge();
-                }
-            }, 5000);
 
             // Logout functionality
             const logoutBtn = document.getElementById('logoutBtn');
@@ -523,10 +511,8 @@
         // Initialize vehicle badge with user data
         function updateVehicleBadge() {
             const userDataString = localStorage.getItem('userData') || sessionStorage.getItem('userData');
-            console.log('🏍️ updateVehicleBadge - raw userData:', userDataString);
             
             if (!userDataString) {
-                console.log('🏍️ No userData found');
                 document.getElementById('currentVehicle').textContent = '-';
                 document.getElementById('currentVehicleType').textContent = 'לא זוהה';
                 return;
@@ -534,17 +520,12 @@
             
             try {
                 const userData = JSON.parse(userDataString);
-                console.log('🏍️ updateVehicleBadge - parsed userData:', userData);
-                
                 const mdaCode = userData.mda_code || userData.mdaCode;
-                console.log('🏍️ updateVehicleBadge - MDA code:', mdaCode);
                 
                 if (mdaCode) {
                     const vehicleType = detectVehicleType(mdaCode);
                     const vehicleEmoji = getVehicleEmoji(vehicleType);
                     const vehicleHebrewName = getVehicleHebrewName(vehicleType);
-                    
-                    console.log('🏍️ updateVehicleBadge - detected:', vehicleType, vehicleEmoji, vehicleHebrewName);
                     
                     document.getElementById('currentVehicle').textContent = mdaCode;
                     document.getElementById('currentVehicleType').innerHTML = vehicleEmoji + ' ' + vehicleHebrewName;
@@ -554,10 +535,7 @@
                     const mobileVehicleType = document.getElementById('mobileCurrentVehicleType');
                     if (mobileVehicle) mobileVehicle.textContent = mdaCode;
                     if (mobileVehicleType) mobileVehicleType.innerHTML = vehicleEmoji + ' ' + vehicleHebrewName;
-                    
-                    console.log('🏍️ Vehicle updated:', mdaCode, vehicleType, vehicleHebrewName);
                 } else {
-                    console.log('🏍️ No MDA code found in user data');
                     document.getElementById('currentVehicle').textContent = '-';
                     document.getElementById('currentVehicleType').textContent = 'לא זוהה';
                     

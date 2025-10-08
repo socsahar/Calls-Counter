@@ -394,8 +394,6 @@ class CallCounter {
 
         // Add click event for mobile 3-dot menu
         document.addEventListener('click', (e) => {
-            console.log('Global click detected on:', e.target);
-            
             // Check if clicked element or its parent is the menu button
             if (e.target.classList.contains('call-menu-btn') || 
                 e.target.classList.contains('menu-dots') ||
