@@ -679,23 +679,35 @@ app.get('/api/calls/historical', authenticateToken, async (req, res) => {
 function detectVehicleType(mdaCode) {
     if (!mdaCode || mdaCode.length < 2) return 'ambulance';
     
-    const firstDigit = mdaCode.charAt(0);
-    const firstTwoDigits = mdaCode.substring(0, 2);
+    const codeStr = mdaCode.toString().trim();
+    const firstDigit = codeStr.charAt(0);
+    const firstTwoDigits = codeStr.substring(0, 2);
     
-    // 5-digit codes starting with "12" are personal standby
-    if (mdaCode.length === 5 && firstTwoDigits === '12') {
+    // Personal standby detection - multiple patterns
+    // 5-digit codes starting with "12"
+    if (codeStr.length === 5 && firstTwoDigits === '12') {
+        return 'personal_standby';
+    }
+    
+    // 4-digit codes starting with "12" 
+    if (codeStr.length === 4 && firstTwoDigits === '12') {
+        return 'personal_standby';
+    }
+    
+    // Other personal standby patterns - codes with specific patterns
+    if (codeStr.length >= 4 && (codeStr.includes('12') || firstTwoDigits === '99')) {
         return 'personal_standby';
     }
     
     // 4-digit codes
-    if (mdaCode.length === 4) {
+    if (codeStr.length === 4) {
         if (firstDigit === '5') return 'motorcycle';
         if (firstDigit === '6') return 'picanto';
         if (['1', '2', '3', '4', '7', '8', '9'].includes(firstDigit)) return 'ambulance';
     }
     
     // 2 or 3 digit codes starting with 1,2,3,4,7,8,9 are ambulances
-    if ((mdaCode.length === 2 || mdaCode.length === 3) && 
+    if ((codeStr.length === 2 || codeStr.length === 3) && 
         ['1', '2', '3', '4', '7', '8', '9'].includes(firstDigit)) {
         return 'ambulance';
     }

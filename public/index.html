@@ -387,27 +387,56 @@
         function detectVehicleType(mdaCode) {
             if (!mdaCode || mdaCode.length < 2) return 'ambulance';
             
-            const firstDigit = mdaCode.charAt(0);
-            const firstTwoDigits = mdaCode.substring(0, 2);
+            const codeStr = mdaCode.toString().trim();
+            const firstDigit = codeStr.charAt(0);
+            const firstTwoDigits = codeStr.substring(0, 2);
             
-            // 5-digit codes starting with "12" are personal standby
-            if (mdaCode.length === 5 && firstTwoDigits === '12') {
+            console.log('🚗 Detecting vehicle type for:', codeStr, 'Length:', codeStr.length, 'First digit:', firstDigit, 'First two:', firstTwoDigits);
+            
+            // Personal standby detection - multiple patterns
+            // 5-digit codes starting with "12"
+            if (codeStr.length === 5 && firstTwoDigits === '12') {
+                console.log('🚗 Detected: personal_standby (5-digit 12xxx)');
+                return 'personal_standby';
+            }
+            
+            // 4-digit codes starting with "12" 
+            if (codeStr.length === 4 && firstTwoDigits === '12') {
+                console.log('🚗 Detected: personal_standby (4-digit 12xx)');
+                return 'personal_standby';
+            }
+            
+            // Other personal standby patterns - codes ending with specific patterns
+            // Some personal standby codes might start with other digits
+            if (codeStr.length >= 4 && (codeStr.includes('12') || firstTwoDigits === '99')) {
+                console.log('🚗 Detected: personal_standby (pattern match)');
                 return 'personal_standby';
             }
             
             // 4-digit codes
-            if (mdaCode.length === 4) {
-                if (firstDigit === '5') return 'motorcycle';
-                if (firstDigit === '6') return 'picanto';
-                if (['1', '2', '3', '4', '7', '8', '9'].includes(firstDigit)) return 'ambulance';
+            if (codeStr.length === 4) {
+                if (firstDigit === '5') {
+                    console.log('🚗 Detected: motorcycle');
+                    return 'motorcycle';
+                }
+                if (firstDigit === '6') {
+                    console.log('🚗 Detected: picanto');
+                    return 'picanto';
+                }
+                if (['1', '2', '3', '4', '7', '8', '9'].includes(firstDigit)) {
+                    console.log('🚗 Detected: ambulance (4-digit)');
+                    return 'ambulance';
+                }
             }
             
             // 2 or 3 digit codes starting with 1,2,3,4,7,8,9 are ambulances
-            if ((mdaCode.length === 2 || mdaCode.length === 3) && 
+            if ((codeStr.length === 2 || codeStr.length === 3) && 
                 ['1', '2', '3', '4', '7', '8', '9'].includes(firstDigit)) {
+                console.log('🚗 Detected: ambulance (2-3 digit)');
                 return 'ambulance';
             }
             
+            console.log('🚗 Detected: ambulance (default)');
             return 'ambulance'; // default
         }
         
@@ -445,20 +474,6 @@
             setTimeout(() => {
                 updateVehicleBadge();
             }, 2000);
-
-            // Logout functionality
-            const logoutBtn = document.getElementById('logoutBtn');
-            if (logoutBtn) {
-                logoutBtn.addEventListener('click', function() {
-                    // Clear all authentication data
-                    localStorage.removeItem('authToken');
-                    localStorage.removeItem('userData');
-                    localStorage.removeItem('rememberMe');
-                    sessionStorage.removeItem('authToken');
-                    sessionStorage.removeItem('userData');
-                    window.location.href = '/login.html';
-                });
-            }
         });
 
         function updateUserBadge(user) {

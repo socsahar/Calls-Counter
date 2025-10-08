@@ -176,9 +176,23 @@ class CallCounter {
         
         console.log('🚗 Code analysis - length:', codeStr.length, 'first digit:', firstDigit, 'first two:', firstTwoDigits);
         
-        // 5-digit codes starting with "12" are personal standby
+        // Personal standby detection - multiple patterns
+        // 5-digit codes starting with "12"
         if (codeStr.length === 5 && firstTwoDigits === '12') {
-            console.log('🚗 Detected: personal standby');
+            console.log('🚗 Detected: personal_standby (5-digit 12xxx)');
+            return 'personal_standby';
+        }
+        
+        // 4-digit codes starting with "12" 
+        if (codeStr.length === 4 && firstTwoDigits === '12') {
+            console.log('🚗 Detected: personal_standby (4-digit 12xx)');
+            return 'personal_standby';
+        }
+        
+        // Other personal standby patterns - codes ending with specific patterns
+        // Some personal standby codes might start with other digits
+        if (codeStr.length >= 4 && (codeStr.includes('12') || firstTwoDigits === '99')) {
+            console.log('🚗 Detected: personal_standby (pattern match)');
             return 'personal_standby';
         }
         
