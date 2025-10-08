@@ -488,43 +488,78 @@ app.delete('/api/calls/:id', async (req, res) => {
     }
 });
 
-// Get statistics
+// Get statistics  
 app.get('/api/stats', async (req, res) => {
     try {
-        // Get current date in Israel timezone
-        const israelTime = new Date().toLocaleString("en-US", {timeZone: "Asia/Jerusalem"});
-        const today = new Date(israelTime).toISOString().split('T')[0];
+        // Get current date in local timezone (where the server is running)
+        const now = new Date();
+        const today = now.toISOString().split('T')[0]; // YYYY-MM-DD format
         
-        // Get today's calls (filter by created_at date)
-        const { data: todayCalls, error: todayError } = await supabase
+        // Alternative approach: Get calls from today based on call_date field if it exists, 
+        // otherwise use created_at timestamp
+        let todayCalls = [];
+        
+        // First try using call_date field
+        const { data: callsByDate, error: dateError } = await supabase
             .from('calls')
             .select('*')
-            .gte('created_at', `${today}T00:00:00.000Z`)
-            .lt('created_at', `${today}T23:59:59.999Z`);
-
-        if (todayError) {
-            console.error('Today stats error:', todayError);
+            .eq('call_date', today);
+        
+        if (!dateError && callsByDate) {
+            todayCalls = callsByDate;
+            if (isLocalDevelopment) {
+                console.log(`📅 Found ${callsByDate.length} calls using call_date field for ${today}`);
+            }
+        } else {
+            // Fallback to created_at timestamp filtering
+            const startOfDay = new Date();
+            startOfDay.setHours(0, 0, 0, 0);
+            const endOfDay = new Date();
+            endOfDay.setHours(23, 59, 59, 999);
+            
+            const { data: callsByTime, error: timeError } = await supabase
+                .from('calls')
+                .select('*')
+                .gte('created_at', startOfDay.toISOString())
+                .lte('created_at', endOfDay.toISOString());
+                
+            todayCalls = callsByTime || [];
+            console.log(`⏰ Found ${todayCalls.length} calls using created_at timestamp for today`);
+            
+            if (timeError) {
+                console.error('Time-based query error:', timeError);
+            }
         }
         
-        // Get weekly stats
+        // Also get all calls to verify what's in the database
+        const { data: allCalls, error: allError } = await supabase
+            .from('calls')
+            .select('id, call_type, call_date, created_at')
+            .order('created_at', { ascending: false })
+            .limit(10);
+            
+        console.log('🔍 Recent calls in database:', allCalls?.map(call => ({
+            id: call.id,
+            type: call.call_type,
+            call_date: call.call_date,
+            created_at: call.created_at
+        })));
+        
+        // Get weekly and monthly stats
         const { data: weeklyData, error: weeklyError } = await supabase.rpc('get_weekly_stats');
-        
-        // Get monthly stats
         const { data: monthlyData, error: monthlyError } = await supabase.rpc('get_monthly_stats');
-
-        if (weeklyError || monthlyError) {
-            console.error('Weekly/Monthly stats error:', weeklyError || monthlyError);
-        }
 
         // Calculate today's stats
         const todayStats = {
-            total_calls: todayCalls ? todayCalls.length : 0,
-            total_hours: todayCalls ? Math.round(todayCalls.length * 0.5 * 10) / 10 : 0
+            total_calls: todayCalls.length,
+            total_hours: Math.round(todayCalls.length * 0.5 * 10) / 10
         };
 
         // Extract weekly and monthly stats
         const weeklyStats = weeklyData && weeklyData.length > 0 ? weeklyData[0] : { total_calls: 0, total_hours: 0 };
         const monthlyStats = monthlyData && monthlyData.length > 0 ? monthlyData[0] : { total_calls: 0, total_hours: 0 };
+
+        console.log(`� Final today's stats: ${todayStats.total_calls} calls`);
 
         res.json({
             success: true,
@@ -534,7 +569,12 @@ app.get('/api/stats', async (req, res) => {
                 monthlyCalls: parseInt(monthlyStats.total_calls || 0),
                 weeklyHours: parseFloat(weeklyStats.total_hours || 0),
                 monthlyHours: parseFloat(monthlyStats.total_hours || 0),
-                currentDate: today
+                currentDate: today,
+                debug: {
+                    todayCallsFound: todayCalls.length,
+                    currentTime: now.toISOString(),
+                    recentCalls: allCalls?.slice(0, 3)
+                }
             }
         });
     } catch (error) {
