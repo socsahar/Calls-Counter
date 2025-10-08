@@ -172,5 +172,97 @@
     </div>
 
     <script src="/js/history.js"></script>
+    <script>
+        // Vehicle type detection functions
+        function detectVehicleType(mdaCode) {
+            if (!mdaCode || mdaCode.length < 2) return 'ambulance';
+            
+            const firstDigit = mdaCode.charAt(0);
+            const firstTwoDigits = mdaCode.substring(0, 2);
+            
+            // 5-digit codes starting with "12" are personal standby
+            if (mdaCode.length === 5 && firstTwoDigits === '12') {
+                return 'personal_standby';
+            }
+            
+            // 4-digit codes
+            if (mdaCode.length === 4) {
+                if (firstDigit === '5') return 'motorcycle';
+                if (firstDigit === '6') return 'picanto';
+                if (['1', '2', '3', '4', '7', '8', '9'].includes(firstDigit)) return 'ambulance';
+            }
+            
+            // 2 or 3 digit codes starting with 1,2,3,4,7,8,9 are ambulances
+            if ((mdaCode.length === 2 || mdaCode.length === 3) && 
+                ['1', '2', '3', '4', '7', '8', '9'].includes(firstDigit)) {
+                return 'ambulance';
+            }
+            
+            return 'ambulance'; // default
+        }
+        
+        function getVehicleEmoji(vehicleType) {
+            switch(vehicleType) {
+                case 'motorcycle': return '🏍️';
+                case 'picanto': return '🚗';
+                case 'ambulance': return '🚑';
+                case 'personal_standby': return '👨‍⚕️';
+                default: return '🚑';
+            }
+        }
+
+        // Authentication check and user info display
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check authentication with fallback storage
+            const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+            if (!token) {
+                window.location.href = '/login.html';
+                return;
+            }
+
+            // Get user data and update UI without duplicate auth check
+            setTimeout(() => {
+                const userData = localStorage.getItem('userData') || sessionStorage.getItem('userData');
+                if (userData) {
+                    try {
+                        const user = JSON.parse(userData);
+                        updateUserBadge(user);
+                    } catch (e) {
+                        console.error('Failed to parse user data:', e);
+                    }
+                }
+            }, 200);
+
+            // Logout functionality
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', function() {
+                    // Clear all authentication data
+                    localStorage.removeItem('authToken');
+                    localStorage.removeItem('userData');
+                    localStorage.removeItem('rememberMe');
+                    sessionStorage.removeItem('authToken');
+                    sessionStorage.removeItem('userData');
+                    window.location.href = '/login.html';
+                });
+            }
+        });
+
+        function updateUserBadge(user) {
+            if (!user) return;
+            
+            // Detect vehicle type and get appropriate emoji
+            const vehicleType = detectVehicleType(user.mda_code);
+            const vehicleEmoji = getVehicleEmoji(vehicleType);
+            
+            // Update the motorcycle badge to show user info with appropriate emoji
+            const vehicleNumber = document.getElementById('currentVehicle');
+            const vehicleTypeElement = document.getElementById('currentVehicleType');
+            if (vehicleNumber && vehicleTypeElement) {
+                vehicleNumber.textContent = user.mda_code;
+                vehicleTypeElement.textContent = `${vehicleEmoji} ${user.full_name || user.fullName}`;
+            }
+        }
+    </script>
 </body>
 </html>

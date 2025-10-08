@@ -21,6 +21,21 @@
     <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
+    <!-- Disclaimer Modal -->
+    <div id="disclaimerModal" class="disclaimer-modal">
+        <div class="disclaimer-content">
+            <div class="disclaimer-timer" id="disclaimerTimer">5</div>
+            <span class="disclaimer-icon">⚠️</span>
+            <h2 class="disclaimer-title">הצהרת חשובה</h2>
+            <p class="disclaimer-text">
+                האתר הזה אינו רשמי של מד"א ואין לו קשר, תמיכה או סיוע מצד הארגון. מדובר בכלי אישי שנועד למעקב עצמאי בלבד.<br><br>
+                האתר מאובטח, מוגן ושומר על חוק חיסיון רפואי בכל צורה אפשרית. כל המידע נשמר בצורה מוצפנת ומאובטחת.
+            </p>
+            <button id="disclaimerConfirm" class="disclaimer-confirm">
+                הבנתי ואני מסכים/ה
+            </button>
+        </div>
+    </div>
     <!-- Header -->
     <header class="header">
         <div class="header-container">
@@ -36,6 +51,10 @@
                 <button class="settings-btn" id="vehicleSettingsBtn">
                     <span class="settings-icon">⚙️</span>
                     הגדרות רכב
+                </button>
+                <button class="settings-btn logout-btn" id="logoutBtn">
+                    <span class="settings-icon">🚪</span>
+                    יציאה
                 </button>
                 <div class="motorcycle-badge">
                     <span class="badge-label">רכב</span>
@@ -314,5 +333,134 @@
     </div>
 
     <script src="/js/app.js"></script>
+    <script>
+        // Vehicle type detection functions
+        function detectVehicleType(mdaCode) {
+            if (!mdaCode || mdaCode.length < 2) return 'ambulance';
+            
+            const firstDigit = mdaCode.charAt(0);
+            const firstTwoDigits = mdaCode.substring(0, 2);
+            
+            // 5-digit codes starting with "12" are personal standby
+            if (mdaCode.length === 5 && firstTwoDigits === '12') {
+                return 'personal_standby';
+            }
+            
+            // 4-digit codes
+            if (mdaCode.length === 4) {
+                if (firstDigit === '5') return 'motorcycle';
+                if (firstDigit === '6') return 'picanto';
+                if (['1', '2', '3', '4', '7', '8', '9'].includes(firstDigit)) return 'ambulance';
+            }
+            
+            // 2 or 3 digit codes starting with 1,2,3,4,7,8,9 are ambulances
+            if ((mdaCode.length === 2 || mdaCode.length === 3) && 
+                ['1', '2', '3', '4', '7', '8', '9'].includes(firstDigit)) {
+                return 'ambulance';
+            }
+            
+            return 'ambulance'; // default
+        }
+        
+        function getVehicleEmoji(vehicleType) {
+            switch(vehicleType) {
+                case 'motorcycle': return '🏍️';
+                case 'picanto': return '🚗';
+                case 'ambulance': return '🚑';
+                case 'personal_standby': return '👨‍⚕️';
+                default: return '🚑';
+            }
+        }
+        
+        function getVehicleHebrewName(vehicleType) {
+            switch(vehicleType) {
+                case 'motorcycle': return 'אופנוע';
+                case 'picanto': return 'פיקנטו';
+                case 'ambulance': return 'אמבולנס';
+                case 'personal_standby': return 'כונן אישי';
+                default: return 'אמבולנס';
+            }
+        }
+
+        // Wait for app.js to complete authentication, then update UI
+        document.addEventListener('DOMContentLoaded', function() {
+            // Wait a bit for app.js authentication to complete
+            setTimeout(() => {
+                const userData = localStorage.getItem('userData') || sessionStorage.getItem('userData');
+                if (userData) {
+                    try {
+                        const user = JSON.parse(userData);
+                        updateUserBadge(user);
+                    } catch (e) {
+                        console.error('Failed to parse user data:', e);
+                    }
+                }
+            }, 500);
+
+            // Logout functionality
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', function() {
+                    // Clear all authentication data
+                    localStorage.removeItem('authToken');
+                    localStorage.removeItem('userData');
+                    localStorage.removeItem('rememberMe');
+                    sessionStorage.removeItem('authToken');
+                    sessionStorage.removeItem('userData');
+                    window.location.href = '/login.html';
+                });
+            }
+        });
+
+        function updateUserBadge(user) {
+            if (!user) return;
+            
+            // Detect vehicle type and get appropriate emoji
+            const vehicleType = detectVehicleType(user.mda_code);
+            const vehicleEmoji = getVehicleEmoji(vehicleType);
+            
+            // Update the motorcycle badge to show user info with appropriate emoji
+            const vehicleNumber = document.getElementById('currentVehicle');
+            const vehicleTypeElement = document.getElementById('currentVehicleType');
+            if (vehicleNumber && vehicleTypeElement) {
+                vehicleNumber.textContent = user.mda_code;
+                vehicleTypeElement.textContent = `${vehicleEmoji} ${user.full_name || user.fullName}`;
+            }
+        }
+
+        // Disclaimer modal functionality with session tracking
+        function initDisclaimer() {
+            const disclaimerModal = document.getElementById('disclaimerModal');
+            const disclaimerTimer = document.getElementById('disclaimerTimer');
+            const disclaimerConfirm = document.getElementById('disclaimerConfirm');
+            
+            // Check if disclaimer was already shown in this session
+            if (!sessionStorage.getItem('disclaimerShown')) {
+                disclaimerModal.style.display = 'flex';
+                
+                let countdown = 5;
+                const timer = setInterval(() => {
+                    countdown--;
+                    disclaimerTimer.textContent = countdown;
+                    
+                    if (countdown <= 0) {
+                        clearInterval(timer);
+                        disclaimerTimer.style.display = 'none';
+                        disclaimerConfirm.classList.add('show');
+                    }
+                }, 1000);
+                
+                disclaimerConfirm.addEventListener('click', function() {
+                    disclaimerModal.style.display = 'none';
+                    sessionStorage.setItem('disclaimerShown', 'true');
+                });
+            } else {
+                disclaimerModal.style.display = 'none';
+            }
+        }
+        
+        // Initialize disclaimer after page load
+        initDisclaimer();
+    </script>
 </body>
 </html>

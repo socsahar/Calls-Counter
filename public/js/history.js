@@ -10,6 +10,22 @@ class HistoryViewer {
         this.init();
     }
 
+    // Helper function to format decimal hours to "Xh Ym" format
+    formatHoursAndMinutes(decimalHours) {
+        if (!decimalHours || decimalHours === 0) return '0h 0m';
+        
+        const hours = Math.floor(decimalHours);
+        const minutes = Math.round((decimalHours - hours) * 60);
+        
+        if (hours === 0) {
+            return `${minutes}m`;
+        } else if (minutes === 0) {
+            return `${hours}h`;
+        } else {
+            return `${hours}h ${minutes}m`;
+        }
+    }
+
     async init() {
         try {
             // Ensure loading overlay is hidden at start
@@ -179,8 +195,8 @@ class HistoryViewer {
             <div class="stat-card">
                 <div class="stat-icon">⏱️</div>
                 <div class="stat-content">
-                    <div class="stat-number">${Math.round((stats.totalCalls || 0) * 0.5)}</div>
-                    <div class="stat-label">שעות משוערות</div>
+                    <div class="stat-number">${this.formatHoursAndMinutes(stats.totalHours || 0)}</div>
+                    <div class="stat-label">סה״כ שעות</div>
                 </div>
             </div>
         `;

@@ -1,5 +1,66 @@
 // MDA CallCounter - Client-side JavaScript
+
+// Check authentication before initializing the app
+function checkAuthentication() {
+    const token = localStorage.getItem('authToken');
+    
+    if (!token) {
+        window.location.href = '/login.html';
+        return false;
+    }
+
+    // Validate token with server
+    fetch('/api/auth/validate', {
+        headers: {
+            'Authorization': `Bearer ${token}`
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            // Only redirect if it's actually an auth error
+            if (response.status === 401 || response.status === 403) {
+                throw new Error('Authentication failed');
+            }
+            // For network errors, try to continue with cached data
+            console.warn('Network error during auth check, continuing...');
+            return null;
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data && !data.success) {
+            throw new Error('Token invalid');
+        }
+        if (data && data.user) {
+            // Store updated user data
+            const remember = localStorage.getItem('rememberMe') === 'true';
+            if (remember) {
+                localStorage.setItem('userData', JSON.stringify(data.user));
+            } else {
+                sessionStorage.setItem('userData', JSON.stringify(data.user));
+            }
+            console.log('🔐 Authentication validated for user:', data.user.fullName);
+        }
+    })
+    .catch(error => {
+        console.error('Authentication failed:', error);
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userData');
+        localStorage.removeItem('rememberMe');
+        sessionStorage.removeItem('authToken');
+        sessionStorage.removeItem('userData');
+        window.location.href = '/login.html';
+    });
+
+    return true;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+    // Check authentication first
+    if (!checkAuthentication()) {
+        return;
+    }
+
     const contextMenu = document.getElementById('contextMenu');
     if (contextMenu) {
         contextMenu.addEventListener('click', (event) => {
@@ -38,12 +99,37 @@ class CallCounter {
         this.init();
     }
 
+    // Helper method to get authentication headers
+    getAuthHeaders() {
+        const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+        return token ? {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        } : {
+            'Content-Type': 'application/json'
+        };
+    }
+
+    // Initialize user info display
+    initUserInfo() {
+        const userData = localStorage.getItem('userData');
+        if (userData) {
+            const user = JSON.parse(userData);
+            const userNameEl = document.getElementById('userName');
+            const userCodeEl = document.getElementById('userCode');
+            
+            if (userNameEl) userNameEl.textContent = user.fullName;
+            if (userCodeEl) userCodeEl.textContent = user.mdaCode;
+        }
+    }
+
     async init() {
         try {
             // Ensure loading overlay is hidden at start
             this.setLoading(false);
             
             await this.loadVehicleSettings();
+            this.initUserInfo();
             this.bindEvents();
             this.setCurrentTime();
             await this.loadStats();
@@ -113,6 +199,16 @@ class CallCounter {
         if (historyBtn) {
             historyBtn.addEventListener('click', () => {
                 window.location.href = '/history.html';
+            });
+        }
+
+        // Logout button
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', () => {
+                if (confirm('האם אתה בטוח שברצונך להתנתק?')) {
+                    this.logout();
+                }
             });
         }
 
@@ -417,9 +513,7 @@ class CallCounter {
             start_time: document.getElementById('startTime').value,
             end_time: document.getElementById('endTime').value || null,
             location: document.getElementById('location').value,
-            description: document.getElementById('description').value || null,
-            vehicle_number: this.currentVehicle.number,
-            vehicle_type: this.currentVehicle.type
+            description: document.getElementById('description').value || null
         };
     }
 
@@ -459,9 +553,7 @@ class CallCounter {
             
             const response = await fetch('/api/calls', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: this.getAuthHeaders(),
                 body: JSON.stringify(callData)
             });
 
@@ -486,7 +578,9 @@ class CallCounter {
 
     async loadStats() {
         try {
-            const response = await fetch('/api/stats');
+            const response = await fetch('/api/stats', {
+                headers: this.getAuthHeaders()
+            });
             const result = await response.json();
 
             if (result.success) {
@@ -502,7 +596,9 @@ class CallCounter {
         try {
             // Load only today's calls for the "Latest Calls" section
             const today = new Date().toISOString().split('T')[0];
-            const response = await fetch(`/api/calls?date=${today}`);
+            const response = await fetch(`/api/calls?date=${today}`, {
+                headers: this.getAuthHeaders()
+            });
             const result = await response.json();
 
             if (result.success) {
@@ -990,6 +1086,28 @@ class CallCounter {
                     toast.classList.add('hidden');
                 }, 300);
             }, 3000);
+        }
+    }
+
+    // Logout method
+    async logout() {
+        try {
+            // Call logout API
+            await fetch('/api/auth/logout', {
+                method: 'POST',
+                headers: this.getAuthHeaders()
+            });
+        } catch (error) {
+            console.error('Logout API error:', error);
+        } finally {
+            // Clear local storage and redirect
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userData');
+            localStorage.removeItem('rememberMe');
+            sessionStorage.removeItem('authToken');
+            sessionStorage.removeItem('userData');
+            localStorage.removeItem('userData');
+            window.location.href = '/login.html';
         }
     }
 

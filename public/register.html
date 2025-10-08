@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>הרשמה למערכת - CallCounter</title>
+    <meta name="description" content="הרשמה למערכת מעקב נסיעות לכונן">
+    <meta name="theme-color" content="#dc2626">
+    
+    <!-- PWA Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="הרשמה למערכת">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏍️</text></svg>">
+    
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="auth-page">
+    <!-- Disclaimer Modal -->
+    <div id="disclaimerModal" class="disclaimer-modal">
+        <div class="disclaimer-content">
+            <div class="disclaimer-timer" id="disclaimerTimer">5</div>
+            <span class="disclaimer-icon">⚠️</span>
+            <h2 class="disclaimer-title">הצהרת חשובה</h2>
+            <p class="disclaimer-text">
+                האתר הזה אינו רשמי של מד"א ואין לו קשר, תמיכה או סיוע מצד הארגון. מדובר בכלי אישי שנועד למעקב עצמאי בלבד.<br><br>
+                האתר מאובטח, מוגן ושומר על חוק חיסיון רפואי בכל צורה אפשרית. כל המידע נשמר בצורה מוצפנת ומאובטחת.
+            </p>
+            <button id="disclaimerConfirm" class="disclaimer-confirm">
+                הבנתי ואני מסכים/ה
+            </button>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <main class="auth-container">
+        <div class="auth-card">
+            <!-- Logo Section -->
+            <div class="auth-header">
+                <div class="auth-logo">
+                    <span class="logo-icon">🏍️</span>
+                    <h1 class="logo-text">מעקב נסיעות</h1>
+                    <p class="logo-subtitle">הרשמה למערכת</p>
+                </div>
+            </div>
+
+            <!-- Registration Form -->
+            <form id="registerForm" class="auth-form">
+                <div style="background: rgba(255, 255, 255, 0.1); padding: 0.75rem; border-radius: 8px; margin-bottom: 1.5rem; border: 1px solid rgba(255, 255, 255, 0.2);">
+                    <p style="margin: 0; font-size: 0.9rem; color: #fff; text-align: center;">
+                        <strong>שדות חובה מסומנים בכוכבית (*)</strong>
+                    </p>
+                </div>
+                
+                <div class="form-group">
+                    <label for="fullName" class="form-label">שם מלא *</label>
+                    <input type="text" id="fullName" name="fullName" class="form-input" required 
+                           placeholder="הזן שם מלא" autocomplete="name">
+                </div>
+
+                <div class="form-group">
+                    <label for="username" class="form-label">שם משתמש *</label>
+                    <input type="text" id="username" name="username" class="form-input" required 
+                           placeholder="בחר שם משתמש" autocomplete="username">
+                </div>
+
+                <div class="form-group">
+                    <label for="mdaCode" class="form-label">קוד מבצעי/קוד כונן אישי *</label>
+                    <input type="text" id="mdaCode" name="mdaCode" class="form-input" required 
+                           placeholder="הזן קוד מד״א" pattern="[0-9]{2,5}">
+                </div>
+
+                <div class="form-group">
+                    <label for="password" class="form-label">סיסמה *</label>
+                    <input type="password" id="password" name="password" class="form-input" required 
+                           placeholder="בחר סיסמה חזקה" autocomplete="new-password" minlength="6">
+                </div>
+
+                <div class="form-group">
+                    <label for="confirmPassword" class="form-label">אימות סיסמה *</label>
+                    <input type="password" id="confirmPassword" name="confirmPassword" class="form-input" required 
+                           placeholder="הזן סיסמה שוב" autocomplete="new-password" minlength="6">
+                </div>
+
+                <button type="submit" class="auth-btn" id="registerBtn">
+                    <span class="btn-icon">📝</span>
+                    הרשמה למערכת
+                </button>
+            </form>
+
+            <!-- Login Link -->
+            <div class="auth-footer">
+                <p class="auth-link-text">כבר יש לך חשבון?</p>
+                <a href="/login.html" class="auth-link">כניסה למערכת</a>
+            </div>
+        </div>
+    </main>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="loading-spinner"></div>
+        <p class="loading-text">יוצר חשבון...</p>
+    </div>
+
+    <!-- Success Toast -->
+    <div id="successToast" class="toast toast-success hidden">
+        <span class="toast-icon">✅</span>
+        <span class="toast-message">נרשמת בהצלחה!</span>
+    </div>
+
+    <!-- Error Toast -->
+    <div id="errorToast" class="toast toast-error hidden">
+        <span class="toast-icon">❌</span>
+        <span class="toast-message">שגיאה בהרשמה</span>
+    </div>
+
+    <script src="/js/auth.js"></script>
+    <script>
+        // Disclaimer modal functionality with session tracking
+        document.addEventListener('DOMContentLoaded', function() {
+            const disclaimerModal = document.getElementById('disclaimerModal');
+            const disclaimerTimer = document.getElementById('disclaimerTimer');
+            const disclaimerConfirm = document.getElementById('disclaimerConfirm');
+            
+            // Check if disclaimer was already shown in this session
+            if (!sessionStorage.getItem('disclaimerShown')) {
+                disclaimerModal.style.display = 'flex';
+                
+                let countdown = 5;
+                const timer = setInterval(() => {
+                    countdown--;
+                    disclaimerTimer.textContent = countdown;
+                    
+                    if (countdown <= 0) {
+                        clearInterval(timer);
+                        disclaimerTimer.style.display = 'none';
+                        disclaimerConfirm.classList.add('show');
+                    }
+                }, 1000);
+                
+                disclaimerConfirm.addEventListener('click', function() {
+                    disclaimerModal.style.display = 'none';
+                    sessionStorage.setItem('disclaimerShown', 'true');
+                });
+            } else {
+                disclaimerModal.style.display = 'none';
+            }
+            
+            // Vehicle type detection based on MDA code
+            function detectVehicleType(mdaCode) {
+                if (!mdaCode || mdaCode.length < 2) return null;
+                
+                const firstDigit = mdaCode.charAt(0);
+                const firstTwoDigits = mdaCode.substring(0, 2);
+                
+                // 5-digit codes starting with "12" are personal standby
+                if (mdaCode.length === 5 && firstTwoDigits === '12') {
+                    return 'personal_standby';
+                }
+                
+                // 4-digit codes
+                if (mdaCode.length === 4) {
+                    if (firstDigit === '5') return 'motorcycle';
+                    if (firstDigit === '6') return 'picanto';
+                    if (['1', '2', '3', '4', '7', '8', '9'].includes(firstDigit)) return 'ambulance';
+                }
+                
+                // 2 or 3 digit codes starting with 1,2,3,4,7,8,9 are ambulances
+                if ((mdaCode.length === 2 || mdaCode.length === 3) && 
+                    ['1', '2', '3', '4', '7', '8', '9'].includes(firstDigit)) {
+                    return 'ambulance';
+                }
+                
+                return 'ambulance'; // default
+            }
+            
+            function getVehicleEmoji(vehicleType) {
+                switch(vehicleType) {
+                    case 'motorcycle': return '🏍️';
+                    case 'picanto': return '🚗';
+                    case 'ambulance': return '🚑';
+                    case 'personal_standby': return '👨‍⚕️';
+                    default: return '🚑';
+                }
+            }
+            
+            // Update vehicle type display when MDA code changes
+            const mdaCodeInput = document.getElementById('mdaCode');
+            if (mdaCodeInput) {
+                mdaCodeInput.addEventListener('input', function() {
+                    const vehicleType = detectVehicleType(this.value);
+                    const emoji = getVehicleEmoji(vehicleType);
+                    
+                    // You can add visual feedback here if needed
+                    console.log(`MDA Code: ${this.value}, Vehicle Type: ${vehicleType}, Emoji: ${emoji}`);
+                });
+            }
+        });
+    </script>
+    <script>
+        // Initialize register page
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🏍️ Register page loaded');
+            
+            // Check if already logged in
+            const token = localStorage.getItem('authToken');
+            if (token) {
+                // Validate token with server
+                fetch('/api/auth/validate', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Already logged in, redirect to main page
+                        window.location.href = '/';
+                    }
+                })
+                .catch(() => {
+                    // Token invalid, remove it
+                    localStorage.removeItem('authToken');
+                });
+            }
+        });
+    </script>
+</body>
+</html>

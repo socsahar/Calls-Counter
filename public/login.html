@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>כניסה למערכת - CallCounter</title>
+    <meta name="description" content="כניסה למערכת מעקב נסיעות לכונן">
+    <meta name="theme-color" content="#dc2626">
+    
+    <!-- PWA Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="כניסה למערכת">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏍️</text></svg>">
+    
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="auth-page">
+    <!-- Disclaimer Modal -->
+    <div id="disclaimerModal" class="disclaimer-modal">
+        <div class="disclaimer-content">
+            <div class="disclaimer-timer" id="disclaimerTimer">5</div>
+            <span class="disclaimer-icon">⚠️</span>
+            <h2 class="disclaimer-title">הצהרת חשובה</h2>
+            <p class="disclaimer-text">
+                האתר הזה אינו רשמי של מד"א ואין לו קשר, תמיכה או סיוע מצד הארגון. מדובר בכלי אישי שנועד למעקב עצמאי בלבד.<br><br>
+                האתר מאובטח, מוגן ושומר על חוק חיסיון רפואי בכל צורה אפשרית. כל המידע נשמר בצורה מוצפנת ומאובטחת.
+            </p>
+            <button id="disclaimerConfirm" class="disclaimer-confirm">
+                הבנתי ואני מסכים/ה
+            </button>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <main class="auth-container">
+        <div class="auth-card">
+            <!-- Logo Section -->
+            <div class="auth-header">
+                <div class="auth-logo">
+                    <span class="logo-icon">🏍️</span>
+                    <h1 class="logo-text">מעקב נסיעות</h1>
+                    <p class="logo-subtitle">כניסה למערכת</p>
+                </div>
+            </div>
+
+            <!-- Login Form -->
+            <form id="loginForm" class="auth-form">
+                <div class="form-group">
+                    <label for="username" class="form-label">שם משתמש</label>
+                    <input type="text" id="username" name="username" class="form-input" required 
+                           placeholder="הזן שם משתמש" autocomplete="username">
+                </div>
+
+                <div class="form-group">
+                    <label for="password" class="form-label">סיסמה</label>
+                    <input type="password" id="password" name="password" class="form-input" required 
+                           placeholder="הזן סיסמה" autocomplete="current-password">
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 1.5rem;">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; cursor: pointer;">
+                        <input type="checkbox" id="rememberMe" checked style="margin: 0;">
+                        זכור אותי
+                    </label>
+                </div>
+
+                <button type="submit" class="auth-btn" id="loginBtn">
+                    <span class="btn-icon">🔐</span>
+                    כניסה למערכת
+                </button>
+            </form>
+
+            <!-- Register Link -->
+            <div class="auth-footer">
+                <p class="auth-link-text">עדיין אין לך חשבון?</p>
+                <a href="/register.html" class="auth-link">הרשמה למערכת</a>
+            </div>
+        </div>
+    </main>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="loading-spinner"></div>
+        <p class="loading-text">מתחבר למערכת...</p>
+    </div>
+
+    <!-- Success Toast -->
+    <div id="successToast" class="toast toast-success hidden">
+        <span class="toast-icon">✅</span>
+        <span class="toast-message">התחברת בהצלחה!</span>
+    </div>
+
+    <!-- Error Toast -->
+    <div id="errorToast" class="toast toast-error hidden">
+        <span class="toast-icon">❌</span>
+        <span class="toast-message">שגיאה בהתחברות</span>
+    </div>
+
+    <script src="/js/auth.js"></script>
+    <script>
+        // Disclaimer modal functionality with session tracking
+        document.addEventListener('DOMContentLoaded', function() {
+            const disclaimerModal = document.getElementById('disclaimerModal');
+            const disclaimerTimer = document.getElementById('disclaimerTimer');
+            const disclaimerConfirm = document.getElementById('disclaimerConfirm');
+            
+            // Show disclaimer if not shown in this session AND this is the login page
+            if (!sessionStorage.getItem('disclaimerShown')) {
+                disclaimerModal.style.display = 'flex';
+                
+                let countdown = 5;
+                const timer = setInterval(() => {
+                    countdown--;
+                    disclaimerTimer.textContent = countdown;
+                    
+                    if (countdown <= 0) {
+                        clearInterval(timer);
+                        disclaimerTimer.style.display = 'none';
+                        disclaimerConfirm.classList.add('show');
+                    }
+                }, 1000);
+                
+                disclaimerConfirm.addEventListener('click', function() {
+                    disclaimerModal.style.display = 'none';
+                    sessionStorage.setItem('disclaimerShown', 'true');
+                });
+            } else {
+                disclaimerModal.style.display = 'none';
+            }
+        });
+    </script>
+    <script>
+        // Initialize login page
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🏍️ Login page loaded');
+            
+            // Check if already logged in
+            const token = localStorage.getItem('authToken');
+            if (token) {
+                // Validate token with server
+                fetch('/api/auth/validate', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Already logged in, redirect to main page
+                        window.location.href = '/';
+                    }
+                })
+                .catch(() => {
+                    // Token invalid, remove it
+                    localStorage.removeItem('authToken');
+                });
+            }
+        });
+    </script>
+</body>
+</html>

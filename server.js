@@ -21,10 +21,15 @@ const helmet = require('helmet');
 const compression = require('compression');
 const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
+const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
 
 // Initialize Express app
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// JWT Secret (in production, use a proper secret from environment)
+const JWT_SECRET = process.env.JWT_SECRET || 'mda-callcounter-secret-key-2025';
 
 // Supabase configuration
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -56,7 +61,7 @@ app.use(helmet({
             defaultSrc: ["'self'"],
             styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
             fontSrc: ["'self'", "https://fonts.gstatic.com"],
-            scriptSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'"],
             imgSrc: ["'self'", "data:", "https:"],
             connectSrc: ["'self'", "https://*.supabase.co", "https://fonts.googleapis.com", "https://fonts.gstatic.com"]
         }
@@ -72,10 +77,337 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
 
+// ================================================
+// AUTHENTICATION MIDDLEWARE
+// ================================================
+
+// Middleware to verify JWT token
+const authenticateToken = async (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) {
+        return res.status(401).json({
+            success: false,
+            message: 'אין הרשאה - נדרש טוקן גישה',
+            code: 'NO_TOKEN'
+        });
+    }
+
+    try {
+        // First verify JWT structure and signature
+        const decoded = jwt.verify(token, JWT_SECRET);
+        
+        // Then validate session in database (optional for better performance)
+        const { data: sessionData, error } = await supabase
+            .rpc('validate_session', { p_session_token: token });
+
+        // If session validation fails, still allow if JWT is valid (more lenient)
+        if (sessionData && sessionData.length > 0) {
+            req.user = sessionData[0];
+        } else {
+            // Fallback to JWT data if session validation fails
+            req.user = {
+                user_id: decoded.userId,
+                username: decoded.username,
+                mda_code: decoded.mdaCode
+            };
+        }
+        next();
+    } catch (error) {
+        console.error('Token verification error:', error);
+        const isExpired = error.name === 'TokenExpiredError';
+        return res.status(403).json({
+            success: false,
+            message: isExpired ? 'טוקן פג תוקף' : 'טוקן לא תקין',
+            code: isExpired ? 'TOKEN_EXPIRED' : 'INVALID_TOKEN'
+        });
+    }
+};
+
+// Optional authentication (for public endpoints that can work with or without auth)
+const optionalAuth = async (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (token) {
+        try {
+            const decoded = jwt.verify(token, JWT_SECRET);
+            const { data: sessionData } = await supabase
+                .rpc('validate_session', { p_session_token: token });
+
+            if (sessionData && sessionData.length > 0) {
+                req.user = sessionData[0];
+            }
+        } catch (error) {
+            // Ignore token errors for optional auth
+        }
+    }
+    
+    next();
+};
+
+// ================================================
+// AUTHENTICATION ROUTES
+// ================================================
+
+// Register new user
+app.post('/api/auth/register', async (req, res) => {
+    try {
+        const { fullName, username, password, mdaCode, phone, email } = req.body;
+
+        // Validation - check for required fields
+        if (!fullName || !fullName.trim()) {
+            return res.status(400).json({
+                success: false,
+                message: 'שם מלא הוא שדה חובה'
+            });
+        }
+
+        if (!username || !username.trim()) {
+            return res.status(400).json({
+                success: false,
+                message: 'שם משתמש הוא שדה חובה'
+            });
+        }
+
+        if (!password || password.length < 6) {
+            return res.status(400).json({
+                success: false,
+                message: 'סיסמה חייבת להיות באורך של 6 תווים לפחות'
+            });
+        }
+
+        if (!mdaCode || !mdaCode.trim()) {
+            return res.status(400).json({
+                success: false,
+                message: 'קוד מבצעי/קוד כונן אישי הוא שדה חובה'
+            });
+        }
+
+        // Validate MDA code format (2-5 digits)
+        if (!/^\d{2,5}$/.test(mdaCode.trim())) {
+            return res.status(400).json({
+                success: false,
+                message: 'קוד מד״א חייב להיות מספר בן 2-5 ספרות'
+            });
+        }
+
+        // Check if username already exists
+        const { data: existingUser, error: checkError } = await supabase
+            .from('users')
+            .select('id')
+            .eq('username', username)
+            .single();
+
+        if (existingUser) {
+            return res.status(400).json({
+                success: false,
+                message: 'שם המשתמש כבר קיים במערכת'
+            });
+        }
+
+        // Create user using the database function
+        const { data: newUserId, error: createError } = await supabase
+            .rpc('create_user', {
+                p_full_name: fullName,
+                p_username: username,
+                p_password: password,
+                p_mda_code: mdaCode,
+                p_phone: phone || null,
+                p_email: email || null
+            });
+
+        if (createError) {
+            console.error('User creation error:', createError);
+            return res.status(400).json({
+                success: false,
+                message: 'שגיאה ביצירת המשתמש',
+                error: createError.message
+            });
+        }
+
+        res.status(201).json({
+            success: true,
+            message: 'משתמש נוצר בהצלחה',
+            userId: newUserId
+        });
+
+    } catch (error) {
+        console.error('Registration error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'שגיאת שרת פנימית',
+            error: error.message
+        });
+    }
+});
+
+// Login user
+app.post('/api/auth/login', async (req, res) => {
+    try {
+        const { username, password } = req.body;
+
+        if (!username || !password) {
+            return res.status(400).json({
+                success: false,
+                message: 'שם משתמש וסיסמה נדרשים'
+            });
+        }
+
+        // Authenticate user using database function
+        const { data: userData, error: authError } = await supabase
+            .rpc('authenticate_user', {
+                p_username: username,
+                p_password: password
+            });
+
+        if (authError || !userData || userData.length === 0) {
+            return res.status(401).json({
+                success: false,
+                message: 'שם משתמש או סיסמה שגויים'
+            });
+        }
+
+        const user = userData[0];
+
+        // Generate JWT token
+        const token = jwt.sign(
+            {
+                userId: user.user_id,
+                username: user.username,
+                mdaCode: user.mda_code
+            },
+            JWT_SECRET,
+            { expiresIn: '7d' }
+        );
+
+        // Create session in database
+        const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+        const { error: sessionError } = await supabase
+            .rpc('create_session', {
+                p_user_id: user.user_id,
+                p_session_token: token,
+                p_expires_at: expiresAt.toISOString()
+            });
+
+        if (sessionError) {
+            console.error('Session creation error:', sessionError);
+        }
+
+        res.json({
+            success: true,
+            message: 'התחברת בהצלחה',
+            token,
+            user: {
+                id: user.user_id,
+                fullName: user.full_name,
+                username: user.username,
+                mdaCode: user.mda_code,
+                isAdmin: user.is_admin
+            }
+        });
+
+    } catch (error) {
+        console.error('Login error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'שגיאת שרת פנימית',
+            error: error.message
+        });
+    }
+});
+
+// Validate token
+app.get('/api/auth/validate', authenticateToken, (req, res) => {
+    res.json({
+        success: true,
+        user: {
+            id: req.user.user_id,
+            fullName: req.user.full_name,
+            username: req.user.username,
+            mdaCode: req.user.mda_code,
+            isAdmin: req.user.is_admin
+        }
+    });
+});
+
+// Get current user info (alias for validate)
+app.get('/api/auth/me', authenticateToken, (req, res) => {
+    res.json({
+        success: true,
+        user: {
+            id: req.user.user_id,
+            full_name: req.user.full_name,
+            username: req.user.username,
+            mda_code: req.user.mda_code,
+            is_admin: req.user.is_admin
+        }
+    });
+});
+
+// Check if username exists
+app.get('/api/auth/check-username', async (req, res) => {
+    try {
+        const { username } = req.query;
+
+        if (!username) {
+            return res.status(400).json({
+                success: false,
+                message: 'שם משתמש נדרש'
+            });
+        }
+
+        const { data: existingUser } = await supabase
+            .from('users')
+            .select('id')
+            .eq('username', username)
+            .single();
+
+        res.json({
+            success: true,
+            exists: !!existingUser
+        });
+
+    } catch (error) {
+        console.error('Username check error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'שגיאה בבדיקת שם המשתמש'
+        });
+    }
+});
+
+// Logout
+app.post('/api/auth/logout', authenticateToken, async (req, res) => {
+    try {
+        const authHeader = req.headers['authorization'];
+        const token = authHeader && authHeader.split(' ')[1];
+
+        // Delete session from database
+        await supabase
+            .from('user_sessions')
+            .delete()
+            .eq('session_token', token);
+
+        res.json({
+            success: true,
+            message: 'התנתקת בהצלחה'
+        });
+
+    } catch (error) {
+        console.error('Logout error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'שגיאה בהתנתקות'
+        });
+    }
+});
+
 // API Routes
 
 // Get all calls for today
-app.get('/api/calls', async (req, res) => {
+app.get('/api/calls', optionalAuth, async (req, res) => {
     try {
         const { date, call_type, vehicle_type, vehicle_number } = req.query;
         const targetDate = date || new Date().toISOString().split('T')[0];
@@ -127,7 +459,7 @@ app.get('/api/calls', async (req, res) => {
 });
 
 // Get historical calls (by year and optional month)
-app.get('/api/calls/historical', async (req, res) => {
+app.get('/api/calls/historical', optionalAuth, async (req, res) => {
     try {
         const { year, month } = req.query;
         
@@ -138,26 +470,32 @@ app.get('/api/calls/historical', async (req, res) => {
             });
         }
 
-        // Build date range
-        let startDate, endDate;
+        // Build date range for call_date filtering
+        let startDateStr, endDateStr;
         
         if (month) {
             // Specific month
-            startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
-            endDate = new Date(parseInt(year), parseInt(month), 1);
+            const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+            const endDate = new Date(parseInt(year), parseInt(month), 1);
+            startDateStr = startDate.toISOString().split('T')[0];
+            endDateStr = endDate.toISOString().split('T')[0];
         } else {
             // Entire year
-            startDate = new Date(parseInt(year), 0, 1);
-            endDate = new Date(parseInt(year) + 1, 0, 1);
+            const startDate = new Date(parseInt(year), 0, 1);
+            const endDate = new Date(parseInt(year) + 1, 0, 1);
+            startDateStr = startDate.toISOString().split('T')[0];
+            endDateStr = endDate.toISOString().split('T')[0];
         }
 
-        // Get calls data
+        console.log(`📅 Historical query range: ${startDateStr} to ${endDateStr}`);
+
+        // Get calls data using call_date field for consistency
         const { data: calls, error: callsError } = await supabase
             .from('calls')
             .select('*')
-            .gte('created_at', startDate.toISOString())
-            .lt('created_at', endDate.toISOString())
-            .order('created_at', { ascending: false });
+            .gte('call_date', startDateStr)
+            .lt('call_date', endDateStr)
+            .order('call_date', { ascending: false });
 
         if (callsError) {
             console.error('Supabase error:', callsError);
@@ -169,8 +507,20 @@ app.get('/api/calls/historical', async (req, res) => {
         }
 
         // Calculate statistics (handle both Hebrew and English call types)
+        // Helper function to calculate total hours from calls
+        const calculateHours = (calls) => {
+            if (!calls || calls.length === 0) return 0;
+            
+            const totalMinutes = calls.reduce((sum, call) => {
+                return sum + (call.duration_minutes || 30); // Default 30 minutes if no duration
+            }, 0);
+            
+            return Math.round((totalMinutes / 60) * 100) / 100; // Round to 2 decimal places
+        };
+
         const stats = {
             totalCalls: calls.length,
+            totalHours: calculateHours(calls),
             urgentCalls: calls.filter(call => 
                 call.call_type === 'דחוף' || call.call_type === 'urgent'
             ).length,
@@ -204,8 +554,46 @@ app.get('/api/calls/historical', async (req, res) => {
     }
 });
 
+// Vehicle type detection function
+function detectVehicleType(mdaCode) {
+    if (!mdaCode || mdaCode.length < 2) return 'ambulance';
+    
+    const firstDigit = mdaCode.charAt(0);
+    const firstTwoDigits = mdaCode.substring(0, 2);
+    
+    // 5-digit codes starting with "12" are personal standby
+    if (mdaCode.length === 5 && firstTwoDigits === '12') {
+        return 'personal_standby';
+    }
+    
+    // 4-digit codes
+    if (mdaCode.length === 4) {
+        if (firstDigit === '5') return 'motorcycle';
+        if (firstDigit === '6') return 'picanto';
+        if (['1', '2', '3', '4', '7', '8', '9'].includes(firstDigit)) return 'ambulance';
+    }
+    
+    // 2 or 3 digit codes starting with 1,2,3,4,7,8,9 are ambulances
+    if ((mdaCode.length === 2 || mdaCode.length === 3) && 
+        ['1', '2', '3', '4', '7', '8', '9'].includes(firstDigit)) {
+        return 'ambulance';
+    }
+    
+    return 'ambulance'; // default
+}
+
+function getVehicleEmoji(vehicleType) {
+    switch(vehicleType) {
+        case 'motorcycle': return '🏍️';
+        case 'picanto': return '🚗';
+        case 'ambulance': return '🚑';
+        case 'personal_standby': return '👨‍⚕️';
+        default: return '🚑';
+    }
+}
+
 // Create a new call
-app.post('/api/calls', async (req, res) => {
+app.post('/api/calls', authenticateToken, async (req, res) => {
     try {
         const {
             call_type,
@@ -213,9 +601,7 @@ app.post('/api/calls', async (req, res) => {
             start_time,
             end_time,
             location,
-            description,
-            vehicle_number,
-            vehicle_type
+            description
         } = req.body;
 
         // Validation
@@ -226,6 +612,11 @@ app.post('/api/calls', async (req, res) => {
             });
         }
 
+        // Get user's MDA code and auto-detect vehicle type
+        const userMdaCode = req.user ? req.user.mdaCode : '5248';
+        const detectedVehicleType = detectVehicleType(userMdaCode);
+        const vehicleEmoji = getVehicleEmoji(detectedVehicleType);
+
         // Calculate duration if end_time is provided
         let duration_minutes = null;
         if (end_time && start_time) {
@@ -234,7 +625,30 @@ app.post('/api/calls', async (req, res) => {
             duration_minutes = Math.round((end - start) / (1000 * 60));
         }
 
+        // Check vehicle availability before creating the call
+        const { data: availabilityCheck, error: availabilityError } = await supabase
+            .rpc('check_vehicle_availability', {
+                p_vehicle_number: userMdaCode,
+                p_user_id: req.user ? req.user.user_id : null
+            });
+
+        if (availabilityError) {
+            console.error('Vehicle availability check error:', availabilityError);
+            return res.status(500).json({
+                success: false,
+                message: 'שגיאה בבדיקת זמינות הרכב'
+            });
+        }
+
+        if (!availabilityCheck) {
+            return res.status(409).json({
+                success: false,
+                message: `רכב ${userMdaCode} כבר בשימוש על ידי משתמש אחר. אנא המתן עד לסיום הנסיעה או בחר רכב אחר.`
+            });
+        }
+
         const callData = {
+            user_id: req.user ? req.user.user_id : null,
             call_type: normalizeCallType(call_type),
             call_date,
             start_time,
@@ -242,8 +656,8 @@ app.post('/api/calls', async (req, res) => {
             location,
             description: description || null,
             duration_minutes,
-            vehicle_number: vehicle_number || process.env.MOTORCYCLE_NUMBER || '5248',
-            vehicle_type: vehicle_type || 'motorcycle',
+            vehicle_number: userMdaCode,
+            vehicle_type: `${vehicleEmoji} ${detectedVehicleType}`,
             created_at: new Date().toISOString()
         };
 
@@ -489,7 +903,7 @@ app.delete('/api/calls/:id', async (req, res) => {
 });
 
 // Get statistics  
-app.get('/api/stats', async (req, res) => {
+app.get('/api/stats', optionalAuth, async (req, res) => {
     try {
         // Get current date in local timezone (where the server is running)
         const now = new Date();
@@ -535,35 +949,85 @@ app.get('/api/stats', async (req, res) => {
             .order('created_at', { ascending: false })
             .limit(10);
             
-        // Get weekly and monthly stats
-        const { data: weeklyData, error: weeklyError } = await supabase.rpc('get_weekly_stats');
-        const { data: monthlyData, error: monthlyError } = await supabase.rpc('get_monthly_stats');
+        // Get weekly and monthly stats using direct queries instead of RPC functions
+        // Calculate weekly date range (Monday to Sunday)
+        const weekStart = new Date(now);
+        const dayOfWeek = weekStart.getDay();
+        const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Sunday = 0, Monday = 1
+        weekStart.setDate(weekStart.getDate() - daysFromMonday);
+        const weekStartStr = weekStart.toISOString().split('T')[0];
+        
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekEnd.getDate() + 7);
+        const weekEndStr = weekEnd.toISOString().split('T')[0];
+
+        // Get weekly stats
+        const { data: weeklyCalls, error: weeklyError } = await supabase
+            .from('calls')
+            .select('id, duration_minutes')
+            .gte('call_date', weekStartStr)
+            .lt('call_date', weekEndStr);
+
+        // Calculate monthly date range
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const monthStartStr = monthStart.toISOString().split('T')[0];
+        
+        const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+        const monthEndStr = monthEnd.toISOString().split('T')[0];
+
+        // Get monthly stats
+        const { data: monthlyCalls, error: monthlyError } = await supabase
+            .from('calls')
+            .select('id, duration_minutes')
+            .gte('call_date', monthStartStr)
+            .lt('call_date', monthEndStr);
+
+        // Helper function to calculate total hours from calls
+        const calculateHours = (calls) => {
+            if (!calls || calls.length === 0) return 0;
+            
+            const totalMinutes = calls.reduce((sum, call) => {
+                return sum + (call.duration_minutes || 30); // Default 30 minutes if no duration
+            }, 0);
+            
+            return Math.round((totalMinutes / 60) * 100) / 100; // Round to 2 decimal places
+        };
 
         // Calculate today's stats
         const todayStats = {
             total_calls: todayCalls.length,
-            total_hours: Math.round(todayCalls.length * 0.5 * 10) / 10
+            total_hours: calculateHours(todayCalls)
         };
 
-        // Extract weekly and monthly stats
-        const weeklyStats = weeklyData && weeklyData.length > 0 ? weeklyData[0] : { total_calls: 0, total_hours: 0 };
-        const monthlyStats = monthlyData && monthlyData.length > 0 ? monthlyData[0] : { total_calls: 0, total_hours: 0 };
+        // Calculate weekly and monthly stats
+        const weeklyStats = {
+            total_calls: weeklyCalls ? weeklyCalls.length : 0,
+            total_hours: calculateHours(weeklyCalls)
+        };
+        
+        const monthlyStats = {
+            total_calls: monthlyCalls ? monthlyCalls.length : 0,
+            total_hours: calculateHours(monthlyCalls)
+        };
 
-        console.log(`� Final today's stats: ${todayStats.total_calls} calls`);
+        console.log(`📊 Final today's stats: ${todayStats.total_calls} calls, weekly: ${weeklyStats.total_calls}, monthly: ${monthlyStats.total_calls}`);
 
         res.json({
             success: true,
             data: {
-                totalCalls: parseInt(todayStats.total_calls || 0),
-                weeklyCalls: parseInt(weeklyStats.total_calls || 0),
-                monthlyCalls: parseInt(monthlyStats.total_calls || 0),
-                weeklyHours: parseFloat(weeklyStats.total_hours || 0),
-                monthlyHours: parseFloat(monthlyStats.total_hours || 0),
+                totalCalls: todayStats.total_calls,
+                weeklyCalls: weeklyStats.total_calls,
+                monthlyCalls: monthlyStats.total_calls,
+                weeklyHours: weeklyStats.total_hours,
+                monthlyHours: monthlyStats.total_hours,
                 currentDate: today,
                 debug: {
                     todayCallsFound: todayCalls.length,
-                    currentTime: now.toISOString(),
-                    recentCalls: allCalls?.slice(0, 3)
+                    weeklyCallsFound: weeklyStats.total_calls,
+                    monthlyCallsFound: monthlyStats.total_calls,
+                    weekRange: `${weekStartStr} to ${weekEndStr}`,
+                    monthRange: `${monthStartStr} to ${monthEndStr}`,
+                    currentTime: now.toISOString()
                 }
             }
         });
