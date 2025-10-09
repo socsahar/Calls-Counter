@@ -1378,7 +1378,7 @@ app.get('/api/admin/dashboard', authenticateToken, requireAdmin, async (req, res
         // Get total users count
         const { data: users, error: usersError } = await supabase
             .from('users')
-            .select('id, username, mda_code, created_at, is_admin')
+            .select('id, username, vehicle_number, vehicle_type, created_at, is_admin')
             .order('created_at', { ascending: false });
         
         if (usersError) throw usersError;
@@ -1419,15 +1419,15 @@ app.get('/api/admin/dashboard', authenticateToken, requireAdmin, async (req, res
         
         // Vehicle types distribution
         const vehicleStats = {
-            motorcycles: users.filter(u => u.mda_code && u.mda_code.toString().startsWith('5')).length,
-            picantos: users.filter(u => u.mda_code && u.mda_code.toString().startsWith('6')).length,
-            personalStandby: users.filter(u => u.mda_code && u.mda_code.toString().length === 5 && 
-                (u.mda_code.toString().startsWith('1') || u.mda_code.toString().startsWith('2'))).length,
-            ambulances: users.filter(u => u.mda_code && 
-                !u.mda_code.toString().startsWith('5') && 
-                !u.mda_code.toString().startsWith('6') && 
-                !(u.mda_code.toString().length === 5 && 
-                  (u.mda_code.toString().startsWith('1') || u.mda_code.toString().startsWith('2')))).length
+            motorcycles: users.filter(u => u.vehicle_number && u.vehicle_number.toString().startsWith('5')).length,
+            picantos: users.filter(u => u.vehicle_number && u.vehicle_number.toString().startsWith('6')).length,
+            personalStandby: users.filter(u => u.vehicle_number && u.vehicle_number.toString().length === 5 && 
+                (u.vehicle_number.toString().startsWith('1') || u.vehicle_number.toString().startsWith('2'))).length,
+            ambulances: users.filter(u => u.vehicle_number && 
+                !u.vehicle_number.toString().startsWith('5') && 
+                !u.vehicle_number.toString().startsWith('6') && 
+                !(u.vehicle_number.toString().length === 5 && 
+                  (u.vehicle_number.toString().startsWith('1') || u.vehicle_number.toString().startsWith('2')))).length
         };
         
         res.json({
@@ -1442,7 +1442,7 @@ app.get('/api/admin/dashboard', authenticateToken, requireAdmin, async (req, res
                 aranCalls,
                 natbagCalls,
                 recentCalls,
-                vehicleStats, vehicleCallStats: { motorcycleCalls: allCalls.filter(call => call.vehicle_number && call.vehicle_number.toString().startsWith('5')).length, picantoCalls: allCalls.filter(call => call.vehicle_number && call.vehicle_number.toString().startsWith('6')).length, personalStandbyCalls: allCalls.filter(call => call.vehicle_number && call.vehicle_number.toString().length === 5 && (call.vehicle_number.toString().startsWith('1') || call.vehicle_number.toString().startsWith('2'))).length, ambulanceCalls: allCalls.filter(call => call.vehicle_number && !call.vehicle_number.toString().startsWith('5') && !call.vehicle_number.toString().startsWith('6') && !(call.vehicle_number.toString().length === 5 && (call.vehicle_number.toString().startsWith('1') || call.vehicle_number.toString().startsWith('2')))).length },
+                vehicleStats,
                 users: users.slice(0, 10), // Top 10 users for preview
                 recentCallsData: allCalls.slice(0, 20) // 20 most recent calls
             }
@@ -1463,7 +1463,7 @@ app.get('/api/admin/users', authenticateToken, requireAdmin, async (req, res) =>
     try {
         const { data: users, error } = await supabase
             .from('users')
-            .select('id, username, mda_code, created_at, is_admin')
+            .select('id, username, vehicle_number, vehicle_type, created_at, is_admin')
             .order('created_at', { ascending: false });
         
         if (error) throw error;
@@ -1491,7 +1491,7 @@ app.get('/api/admin/calls', authenticateToken, requireAdmin, async (req, res) =>
             .from('calls')
             .select(`
                 *,
-                users!inner(username, mda_code)
+                users!inner(username, vehicle_number, vehicle_type)
             `)
             .order('created_at', { ascending: false })
             .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
@@ -1647,7 +1647,7 @@ app.get('/api/admin/dashboard', authenticateToken, requireAdmin, async (req, res
         // Get total users count
         const { data: users, error: usersError } = await supabase
             .from('users')
-            .select('id, username, mda_code, created_at, is_admin')
+            .select('id, username, vehicle_number, vehicle_type, created_at, is_admin')
             .order('created_at', { ascending: false });
         
         if (usersError) throw usersError;
@@ -1688,15 +1688,15 @@ app.get('/api/admin/dashboard', authenticateToken, requireAdmin, async (req, res
         
         // Vehicle types distribution
         const vehicleStats = {
-            motorcycles: users.filter(u => u.mda_code && u.mda_code.toString().startsWith('5')).length,
-            picantos: users.filter(u => u.mda_code && u.mda_code.toString().startsWith('6')).length,
-            personalStandby: users.filter(u => u.mda_code && u.mda_code.toString().length === 5 && 
-                (u.mda_code.toString().startsWith('1') || u.mda_code.toString().startsWith('2'))).length,
-            ambulances: users.filter(u => u.mda_code && 
-                !u.mda_code.toString().startsWith('5') && 
-                !u.mda_code.toString().startsWith('6') && 
-                !(u.mda_code.toString().length === 5 && 
-                  (u.mda_code.toString().startsWith('1') || u.mda_code.toString().startsWith('2')))).length
+            motorcycles: users.filter(u => u.vehicle_number && u.vehicle_number.toString().startsWith('5')).length,
+            picantos: users.filter(u => u.vehicle_number && u.vehicle_number.toString().startsWith('6')).length,
+            personalStandby: users.filter(u => u.vehicle_number && u.vehicle_number.toString().length === 5 && 
+                (u.vehicle_number.toString().startsWith('1') || u.vehicle_number.toString().startsWith('2'))).length,
+            ambulances: users.filter(u => u.vehicle_number && 
+                !u.vehicle_number.toString().startsWith('5') && 
+                !u.vehicle_number.toString().startsWith('6') && 
+                !(u.vehicle_number.toString().length === 5 && 
+                  (u.vehicle_number.toString().startsWith('1') || u.vehicle_number.toString().startsWith('2')))).length
         };
         
         res.json({
@@ -1711,7 +1711,7 @@ app.get('/api/admin/dashboard', authenticateToken, requireAdmin, async (req, res
                 aranCalls,
                 natbagCalls,
                 recentCalls,
-                vehicleStats, vehicleCallStats: { motorcycleCalls: allCalls.filter(call => call.vehicle_number && call.vehicle_number.toString().startsWith('5')).length, picantoCalls: allCalls.filter(call => call.vehicle_number && call.vehicle_number.toString().startsWith('6')).length, personalStandbyCalls: allCalls.filter(call => call.vehicle_number && call.vehicle_number.toString().length === 5 && (call.vehicle_number.toString().startsWith('1') || call.vehicle_number.toString().startsWith('2'))).length, ambulanceCalls: allCalls.filter(call => call.vehicle_number && !call.vehicle_number.toString().startsWith('5') && !call.vehicle_number.toString().startsWith('6') && !(call.vehicle_number.toString().length === 5 && (call.vehicle_number.toString().startsWith('1') || call.vehicle_number.toString().startsWith('2')))).length },
+                vehicleStats,
                 users: users.slice(0, 10), // Top 10 users for preview
                 recentCallsData: allCalls.slice(0, 20) // 20 most recent calls
             }
@@ -1732,7 +1732,7 @@ app.get('/api/admin/users', authenticateToken, requireAdmin, async (req, res) =>
     try {
         const { data: users, error } = await supabase
             .from('users')
-            .select('id, username, mda_code, created_at, is_admin')
+            .select('id, username, vehicle_number, vehicle_type, created_at, is_admin')
             .order('created_at', { ascending: false });
         
         if (error) throw error;
@@ -1760,7 +1760,7 @@ app.get('/api/admin/calls', authenticateToken, requireAdmin, async (req, res) =>
             .from('calls')
             .select(`
                 *,
-                users!inner(username, mda_code)
+                users!inner(username, vehicle_number, vehicle_type)
             `)
             .order('created_at', { ascending: false })
             .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
@@ -1858,4 +1858,3 @@ app.listen(PORT, () => {
 });
 
 module.exports = app;
-

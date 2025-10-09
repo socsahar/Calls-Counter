@@ -1,0 +1,21 @@
+<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="16" cy="16" r="15" fill="#2c3e50" stroke="#34495e" stroke-width="2"/>
+  
+  <!-- Blue siren (left side) -->
+  <circle cx="11" cy="13" r="3" fill="#3498db"/>
+  <circle cx="11" cy="13" r="2" fill="#2980b9"/>
+  <circle cx="11" cy="13" r="1" fill="#ffffff" opacity="0.8"/>
+  
+  <!-- Red siren (right side) -->
+  <circle cx="21" cy="13" r="3" fill="#e74c3c"/>
+  <circle cx="21" cy="13" r="2" fill="#c0392b"/>
+  <circle cx="21" cy="13" r="1" fill="#ffffff" opacity="0.8"/>
+  
+  <!-- Base/vehicle shape -->
+  <rect x="8" y="20" width="16" height="8" rx="2" fill="#7f8c8d"/>
+  <rect x="10" y="22" width="12" height="4" rx="1" fill="#95a5a6"/>
+  
+  <!-- MDA text -->
+  <text x="16" y="25" font-family="Arial, sans-serif" font-size="6" font-weight="bold" text-anchor="middle" fill="#2c3e50">MDA</text>
+</svg>

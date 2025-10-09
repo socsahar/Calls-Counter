@@ -95,3 +95,12 @@ dist/
 *.db
 *.sqlite
 *.sql
+
+# json
+call_types.json
+calls.json
+daiily_summaries.json
+vehicle_settings.json
+todays_calls.json
+motorcycle_info.json
+motorcycle_stats.json

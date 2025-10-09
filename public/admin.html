@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>ממשק מנהל - CallCounter</title>
+    <meta name="description" content="ממשק ניהול מערכת לכונן">
+    <meta name="theme-color" content="#dc2626">
+    
+    <!-- Cache Control -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
+    <!-- PWA Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ממשק מנהל">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" type="image/png" href="/favicon-16.svg">
+    <link rel="apple-touch-icon" href="/favicon.svg">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <button id="backBtn" class="back-btn" aria-label="חזרה לדף הראשי">
+                <span class="icon">←</span>
+            </button>
+            
+            <div class="header-info">
+                <h1 class="header-title">ממשק מנהל מערכת</h1>
+                <div class="header-subtitle">
+                    <span id="adminName" class="vehicle-info">טוען...</span>
+                </div>
+            </div>
+            
+            <div class="header-actions">
+                <button id="refreshBtn" class="action-btn refresh-btn" title="רענון נתונים">
+                    <span class="icon">🔄</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-spinner"></div>
+        <p>טוען נתונים...</p>
+    </div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Dashboard Stats -->
+        <section class="dashboard-section">
+            <div class="section-header">
+                <h2 class="section-title">סקירה כללית</h2>
+            </div>
+            
+            <div class="stats-grid" id="statsGrid">
+                <!-- Stats will be populated by JavaScript -->
+            </div>
+        </section>
+
+        <!-- Vehicles Section -->
+        <section class="vehicles-section">
+            <div class="section-header">
+                <h2 class="section-title">סטטיסטיקת רכבים</h2>
+            </div>
+            
+            <div class="vehicles-grid" id="vehiclesGrid">
+                <!-- Vehicle stats will be populated by JavaScript -->
+            </div>
+        </section>
+
+        <!-- Vehicle Calls Section -->
+        <section class="vehicle-calls-section">
+            <div class="section-header">
+                <h2 class="section-title">קריאות לפי סוג רכב</h2>
+            </div>
+            
+            <div class="vehicle-calls-grid" id="vehicleCallsGrid">
+                <!-- Vehicle call stats will be populated by JavaScript -->
+            </div>
+        </section>
+
+        <!-- Quick Actions -->
+        <section class="actions-section">
+            <div class="section-header">
+                <h2 class="section-title">פעולות מהירות</h2>
+            </div>
+            
+            <div class="action-buttons">
+                <button id="viewUsersBtn" class="admin-action-btn">
+                    <span class="icon">👥</span>
+                    <span class="text">ניהול משתמשים</span>
+                </button>
+                <button id="viewAllCallsBtn" class="admin-action-btn">
+                    <span class="icon">📞</span>
+                    <span class="text">כל הקריאות</span>
+                </button>
+                <button id="systemStatsBtn" class="admin-action-btn">
+                    <span class="icon">📊</span>
+                    <span class="text">סטטיסטיקות מערכת</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- Users Management -->
+        <section class="users-section" id="usersSection" style="display: none;">
+            <div class="section-header">
+                <h2 class="section-title">ניהול משתמשים</h2>
+                <button id="closeUsersBtn" class="close-section-btn">✕</button>
+            </div>
+            
+            <div class="users-container" id="usersContainer">
+                <!-- Users will be populated by JavaScript -->
+            </div>
+        </section>
+
+        <!-- All Calls -->
+        <section class="all-calls-section" id="allCallsSection" style="display: none;">
+            <div class="section-header">
+                <h2 class="section-title">כל הקריאות במערכת</h2>
+                <button id="closeCallsBtn" class="close-section-btn">✕</button>
+            </div>
+            
+            <div class="calls-container" id="allCallsContainer">
+                <!-- Calls will be populated by JavaScript -->
+            </div>
+        </section>
+
+        <!-- Recent Activity -->
+        <section class="activity-section">
+            <div class="section-header">
+                <h2 class="section-title">פעילות אחרונה</h2>
+            </div>
+            
+            <div class="activity-container" id="activityContainer">
+                <!-- Recent activity will be populated by JavaScript -->
+            </div>
+        </section>
+    </main>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Admin JavaScript -->
+    <script src="js/admin.js"></script>
+</body>
+</html>

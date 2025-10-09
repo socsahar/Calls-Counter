@@ -1029,6 +1029,75 @@ class CallCounter {
             const name = vehicleTypeNames[this.currentVehicle.type] || this.currentVehicle.type;
             mobileVehicleTypeEl.innerHTML = `${emoji} ${name}`;
         }
+
+        // Add admin panel access if user is admin
+        this.updateAdminAccess();
+    }
+
+    updateAdminAccess() {
+        // Check if user is admin and add admin panel button
+        const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+        if (!token) {
+            console.log('🔐 No token found for admin check');
+            return;
+        }
+
+        // Decode token to check admin status (simple check)
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            console.log('🔐 Token payload:', payload);
+            console.log('🔐 isAdmin status:', payload.isAdmin);
+            
+            if (payload.isAdmin) {
+                console.log('🔐 User is admin, adding admin button');
+                this.addAdminButton();
+            } else {
+                console.log('🔐 User is not admin');
+            }
+        } catch (error) {
+            console.log('🔐 Could not decode token for admin check:', error);
+        }
+    }
+
+    addAdminButton() {
+        // Check if admin button already exists
+        if (document.getElementById('adminBtn')) {
+            console.log('🔐 Admin button already exists');
+            return;
+        }
+
+        console.log('🔐 Creating admin button');
+
+        // Add admin button to header actions
+        const headerActions = document.querySelector('.header-actions');
+        console.log('🔐 Header actions element:', headerActions);
+        
+        if (headerActions) {
+            const adminBtn = document.createElement('button');
+            adminBtn.id = 'adminBtn';
+            adminBtn.className = 'action-btn admin-btn';
+            adminBtn.title = 'ממשק מנהל מערכת';
+            adminBtn.innerHTML = '<span class="icon">⚙️</span>';
+            adminBtn.addEventListener('click', () => {
+                console.log('🔐 Admin button clicked, navigating to admin panel');
+                alert('Navigating to admin panel...'); // Temporary alert for testing
+                window.location.href = '/admin.html';
+            });
+            
+            // Insert before refresh button
+            const refreshBtn = document.getElementById('refreshBtn');
+            if (refreshBtn) {
+                console.log('🔐 Inserting admin button before refresh button');
+                headerActions.insertBefore(adminBtn, refreshBtn);
+            } else {
+                console.log('🔐 Appending admin button to header actions');
+                headerActions.appendChild(adminBtn);
+            }
+            
+            console.log('🔐 Admin button created successfully');
+        } else {
+            console.log('🔐 Header actions element not found');
+        }
     }
 
     async handleVehicleSettingsSubmit(event) {
@@ -1551,6 +1620,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize CallCounter
     window.callCounter = new CallCounter();
     
+    // Check admin access after initialization
+    setTimeout(() => {
+        if (window.callCounter && window.callCounter.updateAdminAccess) {
+            console.log('🔐 Checking admin access after initialization');
+            window.callCounter.updateAdminAccess();
+        }
+    }, 100);
+    
     // Setup context menu
     const contextMenu = document.getElementById('contextMenu');
     if (contextMenu) {
@@ -1570,8 +1647,31 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('Available methods:', {
             exportData: 'callCounter.exportTodayData()',
             stats: 'callCounter.stats',
-            calls: 'callCounter.calls'
+            calls: 'callCounter.calls',
+            goToAdmin: 'goToAdmin()', // Add manual admin navigation
+            findAdminBtn: 'findAdminBtn()' // Add function to find admin button
         });
+        
+        // Manual admin navigation function
+        window.goToAdmin = function() {
+            console.log('🔐 Manual admin navigation...');
+            window.location.href = '/admin.html';
+        };
+        
+        // Function to find and highlight admin button
+        window.findAdminBtn = function() {
+            const adminBtn = document.getElementById('adminBtn');
+            if (adminBtn) {
+                console.log('🔐 Admin button found:', adminBtn);
+                adminBtn.style.border = '3px solid red';
+                adminBtn.style.backgroundColor = 'yellow';
+                adminBtn.scrollIntoView();
+                return adminBtn;
+            } else {
+                console.log('❌ Admin button not found');
+                return null;
+            }
+        };
     }
 });
 

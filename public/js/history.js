@@ -64,10 +64,33 @@ class HistoryViewer {
             this.bindEvents();
             this.populateYearOptions();
             
+            // Auto-load current month's data
+            this.autoLoadCurrentMonth();
+            
             console.log('🏍️ MDA CallCounter History - Initialized successfully');
         } catch (error) {
             console.error('❌ Initialization error:', error);
             this.showToast('שגיאה באתחול המערכת', 'error');
+        }
+    }
+
+    autoLoadCurrentMonth() {
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth() + 1; // getMonth() returns 0-11
+        
+        // Set the dropdowns to current year and month
+        const yearSelect = document.getElementById('historyYear');
+        const monthSelect = document.getElementById('historyMonth');
+        
+        if (yearSelect && monthSelect) {
+            yearSelect.value = currentYear;
+            monthSelect.value = currentMonth;
+            
+            // Auto-load the data
+            setTimeout(() => {
+                this.loadHistoricalCalls();
+            }, 500); // Increased delay to ensure DOM is ready
         }
     }
 
@@ -290,63 +313,60 @@ class HistoryViewer {
                 ? `${call.duration_minutes} דקות`
                 : (call.end_time ? 'לא חושב' : 'בתהליך');
 
-            const callTypeMap = {
-                'דחוף': { text: 'דחוף', class: 'urgent', icon: '🚨' },
-                'אט"ן': { text: 'אט״ן', class: 'atan', icon: '🚑' },
-                'אט״ן': { text: 'אט״ן', class: 'atan', icon: '🚑' },
-                'ארן': { text: 'ארן', class: 'aran', icon: '🏥' },
-                'נתבג': { text: 'נתבג', class: 'natbag', icon: '✈️' },
-                // Backward compatibility with English values
-                'urgent': { text: 'דחוף', class: 'urgent', icon: '🚨' },
-                'atan': { text: 'אט״ן', class: 'atan', icon: '🚑' },
-                'aran': { text: 'ארן', class: 'aran', icon: '🏥' },
-                'natbag': { text: 'נתבג', class: 'natbag', icon: '✈️' }
-            };
+            // Fix call type display - convert English to Hebrew and add emojis
+            let displayCallType = call.call_type || 'לא צוין';
+            if (displayCallType === 'urgent') displayCallType = '🚨 דחוף';
+            else if (displayCallType === 'דחוף') displayCallType = '🚨 דחוף';
+            else if (displayCallType === 'atan') displayCallType = '🔴 אט"ן';
+            else if (displayCallType === 'אט"ן') displayCallType = '🔴 אט"ן';
+            else if (displayCallType === 'אט״ן') displayCallType = '🔴 אט"ן';
+            else if (displayCallType === 'aran') displayCallType = 'ארן';
+            else if (displayCallType === 'natbag') displayCallType = 'נתבג';
 
-            const callTypeInfo = callTypeMap[call.call_type] || { text: call.call_type, class: 'default', icon: '📞' };
+            // Fix vehicle detection - get proper Hebrew vehicle type and emoji
+            let vehicleTypeHebrew = call.vehicle_type;
+            let vehicleEmoji = '🚑'; // Default ambulance emoji
+            const vehicleNumber = call.vehicle_number || '';
             
-            // Get vehicle emoji from type
-            const getVehicleEmojiFromType = (vehicleTypeText) => {
-                if (!vehicleTypeText) return '🚑';
-                const text = vehicleTypeText.toLowerCase();
-                if (text.includes('אופנוע') || text.includes('motorcycle')) return '🏍️';
-                if (text.includes('פיקנטו') || text.includes('picanto')) return '🚗';
-                if (text.includes('אמבולנס') || text.includes('ambulance')) return '🚑';
-                if (text.includes('כונן אישי') || text.includes('personal_standby')) return '👨‍⚕️';
-                return '🚑';
-            };
+            if (vehicleNumber) {
+                if (vehicleNumber.toString().startsWith('5')) {
+                    vehicleTypeHebrew = 'אופנוע';
+                    vehicleEmoji = '🏍️';
+                } else if (vehicleNumber.toString().startsWith('6')) {
+                    vehicleTypeHebrew = 'פיקנטו';
+                    vehicleEmoji = '🚗';
+                } else if (vehicleNumber.toString().length === 5 && (vehicleNumber.toString().startsWith('1') || vehicleNumber.toString().startsWith('2'))) {
+                    vehicleTypeHebrew = 'כונן אישי';
+                    vehicleEmoji = '👨‍⚕️';
+                } else {
+                    vehicleTypeHebrew = 'אמבולנס';
+                    vehicleEmoji = '🚑';
+                }
+            }
 
-            const vehicleEmoji = getVehicleEmojiFromType(call.vehicle_type);
-
+            // Simple display structure - back to basics
             return `
-                <div class="history-call-item" data-call-id="${call.id}">
-                    <div class="history-call-header">
-                        <div class="history-call-type history-call-type-${callTypeInfo.class}">
-                            ${callTypeInfo.icon} ${callTypeInfo.text}
-                        </div>
-                        <div class="history-call-status ${call.end_time ? 'completed' : 'active'}">
-                            ${call.end_time ? '✅ הושלם' : '🔄 פעיל'}
-                        </div>
+                <div class="call-item" style="border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px; background: white; color: #333;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <strong style="color: #d32f2f; font-size: 1.1em;">${displayCallType}</strong>
+                        <span style="color: #555; font-size: 0.9em; background: #f5f5f5; padding: 4px 8px; border-radius: 4px;">${formattedDate}</span>
                     </div>
-                    
-                    <div class="history-call-content">
-                        <div class="history-call-main-info">
-                            <div class="history-call-date">📅 ${formattedDate}</div>
-                            <div class="history-call-time">⏰ ${formattedTime}</div>
-                            <div class="history-call-duration">⏱️ ${duration}</div>
+                    <div style="margin-bottom: 8px; color: #333;">
+                        <strong style="color: #1976d2;">זמן:</strong> <span style="color: #333;">${formattedTime}</span>
+                    </div>
+                    <div style="margin-bottom: 8px; color: #333;">
+                        <strong style="color: #1976d2;">משך:</strong> <span style="color: #333;">${duration}</span>
+                    </div>
+                    <div style="margin-bottom: 8px; color: #333;">
+                        <strong style="color: #1976d2;">מיקום:</strong> <span style="color: #333;">${call.location || 'לא צוין'}</span>
+                    </div>
+                    ${call.description ? `
+                        <div style="margin-bottom: 8px; color: #333;">
+                            <strong style="color: #1976d2;">תיאור:</strong> <span style="color: #333;">${call.description}</span>
                         </div>
-                        
-                        <div class="history-call-location">📍 ${call.location}</div>
-                        
-                        ${call.description ? `
-                            <div class="history-call-description">💬 ${call.description}</div>
-                        ` : ''}
-                        
-                        <div class="history-call-footer">
-                            <div class="history-call-vehicle">
-                                ${vehicleEmoji} ${call.vehicle_type || 'לא צוין'} ${call.vehicle_number}
-                            </div>
-                        </div>
+                    ` : ''}
+                    <div style="color: #666; font-size: 0.9em; background: #f8f9fa; padding: 8px; border-radius: 4px; border-left: 3px solid #2196f3;">
+                        <strong style="color: #333;">רכב:</strong> <span style="color: #333;">${vehicleEmoji} ${vehicleTypeHebrew} ${vehicleNumber}</span>
                     </div>
                 </div>
             `;
