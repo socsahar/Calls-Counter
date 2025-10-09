@@ -1842,3 +1842,195 @@ textarea:focus {
     color: var(--white);
     font-weight: 600;
 }
+
+/* ===== ENHANCED HISTORY CALL STYLES ===== */
+.history-call-item {
+    background: var(--white);
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    margin-bottom: 15px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    border-left: 4px solid transparent;
+}
+
+.history-call-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.history-call-header {
+    background: var(--light-gray);
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.history-call-type {
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.history-call-type-urgent {
+    background: rgba(220, 38, 38, 0.1);
+    color: var(--mda-red);
+    border-left-color: var(--mda-red);
+}
+
+.history-call-type-atan {
+    background: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+    border-left-color: #3b82f6;
+}
+
+.history-call-type-aran {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+    border-left-color: #10b981;
+}
+
+.history-call-type-natbag {
+    background: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+    border-left-color: #f59e0b;
+}
+
+.history-call-type-default {
+    background: rgba(107, 114, 128, 0.1);
+    color: #6b7280;
+    border-left-color: #6b7280;
+}
+
+.history-call-item .history-call-type-urgent {
+    border-left-color: var(--mda-red);
+}
+
+.history-call-item .history-call-type-atan {
+    border-left-color: #3b82f6;
+}
+
+.history-call-item .history-call-type-aran {
+    border-left-color: #10b981;
+}
+
+.history-call-item .history-call-type-natbag {
+    border-left-color: #f59e0b;
+}
+
+.history-call-status {
+    font-size: 0.85rem;
+    padding: 4px 8px;
+    border-radius: 15px;
+    font-weight: 500;
+}
+
+.history-call-status.completed {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+}
+
+.history-call-status.active {
+    background: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+    animation: pulse 2s infinite;
+}
+
+.history-call-content {
+    padding: 16px;
+}
+
+.history-call-main-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.history-call-date,
+.history-call-time,
+.history-call-duration {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.history-call-location {
+    font-size: 1rem;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.history-call-description {
+    background: var(--light-gray);
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    line-height: 1.4;
+}
+
+.history-call-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-light);
+}
+
+.history-call-vehicle {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Mobile responsive for history calls */
+@media (max-width: 768px) {
+    .history-call-main-info {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+    
+    .history-call-footer {
+        flex-direction: column;
+        gap: 12px;
+        align-items: flex-start;
+    }
+    
+    .history-call-item {
+        margin-bottom: 12px;
+    }
+    
+    .history-call-header {
+        padding: 10px 12px;
+    }
+    
+    .history-call-content {
+        padding: 12px;
+    }
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}

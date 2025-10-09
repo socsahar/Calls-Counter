@@ -281,52 +281,72 @@ class HistoryViewer {
         }
 
         const callsHtml = calls.map(call => {
-            const callDate = new Date(call.created_at);
+            const callDate = new Date(call.call_date || call.created_at);
             const formattedDate = callDate.toLocaleDateString('he-IL');
-            const formattedTime = callDate.toLocaleTimeString('he-IL', { 
-                hour: '2-digit', 
-                minute: '2-digit' 
-            });
+            const formattedTime = `${call.start_time}${call.end_time ? ` - ${call.end_time}` : ' (פעיל)'}`;
+            
+            // Calculate duration display
+            const duration = call.duration_minutes 
+                ? `${call.duration_minutes} דקות`
+                : (call.end_time ? 'לא חושב' : 'בתהליך');
 
             const callTypeMap = {
-                'דחוף': { text: 'דחוף', class: 'urgent' },
-                'אט"ן': { text: 'אט״ן', class: 'atan' },
-                'אט״ן': { text: 'אט״ן', class: 'atan' },
-                'ארן': { text: 'ארן', class: 'aran' },
-                'נתבג': { text: 'נתבג', class: 'natbag' },
+                'דחוף': { text: 'דחוף', class: 'urgent', icon: '🚨' },
+                'אט"ן': { text: 'אט״ן', class: 'atan', icon: '🚑' },
+                'אט״ן': { text: 'אט״ן', class: 'atan', icon: '🚑' },
+                'ארן': { text: 'ארן', class: 'aran', icon: '🏥' },
+                'נתבג': { text: 'נתבג', class: 'natbag', icon: '✈️' },
                 // Backward compatibility with English values
-                'urgent': { text: 'דחוף', class: 'urgent' },
-                'atan': { text: 'אט״ן', class: 'atan' },
-                'aran': { text: 'ארן', class: 'aran' },
-                'natbag': { text: 'נתבג', class: 'natbag' }
+                'urgent': { text: 'דחוף', class: 'urgent', icon: '🚨' },
+                'atan': { text: 'אט״ן', class: 'atan', icon: '🚑' },
+                'aran': { text: 'ארן', class: 'aran', icon: '🏥' },
+                'natbag': { text: 'נתבג', class: 'natbag', icon: '✈️' }
             };
 
-            const callTypeInfo = callTypeMap[call.call_type] || { text: call.call_type, class: 'default' };
+            const callTypeInfo = callTypeMap[call.call_type] || { text: call.call_type, class: 'default', icon: '📞' };
+            
+            // Get vehicle emoji from type
+            const getVehicleEmojiFromType = (vehicleTypeText) => {
+                if (!vehicleTypeText) return '🚑';
+                const text = vehicleTypeText.toLowerCase();
+                if (text.includes('אופנוע') || text.includes('motorcycle')) return '🏍️';
+                if (text.includes('פיקנטו') || text.includes('picanto')) return '🚗';
+                if (text.includes('אמבולנס') || text.includes('ambulance')) return '🚑';
+                if (text.includes('כונן אישי') || text.includes('personal_standby')) return '👨‍⚕️';
+                return '🚑';
+            };
+
+            const vehicleEmoji = getVehicleEmojiFromType(call.vehicle_type);
 
             return `
-                <div class="call-item">
-                    <div class="call-header">
-                        <div class="call-type call-type-${callTypeInfo.class}">
-                            ${callTypeInfo.text}
+                <div class="history-call-item" data-call-id="${call.id}">
+                    <div class="history-call-header">
+                        <div class="history-call-type history-call-type-${callTypeInfo.class}">
+                            ${callTypeInfo.icon} ${callTypeInfo.text}
                         </div>
-                        <div class="call-time">
-                            ${formattedDate} • ${formattedTime}
+                        <div class="history-call-status ${call.end_time ? 'completed' : 'active'}">
+                            ${call.end_time ? '✅ הושלם' : '🔄 פעיל'}
                         </div>
                     </div>
-                    <div class="call-details">
-                        <div class="call-location">
-                            <strong>מיקום:</strong> ${call.location}
+                    
+                    <div class="history-call-content">
+                        <div class="history-call-main-info">
+                            <div class="history-call-date">📅 ${formattedDate}</div>
+                            <div class="history-call-time">⏰ ${formattedTime}</div>
+                            <div class="history-call-duration">⏱️ ${duration}</div>
                         </div>
+                        
+                        <div class="history-call-location">📍 ${call.location}</div>
+                        
                         ${call.description ? `
-                            <div class="call-description">
-                                <strong>תיאור:</strong> ${call.description}
-                            </div>
+                            <div class="history-call-description">💬 ${call.description}</div>
                         ` : ''}
-                        ${call.destination ? `
-                            <div class="call-destination">
-                                <strong>יעד:</strong> ${call.destination}
+                        
+                        <div class="history-call-footer">
+                            <div class="history-call-vehicle">
+                                ${vehicleEmoji} ${call.vehicle_type || 'לא צוין'} ${call.vehicle_number}
                             </div>
-                        ` : ''}
+                        </div>
                     </div>
                 </div>
             `;
