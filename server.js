@@ -800,6 +800,32 @@ app.post('/api/calls', authenticateToken, async (req, res) => {
             console.log('Continuing with call creation despite availability check exception');
         }
 
+        // Auto-complete any previous active calls for this vehicle and user
+        console.log('📞 Server: Checking for previous active calls...');
+        try {
+            const { data: activeCalls, error: activeError } = await supabase
+                .from('calls')
+                .update({ 
+                    status: 'completed',
+                    end_time: start_time, // Set end time to the start time of new call
+                    updated_at: new Date().toISOString()
+                })
+                .eq('user_id', req.user.user_id)
+                .eq('vehicle_number', userMdaCode)
+                .eq('status', 'active')
+                .select();
+
+            if (activeError) {
+                console.error('📞 Server: Error updating active calls:', activeError);
+            } else if (activeCalls && activeCalls.length > 0) {
+                console.log(`📞 Server: Auto-completed ${activeCalls.length} previous active calls`);
+            } else {
+                console.log('📞 Server: No previous active calls found');
+            }
+        } catch (error) {
+            console.error('📞 Server: Exception while checking active calls:', error);
+        }
+
         const callData = {
             user_id: req.user ? req.user.user_id : null,
             call_type: normalizeCallType(call_type),
@@ -811,6 +837,7 @@ app.post('/api/calls', authenticateToken, async (req, res) => {
             duration_minutes,
             vehicle_number: userMdaCode,
             vehicle_type: `${vehicleEmoji} ${vehicleHebrewName}`,
+            status: end_time ? 'completed' : 'active', // Set status based on whether call is finished
             created_at: new Date().toISOString()
         };
 
@@ -883,6 +910,8 @@ app.put('/api/calls/:id', authenticateToken, async (req, res) => {
         if (start_time !== undefined) updateData.start_time = start_time;
         if (end_time !== undefined) {
             updateData.end_time = end_time;
+            // Update status based on end_time
+            updateData.status = end_time ? 'completed' : 'active';
             // Recalculate duration if we have both times
             if (start_time || currentCall.start_time) {
                 const startTimeToUse = start_time || currentCall.start_time;
