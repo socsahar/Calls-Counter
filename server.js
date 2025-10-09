@@ -770,8 +770,17 @@ app.post('/api/calls', authenticateToken, async (req, res) => {
         let duration_minutes = null;
         if (end_time && start_time) {
             const start = new Date(`1970-01-01T${start_time}:00`);
-            const end = new Date(`1970-01-01T${end_time}:00`);
+            let end = new Date(`1970-01-01T${end_time}:00`);
+            
+            // Handle midnight crossover: if end time is earlier than start time,
+            // it means the call crossed midnight and ended the next day
+            if (end < start) {
+                end.setDate(end.getDate() + 1); // Add one day to end time
+                console.log('📞 Server: Midnight crossover detected, adjusted end time');
+            }
+            
             duration_minutes = Math.round((end - start) / (1000 * 60));
+            console.log(`📞 Server: Duration calculated: ${duration_minutes} minutes (${start_time} to ${end_time})`);
         }
 
         // Check vehicle availability before creating the call (temporarily disabled to fix 500 error)
@@ -916,8 +925,17 @@ app.put('/api/calls/:id', authenticateToken, async (req, res) => {
             if (start_time || currentCall.start_time) {
                 const startTimeToUse = start_time || currentCall.start_time;
                 const start = new Date(`1970-01-01T${startTimeToUse}:00`);
-                const end = new Date(`1970-01-01T${end_time}:00`);
+                let end = new Date(`1970-01-01T${end_time}:00`);
+                
+                // Handle midnight crossover: if end time is earlier than start time,
+                // it means the call crossed midnight and ended the next day
+                if (end < start) {
+                    end.setDate(end.getDate() + 1); // Add one day to end time
+                    console.log('📞 Server: Edit - Midnight crossover detected, adjusted end time');
+                }
+                
                 updateData.duration_minutes = Math.round((end - start) / (1000 * 60));
+                console.log(`📞 Server: Edit - Duration calculated: ${updateData.duration_minutes} minutes (${startTimeToUse} to ${end_time})`);
             }
         }
         if (location !== undefined) updateData.location = location;

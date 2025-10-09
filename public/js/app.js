@@ -673,10 +673,38 @@ class CallCounter {
             return false;
         }
 
-        // Validate time format
-        if (data.end_time && data.start_time >= data.end_time) {
-            this.showError('שעת הסיום חייבת להיות אחרי שעת ההתחלה');
-            return false;
+        // Validate time format - allow midnight crossover
+        if (data.end_time && data.start_time) {
+            // Parse times
+            const [startHour, startMin] = data.start_time.split(':').map(Number);
+            const [endHour, endMin] = data.end_time.split(':').map(Number);
+            
+            const startMinutes = startHour * 60 + startMin;
+            const endMinutes = endHour * 60 + endMin;
+            
+            // Allow midnight crossover - if end is earlier than start, assume next day
+            // Only validate if both times are the same (which would be invalid)
+            if (startMinutes === endMinutes) {
+                this.showError('שעת ההתחלה ושעת הסיום לא יכולות להיות זהות');
+                return false;
+            }
+            
+            // Calculate duration considering midnight crossover
+            let durationMinutes;
+            if (endMinutes < startMinutes) {
+                // Midnight crossover: add 24 hours to end time
+                durationMinutes = (endMinutes + 24 * 60) - startMinutes;
+            } else {
+                durationMinutes = endMinutes - startMinutes;
+            }
+            
+            // Validate reasonable duration (max 12 hours)
+            if (durationMinutes > 12 * 60) {
+                this.showError('משך הנסיעה לא יכול להיות יותר מ-12 שעות');
+                return false;
+            }
+            
+            console.log(`⏰ Call duration: ${durationMinutes} minutes (${data.start_time} to ${data.end_time})`);
         }
         
         return true;
