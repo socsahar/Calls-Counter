@@ -156,6 +156,41 @@ class HistoryViewer {
         setTimeout(() => {
             this.loadHistoricalCalls();
         }, 500);
+        
+        // Edit modal event listeners
+        this.bindEditModalEvents();
+    }
+
+    bindEditModalEvents() {
+        const editModal = document.getElementById('editCallModal');
+        const editModalClose = document.getElementById('editModalClose');
+        const editModalCancel = document.getElementById('editModalCancel');
+        const editCallForm = document.getElementById('editCallForm');
+        const modalOverlay = editModal?.querySelector('.modal-overlay');
+
+        // Close modal events
+        [editModalClose, editModalCancel, modalOverlay].forEach(element => {
+            if (element) {
+                element.addEventListener('click', () => {
+                    this.closeEditModal();
+                });
+            }
+        });
+
+        // Form submission
+        if (editCallForm) {
+            editCallForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.handleEditSubmit();
+            });
+        }
+
+        // Close on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !editModal?.classList.contains('hidden')) {
+                this.closeEditModal();
+            }
+        });
     }
 
     populateYearOptions() {
@@ -349,7 +384,10 @@ class HistoryViewer {
                 <div class="call-item" style="border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px; background: white; color: #333;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                         <strong style="color: #d32f2f; font-size: 1.1em;">${displayCallType}</strong>
-                        <span style="color: #555; font-size: 0.9em; background: #f5f5f5; padding: 4px 8px; border-radius: 4px;">${formattedDate}</span>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <button class="edit-call-btn" data-call-id="${call.id}" data-call-data='${JSON.stringify(call).replace(/'/g, "&apos;")}' style="background: #1976d2; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85em; display: flex; align-items: center; gap: 4px;">✏️ עריכה</button>
+                            <span style="color: #555; font-size: 0.9em; background: #f5f5f5; padding: 4px 8px; border-radius: 4px;">${formattedDate}</span>
+                        </div>
                     </div>
                     <div style="margin-bottom: 8px; color: #333;">
                         <strong style="color: #1976d2;">זמן:</strong> <span style="color: #333;">${formattedTime}</span>
@@ -373,6 +411,21 @@ class HistoryViewer {
         }).join('');
 
         callsList.innerHTML = callsHtml;
+        
+        // Bind edit buttons after rendering
+        this.bindEditButtons();
+    }
+
+    bindEditButtons() {
+        const editButtons = document.querySelectorAll('.edit-call-btn');
+        editButtons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const callId = button.getAttribute('data-call-id');
+                const callData = JSON.parse(button.getAttribute('data-call-data'));
+                this.openEditModal(callId, callData);
+            });
+        });
     }
 
     // Vehicle display methods
@@ -468,6 +521,94 @@ class HistoryViewer {
             setTimeout(() => {
                 toast.classList.add('hidden');
             }, 3000);
+        }
+    }
+
+    // Edit call methods
+    openEditModal(callId, callData) {
+        const modal = document.getElementById('editCallModal');
+        if (!modal) return;
+
+        // Populate form fields
+        document.getElementById('editCallId').value = callId;
+        document.getElementById('editCallType').value = this.normalizeCallTypeForEdit(callData.call_type);
+        
+        // Format date properly
+        const callDate = new Date(callData.call_date || callData.created_at);
+        document.getElementById('editCallDate').value = callDate.toISOString().split('T')[0];
+        
+        document.getElementById('editStartTime').value = callData.start_time || '';
+        document.getElementById('editEndTime').value = callData.end_time || '';
+        document.getElementById('editLocation').value = callData.location || '';
+        document.getElementById('editDescription').value = callData.description || '';
+
+        // Show modal
+        modal.classList.remove('hidden');
+    }
+
+    closeEditModal() {
+        const modal = document.getElementById('editCallModal');
+        if (modal) {
+            modal.classList.add('hidden');
+        }
+    }
+
+    normalizeCallTypeForEdit(callType) {
+        if (!callType) return 'urgent';
+        
+        // Convert Hebrew display back to English values
+        if (callType.includes('דחוף') || callType === 'urgent') return 'urgent';
+        if (callType.includes('אט"ן') || callType.includes('אט״ן') || callType === 'atan') return 'atan';
+        if (callType.includes('ארן') || callType === 'aran') return 'aran';
+        if (callType.includes('נתבג') || callType === 'natbag') return 'natbag';
+        
+        return callType;
+    }
+
+    async handleEditSubmit() {
+        try {
+            this.setLoading(true);
+            
+            const callId = document.getElementById('editCallId').value;
+            const formData = {
+                call_type: document.getElementById('editCallType').value,
+                call_date: document.getElementById('editCallDate').value,
+                start_time: document.getElementById('editStartTime').value,
+                end_time: document.getElementById('editEndTime').value,
+                location: document.getElementById('editLocation').value,
+                description: document.getElementById('editDescription').value
+            };
+
+            const response = await fetch(`/api/calls/${callId}`, {
+                method: 'PUT',
+                headers: this.getAuthHeaders(),
+                body: JSON.stringify(formData)
+            });
+
+            if (!response.ok) {
+                if (response.status === 401) {
+                    window.location.href = '/login.html';
+                    return;
+                }
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            
+            if (result.success) {
+                this.showToast('הקריאה עודכנה בהצלחה!', 'success');
+                this.closeEditModal();
+                // Reload the calls to show updated data
+                await this.loadHistoricalCalls();
+            } else {
+                throw new Error(result.message || 'שגיאה בעדכון הקריאה');
+            }
+            
+        } catch (error) {
+            console.error('Error updating call:', error);
+            this.showToast('שגיאה בעדכון הקריאה', 'error');
+        } finally {
+            this.setLoading(false);
         }
     }
 }

@@ -175,6 +175,64 @@
         <span class="toast-message">שגיאה בטעינת הנתונים</span>
     </div>
 
+    <!-- Edit Call Modal -->
+    <div id="editCallModal" class="modal hidden">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">עריכת קריאה</h3>
+                <button class="modal-close" id="editModalClose">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="editCallForm" class="call-form">
+                    <input type="hidden" id="editCallId">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editCallType" class="form-label">סוג הקריאה:</label>
+                            <select id="editCallType" class="form-input" required>
+                                <option value="urgent">🚨 דחוף</option>
+                                <option value="atan">🔴 אט"ן</option>
+                                <option value="aran">🟡 ארן</option>
+                                <option value="natbag">🟢 נתבג</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editCallDate" class="form-label">תאריך:</label>
+                            <input type="date" id="editCallDate" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editStartTime" class="form-label">שעת התחלה:</label>
+                            <input type="time" id="editStartTime" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editEndTime" class="form-label">שעת סיום:</label>
+                            <input type="time" id="editEndTime" class="form-input">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="editLocation" class="form-label">מיקום:</label>
+                        <input type="text" id="editLocation" class="form-input" placeholder="כתובת או תיאור המיקום" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editDescription" class="form-label">תיאור:</label>
+                        <textarea id="editDescription" class="form-textarea" placeholder="תיאור קצר של הקריאה..." rows="3"></textarea>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="submit" class="btn-primary">
+                            <span class="btn-icon">💾</span>
+                            שמור שינויים
+                        </button>
+                        <button type="button" class="btn-secondary" id="editModalCancel">
+                            ביטול
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script src="/js/history.js?v=1.0.1"></script>
     <script>
         // Vehicle type detection functions
