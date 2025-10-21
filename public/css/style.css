@@ -2582,6 +2582,70 @@ textarea:focus {
     }
 }
 
+/* ===== ADDRESS AUTOCOMPLETE STYLES ===== */
+.address-suggestions {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    left: 0;
+    background: var(--white);
+    border: 2px solid var(--mda-red);
+    border-top: none;
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    max-height: 300px;
+    overflow-y: auto;
+    z-index: 1000;
+    margin-top: -1px;
+}
+
+.suggestion-item {
+    padding: var(--space-3) var(--space-4);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    border-bottom: 1px solid var(--gray-100);
+    font-size: var(--font-size-base);
+    color: var(--gray-800);
+}
+
+.suggestion-item:last-child {
+    border-bottom: none;
+}
+
+.suggestion-item:hover {
+    background: var(--gray-50);
+    color: var(--mda-red);
+}
+
+.suggestion-item.selected {
+    background: var(--mda-red);
+    color: var(--white);
+}
+
+/* Make parent form-group relative for autocomplete positioning */
+.form-group {
+    position: relative;
+}
+
+/* Custom scrollbar for suggestions */
+.address-suggestions::-webkit-scrollbar {
+    width: 8px;
+}
+
+.address-suggestions::-webkit-scrollbar-track {
+    background: var(--gray-100);
+    border-radius: 0 0 var(--radius-md) 0;
+}
+
+.address-suggestions::-webkit-scrollbar-thumb {
+    background: var(--mda-red);
+    border-radius: 4px;
+}
+
+.address-suggestions::-webkit-scrollbar-thumb:hover {
+    background: var(--mda-red-dark);
+}
+
 @keyframes pulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.7; }

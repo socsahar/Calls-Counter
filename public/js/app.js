@@ -269,6 +269,9 @@ class CallCounter {
             this.bindEvents();
             this.setCurrentTime();
             
+            // Initialize address autocomplete
+            this.initAddressAutocomplete();
+            
             // Wait a moment for authentication to complete, then load data
             setTimeout(async () => {
                 console.log('🏍️ Loading vehicle settings and data...');
@@ -286,6 +289,24 @@ class CallCounter {
         } catch (error) {
             console.error('Error during initialization:', error);
             this.setLoading(false);
+        }
+    }
+
+    initAddressAutocomplete() {
+        // Initialize autocomplete for location input
+        const locationInput = document.getElementById('location');
+        if (locationInput && window.AddressAutocomplete) {
+            const autocomplete = new window.AddressAutocomplete();
+            autocomplete.init(locationInput);
+            console.log('📍 Address autocomplete initialized');
+        }
+        
+        // Also initialize for edit modal location input
+        const editLocationInput = document.getElementById('editLocation');
+        if (editLocationInput && window.AddressAutocomplete) {
+            const editAutocomplete = new window.AddressAutocomplete();
+            editAutocomplete.init(editLocationInput);
+            console.log('📍 Edit address autocomplete initialized');
         }
     }
 
