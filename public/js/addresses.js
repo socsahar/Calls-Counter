@@ -62,8 +62,9 @@ class AddressAutocomplete {
         this.selectedIndex = -1;
     }
 
-    init(inputElement) {
+    init(inputElement, type = 'both') {
         this.currentInput = inputElement;
+        this.filterType = type; // 'city', 'street', or 'both'
         
         // Create suggestions dropdown
         this.createSuggestionsList();
@@ -111,27 +112,31 @@ class AddressAutocomplete {
         const lowerQuery = query.toLowerCase();
         const suggestions = [];
         
-        // Search in cities
-        this.cities.forEach(city => {
-            if (city.toLowerCase().includes(lowerQuery)) {
-                suggestions.push({
-                    text: city,
-                    type: 'city',
-                    display: `${city} (עיר)`
-                });
-            }
-        });
+        // Search in cities (only if filterType is 'city' or 'both')
+        if (this.filterType === 'city' || this.filterType === 'both') {
+            this.cities.forEach(city => {
+                if (city.toLowerCase().includes(lowerQuery)) {
+                    suggestions.push({
+                        text: city,
+                        type: 'city',
+                        display: this.filterType === 'both' ? `${city} (עיר)` : city
+                    });
+                }
+            });
+        }
         
-        // Search in streets
-        this.commonStreets.forEach(street => {
-            if (street.toLowerCase().includes(lowerQuery)) {
-                suggestions.push({
-                    text: street,
-                    type: 'street',
-                    display: `${street} (רחוב)`
-                });
-            }
-        });
+        // Search in streets (only if filterType is 'street' or 'both')
+        if (this.filterType === 'street' || this.filterType === 'both') {
+            this.commonStreets.forEach(street => {
+                if (street.toLowerCase().includes(lowerQuery)) {
+                    suggestions.push({
+                        text: street,
+                        type: 'street',
+                        display: this.filterType === 'both' ? `${street} (רחוב)` : street
+                    });
+                }
+            });
+        }
         
         // Limit to 10 suggestions
         return suggestions.slice(0, 10);

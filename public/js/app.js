@@ -293,20 +293,36 @@ class CallCounter {
     }
 
     initAddressAutocomplete() {
-        // Initialize autocomplete for location input
-        const locationInput = document.getElementById('location');
-        if (locationInput && window.AddressAutocomplete) {
-            const autocomplete = new window.AddressAutocomplete();
-            autocomplete.init(locationInput);
-            console.log('📍 Address autocomplete initialized');
+        // Initialize autocomplete for city input (cities only)
+        const cityInput = document.getElementById('city');
+        if (cityInput && window.AddressAutocomplete) {
+            const cityAutocomplete = new window.AddressAutocomplete();
+            cityAutocomplete.init(cityInput, 'city');
+            console.log('📍 City autocomplete initialized');
         }
         
-        // Also initialize for edit modal location input
-        const editLocationInput = document.getElementById('editLocation');
-        if (editLocationInput && window.AddressAutocomplete) {
-            const editAutocomplete = new window.AddressAutocomplete();
-            editAutocomplete.init(editLocationInput);
-            console.log('📍 Edit address autocomplete initialized');
+        // Initialize autocomplete for street input (streets only)
+        const streetInput = document.getElementById('street');
+        if (streetInput && window.AddressAutocomplete) {
+            const streetAutocomplete = new window.AddressAutocomplete();
+            streetAutocomplete.init(streetInput, 'street');
+            console.log('📍 Street autocomplete initialized');
+        }
+        
+        // Initialize autocomplete for edit modal city input
+        const editCityInput = document.getElementById('editCity');
+        if (editCityInput && window.AddressAutocomplete) {
+            const editCityAutocomplete = new window.AddressAutocomplete();
+            editCityAutocomplete.init(editCityInput, 'city');
+            console.log('📍 Edit city autocomplete initialized');
+        }
+        
+        // Initialize autocomplete for edit modal street input
+        const editStreetInput = document.getElementById('editStreet');
+        if (editStreetInput && window.AddressAutocomplete) {
+            const editStreetAutocomplete = new window.AddressAutocomplete();
+            editStreetAutocomplete.init(editStreetInput, 'street');
+            console.log('📍 Edit street autocomplete initialized');
         }
     }
 
@@ -663,12 +679,24 @@ class CallCounter {
     }
 
     getFormData() {
+        const city = document.getElementById('city').value.trim();
+        const street = document.getElementById('street').value.trim();
+        const locationDetails = document.getElementById('location').value.trim();
+        
+        // Combine city, street, and details into full location
+        let fullLocation = `${city}, ${street}`;
+        if (locationDetails) {
+            fullLocation += `, ${locationDetails}`;
+        }
+        
         return {
             call_type: document.getElementById('callType').value,
             call_date: document.getElementById('callDate').value,
             start_time: document.getElementById('startTime').value,
             end_time: document.getElementById('endTime').value || null,
-            location: document.getElementById('location').value,
+            location: fullLocation,
+            city: city,
+            street: street,
             description: document.getElementById('description').value || null
         };
     }
@@ -689,8 +717,13 @@ class CallCounter {
             return false;
         }
         
-        if (!data.location.trim()) {
-            this.showError('אנא הזן מיקום');
+        if (!data.city || !data.city.trim()) {
+            this.showError('אנא הזן עיר');
+            return false;
+        }
+        
+        if (!data.street || !data.street.trim()) {
+            this.showError('אנא הזן רחוב');
             return false;
         }
 
@@ -1291,7 +1324,14 @@ class CallCounter {
         document.getElementById('editCallDate').value = call.call_date;
         document.getElementById('editStartTime').value = call.start_time;
         document.getElementById('editEndTime').value = call.end_time || '';
-        document.getElementById('editLocation').value = call.location;
+        
+        // Split location into city, street, and details
+        // Expected format: "City, Street, Details" or "City, Street"
+        const locationParts = (call.location || '').split(',').map(s => s.trim());
+        document.getElementById('editCity').value = locationParts[0] || '';
+        document.getElementById('editStreet').value = locationParts[1] || '';
+        document.getElementById('editLocation').value = locationParts.slice(2).join(', ') || '';
+        
         document.getElementById('editDescription').value = call.description || '';
         
         document.getElementById('editModal').classList.remove('hidden');
@@ -1301,12 +1341,24 @@ class CallCounter {
         event.preventDefault();
         
         const callId = document.getElementById('editCallId').value;
+        const city = document.getElementById('editCity').value.trim();
+        const street = document.getElementById('editStreet').value.trim();
+        const locationDetails = document.getElementById('editLocation').value.trim();
+        
+        // Combine city, street, and details into full location
+        let fullLocation = `${city}, ${street}`;
+        if (locationDetails) {
+            fullLocation += `, ${locationDetails}`;
+        }
+        
         const formData = {
             call_type: document.getElementById('editCallType').value,
             call_date: document.getElementById('editCallDate').value,
             start_time: document.getElementById('editStartTime').value,
             end_time: document.getElementById('editEndTime').value || null,
-            location: document.getElementById('editLocation').value,
+            location: fullLocation,
+            city: city,
+            street: street,
             description: document.getElementById('editDescription').value || null
         };
 
