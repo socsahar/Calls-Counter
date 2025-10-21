@@ -2192,6 +2192,107 @@ textarea:focus {
     margin-top: 2px;
 }
 
+/* ===== ADMIN PANEL HEADER STYLES ===== */
+.header-content {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 var(--space-4);
+}
+
+.back-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid var(--white);
+    color: var(--white);
+    border-radius: var(--radius-md);
+    padding: var(--space-2) var(--space-3);
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: all var(--transition-normal);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+}
+
+.back-btn:hover {
+    background: var(--white);
+    color: var(--mda-red);
+    transform: translateX(2px);
+}
+
+.back-btn .icon {
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.header-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+
+.header-title {
+    font-size: var(--font-size-2xl);
+    font-weight: 700;
+    color: var(--white);
+    margin: 0;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.header-subtitle {
+    font-size: var(--font-size-sm);
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 500;
+}
+
+.action-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid var(--white);
+    color: var(--white);
+    border-radius: var(--radius-md);
+    padding: var(--space-2) var(--space-3);
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: all var(--transition-normal);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+}
+
+.action-btn:hover {
+    background: var(--white);
+    color: var(--mda-red);
+    transform: scale(1.05);
+}
+
+.action-btn .icon {
+    font-size: 1.2rem;
+}
+
+@media (max-width: 768px) {
+    .header-content {
+        padding: 0 var(--space-3);
+    }
+    
+    .header-title {
+        font-size: var(--font-size-xl);
+    }
+    
+    .back-btn,
+    .action-btn {
+        min-width: 40px;
+        min-height: 40px;
+        padding: var(--space-2);
+    }
+}
+
 .actions-section {
     background: var(--white);
     border-radius: var(--radius-sm);
