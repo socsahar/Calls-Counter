@@ -1051,6 +1051,7 @@ class CallCounter {
             if (payload.isAdmin) {
                 console.log('🔐 User is admin, adding admin button');
                 this.addAdminButton();
+                this.showMobileAdminButton();
             } else {
                 console.log('🔐 User is not admin');
             }
@@ -1097,6 +1098,17 @@ class CallCounter {
             console.log('🔐 Admin button created successfully');
         } else {
             console.log('🔐 Header actions element not found');
+        }
+    }
+
+    showMobileAdminButton() {
+        // Show the mobile admin button for admin users
+        const mobileAdminBtn = document.getElementById('mobileAdminBtn');
+        if (mobileAdminBtn) {
+            console.log('🔐 Showing mobile admin button');
+            mobileAdminBtn.style.display = 'flex';
+        } else {
+            console.log('🔐 Mobile admin button not found');
         }
     }
 
@@ -1476,11 +1488,18 @@ class CallCounter {
         
         // Mobile menu items
         const mobileHistoryBtn = document.getElementById('mobileHistoryBtn');
+        const mobileAdminBtn = document.getElementById('mobileAdminBtn');
         const mobileLogoutBtn = document.getElementById('mobileLogoutBtn');
         
         if (mobileHistoryBtn) {
             mobileHistoryBtn.addEventListener('click', () => {
                 window.location.href = '/history.html';
+            });
+        }
+        
+        if (mobileAdminBtn) {
+            mobileAdminBtn.addEventListener('click', () => {
+                window.location.href = '/admin.html';
             });
         }
         

@@ -1144,43 +1144,32 @@ app.get('/api/stats', authenticateToken, async (req, res) => {
             });
         }
         
-        // Get current date in local timezone (where the server is running)
-        const now = new Date();
-        const today = now.toISOString().split('T')[0]; // YYYY-MM-DD format
+        // Helper function to get Israel time (Asia/Jerusalem timezone)
+        const getIsraelTime = () => {
+            // Convert current time to Israel timezone
+            const israelTime = new Date().toLocaleString("en-US", {timeZone: "Asia/Jerusalem"});
+            return new Date(israelTime);
+        };
         
-        // Alternative approach: Get calls from today based on call_date field if it exists, 
-        // otherwise use created_at timestamp - FILTERED BY USER
-        let todayCalls = [];
+        // Get current date in Israel timezone
+        const now = getIsraelTime();
+        const today = now.toISOString().split('T')[0]; // YYYY-MM-DD format in Israel
         
-        // First try using call_date field - WITH USER FILTER
-        const { data: callsByDate, error: dateError } = await supabase
+        console.log('📊 Israel time:', now.toISOString());
+        console.log('📊 Today in Israel:', today);
+        
+        // Get calls from today based on call_date field - FILTERED BY USER
+        // Day starts at 00:00 and ends at 23:59 Israel time
+        const { data: todayCalls, error: dateError } = await supabase
             .from('calls')
             .select('*')
             .eq('user_id', req.user.user_id)  // CRITICAL: Only user's own data
             .eq('call_date', today);
         
-        if (!dateError && callsByDate) {
-            todayCalls = callsByDate;
-        } else {
-            // Fallback to created_at timestamp filtering - WITH USER FILTER
-            const startOfDay = new Date();
-            startOfDay.setHours(0, 0, 0, 0);
-            const endOfDay = new Date();
-            endOfDay.setHours(23, 59, 59, 999);
-            
-            const { data: callsByTime, error: timeError } = await supabase
-                .from('calls')
-                .select('*')
-                .eq('user_id', req.user.user_id)  // CRITICAL: Only user's own data
-                .gte('created_at', startOfDay.toISOString())
-                .lte('created_at', endOfDay.toISOString());
-                
-            todayCalls = callsByTime || [];
-            console.log(`⏰ Found ${todayCalls.length} calls using created_at timestamp for today (user: ${req.user.user_id})`);
-            
-            if (timeError) {
-                console.error('Time-based query error:', timeError);
-            }
+        console.log(`📊 Today's calls found: ${todayCalls ? todayCalls.length : 0}`);
+        
+        if (dateError) {
+            console.error('📊 Error fetching today\'s calls:', dateError);
         }
         
         // Also get recent calls to verify what's in the database - FILTERED BY USER
@@ -1191,17 +1180,24 @@ app.get('/api/stats', authenticateToken, async (req, res) => {
             .order('created_at', { ascending: false })
             .limit(10);
             
-        // Get weekly and monthly stats using direct queries instead of RPC functions
-        // Calculate weekly date range (Monday to Sunday)
+        // Get weekly and monthly stats using direct queries
+        // Calculate weekly date range (SUNDAY to SATURDAY - Israel standard)
+        // Week starts on Sunday (day 0) and ends on Saturday (day 6)
         const weekStart = new Date(now);
-        const dayOfWeek = weekStart.getDay();
-        const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Sunday = 0, Monday = 1
-        weekStart.setDate(weekStart.getDate() - daysFromMonday);
+        const dayOfWeek = weekStart.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+        
+        // Go back to Sunday (start of week in Israel)
+        weekStart.setDate(weekStart.getDate() - dayOfWeek);
+        weekStart.setHours(0, 0, 0, 0); // Start of Sunday
         const weekStartStr = weekStart.toISOString().split('T')[0];
         
+        // Week ends on next Sunday (exclusive, so Saturday is included)
         const weekEnd = new Date(weekStart);
-        weekEnd.setDate(weekEnd.getDate() + 7);
+        weekEnd.setDate(weekEnd.getDate() + 7); // Next Sunday
+        weekEnd.setHours(0, 0, 0, 0);
         const weekEndStr = weekEnd.toISOString().split('T')[0];
+
+        console.log(`📊 Week range (Sun-Sat): ${weekStartStr} to ${weekEndStr} (exclusive)`);
 
         // Get weekly stats
         const { data: weeklyCalls, error: weeklyError } = await supabase
@@ -1211,12 +1207,20 @@ app.get('/api/stats', authenticateToken, async (req, res) => {
             .gte('call_date', weekStartStr)
             .lt('call_date', weekEndStr);
 
-        // Calculate monthly date range
+        console.log(`📊 Weekly calls found: ${weeklyCalls ? weeklyCalls.length : 0}`);
+
+        console.log(`📊 Weekly calls found: ${weeklyCalls ? weeklyCalls.length : 0}`);
+
+        // Calculate monthly date range (1st to last day of current month in Israel timezone)
         const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        monthStart.setHours(0, 0, 0, 0); // Start of first day of month
         const monthStartStr = monthStart.toISOString().split('T')[0];
         
         const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+        monthEnd.setHours(0, 0, 0, 0); // Start of first day of next month (exclusive)
         const monthEndStr = monthEnd.toISOString().split('T')[0];
+
+        console.log(`📊 Month range: ${monthStartStr} to ${monthEndStr} (exclusive)`);
 
         // Get monthly stats
         const { data: monthlyCalls, error: monthlyError } = await supabase
@@ -1225,6 +1229,8 @@ app.get('/api/stats', authenticateToken, async (req, res) => {
             .eq('user_id', req.user.user_id)  // CRITICAL: Only user's own data
             .gte('call_date', monthStartStr)
             .lt('call_date', monthEndStr);
+
+        console.log(`📊 Monthly calls found: ${monthlyCalls ? monthlyCalls.length : 0}`);
 
         // Helper function to calculate total hours from calls
         const calculateHours = (calls) => {
@@ -1239,7 +1245,7 @@ app.get('/api/stats', authenticateToken, async (req, res) => {
 
         // Calculate today's stats
         const todayStats = {
-            total_calls: todayCalls.length,
+            total_calls: todayCalls ? todayCalls.length : 0,
             total_hours: calculateHours(todayCalls)
         };
 
@@ -1254,7 +1260,10 @@ app.get('/api/stats', authenticateToken, async (req, res) => {
             total_hours: calculateHours(monthlyCalls)
         };
 
-        console.log(`📊 Final today's stats: ${todayStats.total_calls} calls, weekly: ${weeklyStats.total_calls}, monthly: ${monthlyStats.total_calls}`);
+        console.log(`📊 Stats Summary (Israel Time):`);
+        console.log(`   Today (${today}): ${todayStats.total_calls} calls, ${todayStats.total_hours}h`);
+        console.log(`   Week (${weekStartStr} to ${weekEndStr}): ${weeklyStats.total_calls} calls, ${weeklyStats.total_hours}h`);
+        console.log(`   Month (${monthStartStr} to ${monthEndStr}): ${monthlyStats.total_calls} calls, ${monthlyStats.total_hours}h`);
 
         res.json({
             success: true,
@@ -1266,12 +1275,13 @@ app.get('/api/stats', authenticateToken, async (req, res) => {
                 monthlyHours: monthlyStats.total_hours,
                 currentDate: today,
                 debug: {
-                    todayCallsFound: todayCalls.length,
+                    israelTime: now.toISOString(),
+                    todayCallsFound: todayStats.total_calls,
                     weeklyCallsFound: weeklyStats.total_calls,
                     monthlyCallsFound: monthlyStats.total_calls,
-                    weekRange: `${weekStartStr} to ${weekEndStr}`,
+                    weekRange: `${weekStartStr} to ${weekEndStr} (Sun-Sat)`,
                     monthRange: `${monthStartStr} to ${monthEndStr}`,
-                    currentTime: now.toISOString()
+                    timezone: 'Asia/Jerusalem'
                 }
             }
         });
