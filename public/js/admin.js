@@ -13,6 +13,9 @@ class AdminPanel {
             // Ensure loading overlay is hidden at start
             this.setLoading(false);
             
+            // Update admin name in header
+            this.updateAdminInfo();
+            
             this.bindEvents();
             await this.loadDashboard();
             
@@ -20,6 +23,23 @@ class AdminPanel {
         } catch (error) {
             console.error('❌ Admin initialization error:', error);
             this.showToast('שגיאה באתחול ממשק המנהל', 'error');
+        }
+    }
+
+    updateAdminInfo() {
+        try {
+            const userData = localStorage.getItem('userData') || sessionStorage.getItem('userData');
+            if (userData) {
+                const user = JSON.parse(userData);
+                const adminNameEl = document.getElementById('adminName');
+                if (adminNameEl) {
+                    const fullName = user.full_name || user.fullName || 'מנהל';
+                    const mdaCode = user.mda_code || user.mdaCode || '';
+                    adminNameEl.textContent = mdaCode ? `${fullName} (${mdaCode})` : fullName;
+                }
+            }
+        } catch (error) {
+            console.error('Error updating admin info:', error);
         }
     }
 
