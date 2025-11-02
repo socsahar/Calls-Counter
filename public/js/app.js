@@ -1107,10 +1107,36 @@ class CallCounter {
         
         if (alertCodeSelect) {
             alertCodeSelect.innerHTML = '<option value="">בחר קוד הזנקה</option>' + options;
+            // Initialize Select2 with search
+            $(alertCodeSelect).select2({
+                placeholder: 'חפש או בחר קוד הזנקה',
+                dir: 'rtl',
+                language: {
+                    noResults: function() {
+                        return 'לא נמצאו תוצאות';
+                    },
+                    searching: function() {
+                        return 'מחפש...';
+                    }
+                }
+            });
         }
         
         if (editAlertCodeSelect) {
             editAlertCodeSelect.innerHTML = '<option value="">בחר קוד הזנקה</option>' + options;
+            // Initialize Select2 with search
+            $(editAlertCodeSelect).select2({
+                placeholder: 'חפש או בחר קוד הזנקה',
+                dir: 'rtl',
+                language: {
+                    noResults: function() {
+                        return 'לא נמצאו תוצאות';
+                    },
+                    searching: function() {
+                        return 'מחפש...';
+                    }
+                }
+            });
         }
     }
 
@@ -1125,10 +1151,36 @@ class CallCounter {
         
         if (medicalCodeSelect) {
             medicalCodeSelect.innerHTML = '<option value="">בחר קוד רפואי</option>' + options;
+            // Initialize Select2 with search
+            $(medicalCodeSelect).select2({
+                placeholder: 'חפש או בחר קוד רפואי',
+                dir: 'rtl',
+                language: {
+                    noResults: function() {
+                        return 'לא נמצאו תוצאות';
+                    },
+                    searching: function() {
+                        return 'מחפש...';
+                    }
+                }
+            });
         }
         
         if (editMedicalCodeSelect) {
             editMedicalCodeSelect.innerHTML = '<option value="">בחר קוד רפואי</option>' + options;
+            // Initialize Select2 with search
+            $(editMedicalCodeSelect).select2({
+                placeholder: 'חפש או בחר קוד רפואי',
+                dir: 'rtl',
+                language: {
+                    noResults: function() {
+                        return 'לא נמצאו תוצאות';
+                    },
+                    searching: function() {
+                        return 'מחפש...';
+                    }
+                }
+            });
         }
     }
 

@@ -2849,3 +2849,123 @@ textarea:focus {
     margin: 0;
     cursor: pointer;
 }
+
+/* Select2 Custom Styling for RTL and MDA Theme */
+.select2-container {
+    width: 100% !important;
+}
+
+.select2-container--default .select2-selection--single {
+    background-color: var(--white);
+    border: 1px solid var(--gray-300);
+    border-radius: var(--radius-sm);
+    height: 45px;
+    padding: 8px 12px;
+    transition: all var(--transition-fast);
+}
+
+.select2-container--default .select2-selection--single:hover {
+    border-color: var(--mda-red);
+}
+
+.select2-container--default.select2-container--focus .select2-selection--single,
+.select2-container--default.select2-container--open .select2-selection--single {
+    border-color: var(--mda-red);
+    box-shadow: 0 0 0 3px rgba(218, 41, 28, 0.1);
+    outline: none;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    color: var(--gray-800);
+    line-height: 28px;
+    padding-right: 12px;
+    padding-left: 30px;
+    text-align: right;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__placeholder {
+    color: var(--gray-500);
+}
+
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 43px;
+    right: auto;
+    left: 8px;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__arrow b {
+    border-color: var(--gray-600) transparent transparent transparent;
+}
+
+.select2-container--default.select2-container--open .select2-selection--single .select2-selection__arrow b {
+    border-color: transparent transparent var(--gray-600) transparent;
+}
+
+/* Dropdown */
+.select2-dropdown {
+    border: 1px solid var(--mda-red);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-lg);
+    background: var(--white);
+}
+
+.select2-container--default .select2-search--dropdown {
+    padding: 8px;
+    background: var(--gray-50);
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.select2-container--default .select2-search--dropdown .select2-search__field {
+    border: 1px solid var(--gray-300);
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    text-align: right;
+    direction: rtl;
+    font-family: 'Rubik', sans-serif;
+    transition: all var(--transition-fast);
+}
+
+.select2-container--default .select2-search--dropdown .select2-search__field:focus {
+    border-color: var(--mda-red);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(218, 41, 28, 0.1);
+}
+
+.select2-container--default .select2-results__option {
+    padding: 10px 12px;
+    text-align: right;
+    direction: rtl;
+    font-family: 'Rubik', sans-serif;
+}
+
+.select2-container--default .select2-results__option--highlighted[aria-selected] {
+    background-color: var(--mda-red);
+    color: var(--white);
+}
+
+.select2-container--default .select2-results__option[aria-selected=true] {
+    background-color: var(--gray-100);
+    color: var(--gray-800);
+}
+
+.select2-container--default .select2-results__option[aria-selected=true]:hover {
+    background-color: var(--mda-red);
+    color: var(--white);
+}
+
+.select2-results__message {
+    text-align: right;
+    direction: rtl;
+    padding: 10px 12px;
+    color: var(--gray-600);
+    font-family: 'Rubik', sans-serif;
+}
+
+/* Make Select2 work better in modals */
+.modal .select2-container {
+    z-index: 10050;
+}
+
+.select2-container--open .select2-dropdown {
+    z-index: 10051;
+}
