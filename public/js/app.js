@@ -1102,7 +1102,7 @@ class CallCounter {
         const editAlertCodeSelect = document.getElementById('editAlertCode');
         
         const options = this.alertCodes.map(code => 
-            `<option value="${code.id}">${code.code} - ${code.description}</option>`
+            `<option value="${code.id}">${code.code}</option>`
         ).join('');
         
         if (alertCodeSelect) {
@@ -1120,7 +1120,7 @@ class CallCounter {
         const editMedicalCodeSelect = document.getElementById('editMedicalCode');
         
         const options = this.medicalCodes.map(code => 
-            `<option value="${code.id}">${code.code} - ${code.description}</option>`
+            `<option value="${code.id}">${code.code}</option>`
         ).join('');
         
         if (medicalCodeSelect) {

@@ -1381,8 +1381,7 @@ app.get('/api/codes/alert', authenticateToken, async (req, res) => {
         const { data: codes, error } = await supabase
             .from('alert_codes')
             .select('*')
-            .eq('is_active', true)
-            .order('display_order', { ascending: true });
+            .order('code', { ascending: true });
         
         if (error) throw error;
         
@@ -1405,8 +1404,7 @@ app.get('/api/codes/medical', authenticateToken, async (req, res) => {
         const { data: codes, error } = await supabase
             .from('medical_codes')
             .select('*')
-            .eq('is_active', true)
-            .order('display_order', { ascending: true });
+            .order('code', { ascending: true });
         
         if (error) throw error;
         
@@ -1649,13 +1647,13 @@ app.delete('/api/admin/users/:userId', authenticateToken, requireAdmin, async (r
 
 // ===== ADMIN CODES MANAGEMENT =====
 
-// Admin: Get all alert codes (including inactive)
+// Admin: Get all alert codes
 app.get('/api/admin/codes/alert', authenticateToken, requireAdmin, async (req, res) => {
     try {
         const { data: codes, error } = await supabase
             .from('alert_codes')
             .select('*')
-            .order('display_order', { ascending: true });
+            .order('code', { ascending: true });
         
         if (error) throw error;
         
@@ -1672,13 +1670,13 @@ app.get('/api/admin/codes/alert', authenticateToken, requireAdmin, async (req, r
     }
 });
 
-// Admin: Get all medical codes (including inactive)
+// Admin: Get all medical codes
 app.get('/api/admin/codes/medical', authenticateToken, requireAdmin, async (req, res) => {
     try {
         const { data: codes, error } = await supabase
             .from('medical_codes')
             .select('*')
-            .order('display_order', { ascending: true });
+            .order('code', { ascending: true });
         
         if (error) throw error;
         
@@ -1698,22 +1696,18 @@ app.get('/api/admin/codes/medical', authenticateToken, requireAdmin, async (req,
 // Admin: Create alert code
 app.post('/api/admin/codes/alert', authenticateToken, requireAdmin, async (req, res) => {
     try {
-        const { code, description, display_order } = req.body;
+        const { code } = req.body;
         
-        if (!code || !description) {
+        if (!code) {
             return res.status(400).json({
                 success: false,
-                message: 'קוד ותיאור הם שדות חובה'
+                message: 'שם הקוד הוא שדה חובה'
             });
         }
         
         const { data, error } = await supabase
             .from('alert_codes')
-            .insert([{
-                code,
-                description,
-                display_order: display_order || 0
-            }])
+            .insert([{ code }])
             .select()
             .single();
         
@@ -1736,22 +1730,18 @@ app.post('/api/admin/codes/alert', authenticateToken, requireAdmin, async (req, 
 // Admin: Create medical code
 app.post('/api/admin/codes/medical', authenticateToken, requireAdmin, async (req, res) => {
     try {
-        const { code, description, display_order } = req.body;
+        const { code } = req.body;
         
-        if (!code || !description) {
+        if (!code) {
             return res.status(400).json({
                 success: false,
-                message: 'קוד ותיאור הם שדות חובה'
+                message: 'שם הקוד הוא שדה חובה'
             });
         }
         
         const { data, error } = await supabase
             .from('medical_codes')
-            .insert([{
-                code,
-                description,
-                display_order: display_order || 0
-            }])
+            .insert([{ code }])
             .select()
             .single();
         
@@ -1775,17 +1765,18 @@ app.post('/api/admin/codes/medical', authenticateToken, requireAdmin, async (req
 app.put('/api/admin/codes/alert/:id', authenticateToken, requireAdmin, async (req, res) => {
     try {
         const { id } = req.params;
-        const { code, description, is_active, display_order } = req.body;
+        const { code } = req.body;
         
-        const updateData = {};
-        if (code !== undefined) updateData.code = code;
-        if (description !== undefined) updateData.description = description;
-        if (is_active !== undefined) updateData.is_active = is_active;
-        if (display_order !== undefined) updateData.display_order = display_order;
+        if (!code) {
+            return res.status(400).json({
+                success: false,
+                message: 'שם הקוד הוא שדה חובה'
+            });
+        }
         
         const { data, error } = await supabase
             .from('alert_codes')
-            .update(updateData)
+            .update({ code })
             .eq('id', id)
             .select()
             .single();
@@ -1810,17 +1801,18 @@ app.put('/api/admin/codes/alert/:id', authenticateToken, requireAdmin, async (re
 app.put('/api/admin/codes/medical/:id', authenticateToken, requireAdmin, async (req, res) => {
     try {
         const { id } = req.params;
-        const { code, description, is_active, display_order } = req.body;
+        const { code } = req.body;
         
-        const updateData = {};
-        if (code !== undefined) updateData.code = code;
-        if (description !== undefined) updateData.description = description;
-        if (is_active !== undefined) updateData.is_active = is_active;
-        if (display_order !== undefined) updateData.display_order = display_order;
+        if (!code) {
+            return res.status(400).json({
+                success: false,
+                message: 'שם הקוד הוא שדה חובה'
+            });
+        }
         
         const { data, error } = await supabase
             .from('medical_codes')
-            .update(updateData)
+            .update({ code })
             .eq('id', id)
             .select()
             .single();

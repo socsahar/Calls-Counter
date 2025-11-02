@@ -708,14 +708,9 @@ class AdminPanel {
         }
 
         const html = codes.map(code => `
-            <div class="code-item ${!code.is_active ? 'inactive' : ''}">
+            <div class="code-item">
                 <div class="code-info">
                     <div class="code-name">${code.code}</div>
-                    <div class="code-description">${code.description}</div>
-                    <div class="code-meta">
-                        <span>סדר: ${code.display_order}</span>
-                        <span>${code.is_active ? '✅ פעיל' : '❌ לא פעיל'}</span>
-                    </div>
                 </div>
                 <div class="code-actions">
                     <button onclick="adminPanel.editCode('alert', ${code.id})" class="btn-edit">✏️ ערוך</button>
@@ -737,14 +732,9 @@ class AdminPanel {
         }
 
         const html = codes.map(code => `
-            <div class="code-item ${!code.is_active ? 'inactive' : ''}">
+            <div class="code-item">
                 <div class="code-info">
                     <div class="code-name">${code.code}</div>
-                    <div class="code-description">${code.description}</div>
-                    <div class="code-meta">
-                        <span>סדר: ${code.display_order}</span>
-                        <span>${code.is_active ? '✅ פעיל' : '❌ לא פעיל'}</span>
-                    </div>
                 </div>
                 <div class="code-actions">
                     <button onclick="adminPanel.editCode('medical', ${code.id})" class="btn-edit">✏️ ערוך</button>
@@ -767,14 +757,10 @@ class AdminPanel {
             title.textContent = 'ערוך קוד';
             document.getElementById('codeId').value = codeData.id;
             document.getElementById('codeValue').value = codeData.code;
-            document.getElementById('codeDescription').value = codeData.description;
-            document.getElementById('codeOrder').value = codeData.display_order;
-            document.getElementById('codeActive').checked = codeData.is_active;
         } else {
             title.textContent = 'הוסף קוד חדש';
             form.reset();
             document.getElementById('codeId').value = '';
-            document.getElementById('codeActive').checked = true;
         }
 
         modal.classList.remove('hidden');
@@ -809,10 +795,7 @@ class AdminPanel {
             const codeId = document.getElementById('codeId').value;
             const codeType = document.getElementById('codeType').value;
             const codeData = {
-                code: document.getElementById('codeValue').value,
-                description: document.getElementById('codeDescription').value,
-                display_order: parseInt(document.getElementById('codeOrder').value),
-                is_active: document.getElementById('codeActive').checked
+                code: document.getElementById('codeValue').value
             };
 
             const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
