@@ -1117,6 +1117,7 @@ class CallCounter {
                 placeholder: 'חפש או בחר קוד הזנקה',
                 allowClear: true,
                 dir: 'rtl',
+                minimumResultsForSearch: 0, // Always show search box
                 language: {
                     noResults: function() {
                         return 'לא נמצאו תוצאות';
@@ -1139,6 +1140,7 @@ class CallCounter {
                 placeholder: 'חפש או בחר קוד הזנקה',
                 allowClear: true,
                 dir: 'rtl',
+                minimumResultsForSearch: 0, // Always show search box
                 language: {
                     noResults: function() {
                         return 'לא נמצאו תוצאות';
@@ -1172,6 +1174,7 @@ class CallCounter {
                 placeholder: 'חפש או בחר קוד רפואי',
                 allowClear: true,
                 dir: 'rtl',
+                minimumResultsForSearch: 0, // Always show search box
                 language: {
                     noResults: function() {
                         return 'לא נמצאו תוצאות';
@@ -1194,6 +1197,7 @@ class CallCounter {
                 placeholder: 'חפש או בחר קוד רפואי',
                 allowClear: true,
                 dir: 'rtl',
+                minimumResultsForSearch: 0, // Always show search box
                 language: {
                     noResults: function() {
                         return 'לא נמצאו תוצאות';
