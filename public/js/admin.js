@@ -79,6 +79,10 @@ class AdminPanel {
             this.showAllCallsSection();
         });
 
+        document.getElementById('manageCodesBtn')?.addEventListener('click', () => {
+            this.showCodesSection();
+        });
+
         document.getElementById('systemStatsBtn')?.addEventListener('click', () => {
             this.showSystemStats();
         });
@@ -91,6 +95,13 @@ class AdminPanel {
         document.getElementById('closeCallsBtn')?.addEventListener('click', () => {
             document.getElementById('allCallsSection').style.display = 'none';
         });
+
+        document.getElementById('closeCodesBtn')?.addEventListener('click', () => {
+            document.getElementById('codesSection').style.display = 'none';
+        });
+
+        // Codes management
+        this.bindCodesEvents();
     }
 
     async loadDashboard() {
@@ -583,6 +594,291 @@ class AdminPanel {
         setTimeout(() => {
             toast.classList.remove('show');
         }, 3000);
+    }
+
+    // ===== CODES MANAGEMENT =====
+
+    bindCodesEvents() {
+        // Tab switching
+        document.querySelectorAll('.codes-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tabName = tab.dataset.tab;
+                this.switchCodesTab(tabName);
+            });
+        });
+
+        // Add buttons
+        document.getElementById('addAlertCodeBtn')?.addEventListener('click', () => {
+            this.openCodeModal('alert');
+        });
+
+        document.getElementById('addMedicalCodeBtn')?.addEventListener('click', () => {
+            this.openCodeModal('medical');
+        });
+
+        // Modal close
+        document.getElementById('codeModalClose')?.addEventListener('click', () => {
+            document.getElementById('codeModal').classList.add('hidden');
+        });
+
+        document.getElementById('codeModalCancel')?.addEventListener('click', () => {
+            document.getElementById('codeModal').classList.add('hidden');
+        });
+
+        // Form submit
+        document.getElementById('codeForm')?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.handleCodeSubmit();
+        });
+    }
+
+    switchCodesTab(tabName) {
+        // Update tabs
+        document.querySelectorAll('.codes-tab').forEach(tab => {
+            tab.classList.toggle('active', tab.dataset.tab === tabName);
+        });
+
+        // Update content
+        document.getElementById('alertCodesTab').classList.toggle('hidden', tabName !== 'alert');
+        document.getElementById('medicalCodesTab').classList.toggle('hidden', tabName !== 'medical');
+    }
+
+    async showCodesSection() {
+        try {
+            this.setLoading(true);
+            await this.loadAlertCodes();
+            await this.loadMedicalCodes();
+            document.getElementById('codesSection').style.display = 'block';
+            document.getElementById('codesSection').scrollIntoView({ behavior: 'smooth' });
+        } catch (error) {
+            console.error('Error loading codes:', error);
+            this.showToast('שגיאה בטעינת הקודים', 'error');
+        } finally {
+            this.setLoading(false);
+        }
+    }
+
+    async loadAlertCodes() {
+        try {
+            const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+            const response = await fetch('/api/admin/codes/alert', {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) throw new Error('Failed to fetch alert codes');
+
+            const result = await response.json();
+            this.displayAlertCodes(result.data || []);
+        } catch (error) {
+            console.error('Error loading alert codes:', error);
+            this.showToast('שגיאה בטעינת קודי הזנקה', 'error');
+        }
+    }
+
+    async loadMedicalCodes() {
+        try {
+            const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+            const response = await fetch('/api/admin/codes/medical', {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) throw new Error('Failed to fetch medical codes');
+
+            const result = await response.json();
+            this.displayMedicalCodes(result.data || []);
+        } catch (error) {
+            console.error('Error loading medical codes:', error);
+            this.showToast('שגיאה בטעינת קודים רפואיים', 'error');
+        }
+    }
+
+    displayAlertCodes(codes) {
+        const container = document.getElementById('alertCodesContainer');
+        if (!container) return;
+
+        if (codes.length === 0) {
+            container.innerHTML = '<div class="empty-state">אין קודי הזנקה במערכת</div>';
+            return;
+        }
+
+        const html = codes.map(code => `
+            <div class="code-item ${!code.is_active ? 'inactive' : ''}">
+                <div class="code-info">
+                    <div class="code-name">${code.code}</div>
+                    <div class="code-description">${code.description}</div>
+                    <div class="code-meta">
+                        <span>סדר: ${code.display_order}</span>
+                        <span>${code.is_active ? '✅ פעיל' : '❌ לא פעיל'}</span>
+                    </div>
+                </div>
+                <div class="code-actions">
+                    <button onclick="adminPanel.editCode('alert', ${code.id})" class="btn-edit">✏️ ערוך</button>
+                    <button onclick="adminPanel.deleteCode('alert', ${code.id})" class="btn-delete">🗑️ מחק</button>
+                </div>
+            </div>
+        `).join('');
+
+        container.innerHTML = html;
+    }
+
+    displayMedicalCodes(codes) {
+        const container = document.getElementById('medicalCodesContainer');
+        if (!container) return;
+
+        if (codes.length === 0) {
+            container.innerHTML = '<div class="empty-state">אין קודים רפואיים במערכת</div>';
+            return;
+        }
+
+        const html = codes.map(code => `
+            <div class="code-item ${!code.is_active ? 'inactive' : ''}">
+                <div class="code-info">
+                    <div class="code-name">${code.code}</div>
+                    <div class="code-description">${code.description}</div>
+                    <div class="code-meta">
+                        <span>סדר: ${code.display_order}</span>
+                        <span>${code.is_active ? '✅ פעיל' : '❌ לא פעיל'}</span>
+                    </div>
+                </div>
+                <div class="code-actions">
+                    <button onclick="adminPanel.editCode('medical', ${code.id})" class="btn-edit">✏️ ערוך</button>
+                    <button onclick="adminPanel.deleteCode('medical', ${code.id})" class="btn-delete">🗑️ מחק</button>
+                </div>
+            </div>
+        `).join('');
+
+        container.innerHTML = html;
+    }
+
+    openCodeModal(type, codeData = null) {
+        const modal = document.getElementById('codeModal');
+        const title = document.getElementById('codeModalTitle');
+        const form = document.getElementById('codeForm');
+
+        document.getElementById('codeType').value = type;
+
+        if (codeData) {
+            title.textContent = 'ערוך קוד';
+            document.getElementById('codeId').value = codeData.id;
+            document.getElementById('codeValue').value = codeData.code;
+            document.getElementById('codeDescription').value = codeData.description;
+            document.getElementById('codeOrder').value = codeData.display_order;
+            document.getElementById('codeActive').checked = codeData.is_active;
+        } else {
+            title.textContent = 'הוסף קוד חדש';
+            form.reset();
+            document.getElementById('codeId').value = '';
+            document.getElementById('codeActive').checked = true;
+        }
+
+        modal.classList.remove('hidden');
+    }
+
+    async editCode(type, id) {
+        try {
+            const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+            const response = await fetch(`/api/admin/codes/${type}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) throw new Error('Failed to fetch code');
+
+            const result = await response.json();
+            const code = result.data.find(c => c.id == id);
+
+            if (code) {
+                this.openCodeModal(type, code);
+            }
+        } catch (error) {
+            console.error('Error loading code for edit:', error);
+            this.showToast('שגיאה בטעינת הקוד', 'error');
+        }
+    }
+
+    async handleCodeSubmit() {
+        try {
+            const codeId = document.getElementById('codeId').value;
+            const codeType = document.getElementById('codeType').value;
+            const codeData = {
+                code: document.getElementById('codeValue').value,
+                description: document.getElementById('codeDescription').value,
+                display_order: parseInt(document.getElementById('codeOrder').value),
+                is_active: document.getElementById('codeActive').checked
+            };
+
+            const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+            const url = codeId
+                ? `/api/admin/codes/${codeType}/${codeId}`
+                : `/api/admin/codes/${codeType}`;
+            const method = codeId ? 'PUT' : 'POST';
+
+            const response = await fetch(url, {
+                method,
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(codeData)
+            });
+
+            if (!response.ok) throw new Error('Failed to save code');
+
+            const result = await response.json();
+            this.showToast(result.message, 'success');
+
+            document.getElementById('codeModal').classList.add('hidden');
+
+            // Reload codes
+            if (codeType === 'alert') {
+                await this.loadAlertCodes();
+            } else {
+                await this.loadMedicalCodes();
+            }
+        } catch (error) {
+            console.error('Error saving code:', error);
+            this.showToast('שגיאה בשמירת הקוד', 'error');
+        }
+    }
+
+    async deleteCode(type, id) {
+        if (!confirm('האם אתה בטוח שברצונך למחוק קוד זה?')) {
+            return;
+        }
+
+        try {
+            const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+            const response = await fetch(`/api/admin/codes/${type}/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) throw new Error('Failed to delete code');
+
+            const result = await response.json();
+            this.showToast(result.message, 'success');
+
+            // Reload codes
+            if (type === 'alert') {
+                await this.loadAlertCodes();
+            } else {
+                await this.loadMedicalCodes();
+            }
+        } catch (error) {
+            console.error('Error deleting code:', error);
+            this.showToast('שגיאה במחיקת הקוד', 'error');
+        }
     }
 }
 

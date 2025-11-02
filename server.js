@@ -742,7 +742,9 @@ app.post('/api/calls', authenticateToken, async (req, res) => {
             start_time,
             end_time,
             location,
-            description
+            description,
+            alert_code_id,
+            medical_code_id
         } = req.body;
 
         // Validation
@@ -848,6 +850,8 @@ app.post('/api/calls', authenticateToken, async (req, res) => {
             end_time: end_time || null,
             location,
             description: description || null,
+            alert_code_id: alert_code_id || null,
+            medical_code_id: medical_code_id || null,
             duration_minutes,
             vehicle_number: userMdaCode,
             vehicle_type: `${vehicleEmoji} ${vehicleHebrewName}`,
@@ -891,7 +895,7 @@ app.post('/api/calls', authenticateToken, async (req, res) => {
 app.put('/api/calls/:id', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
-        const { call_type, call_date, start_time, end_time, location, description } = req.body;
+        const { call_type, call_date, start_time, end_time, location, description, alert_code_id, medical_code_id } = req.body;
 
         // CRITICAL: First check if the call belongs to the authenticated user
         const { data: currentCall } = await supabase
@@ -945,6 +949,8 @@ app.put('/api/calls/:id', authenticateToken, async (req, res) => {
         }
         if (location !== undefined) updateData.location = location;
         if (description !== undefined) updateData.description = description;
+        if (alert_code_id !== undefined) updateData.alert_code_id = alert_code_id;
+        if (medical_code_id !== undefined) updateData.medical_code_id = medical_code_id;
 
         const { data, error } = await supabase
             .from('calls')
@@ -1367,6 +1373,56 @@ app.get('/', (req, res) => {
     });
 });
 
+// ===== CODES MANAGEMENT ENDPOINTS =====
+
+// Get all alert codes (for dropdown)
+app.get('/api/codes/alert', authenticateToken, async (req, res) => {
+    try {
+        const { data: codes, error } = await supabase
+            .from('alert_codes')
+            .select('*')
+            .eq('is_active', true)
+            .order('display_order', { ascending: true });
+        
+        if (error) throw error;
+        
+        res.json({
+            success: true,
+            data: codes || []
+        });
+    } catch (error) {
+        console.error('Error fetching alert codes:', error);
+        res.status(500).json({
+            success: false,
+            message: 'שגיאה בטעינת קודי הזנקה'
+        });
+    }
+});
+
+// Get all medical codes (for dropdown)
+app.get('/api/codes/medical', authenticateToken, async (req, res) => {
+    try {
+        const { data: codes, error } = await supabase
+            .from('medical_codes')
+            .select('*')
+            .eq('is_active', true)
+            .order('display_order', { ascending: true });
+        
+        if (error) throw error;
+        
+        res.json({
+            success: true,
+            data: codes || []
+        });
+    } catch (error) {
+        console.error('Error fetching medical codes:', error);
+        res.status(500).json({
+            success: false,
+            message: 'שגיאה בטעינת קודים רפואיים'
+        });
+    }
+});
+
 // ===== ADMIN ENDPOINTS =====
 
 // Admin middleware
@@ -1587,6 +1643,250 @@ app.delete('/api/admin/users/:userId', authenticateToken, requireAdmin, async (r
         res.status(500).json({
             success: false,
             message: 'שגיאה במחיקת המשתמש'
+        });
+    }
+});
+
+// ===== ADMIN CODES MANAGEMENT =====
+
+// Admin: Get all alert codes (including inactive)
+app.get('/api/admin/codes/alert', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { data: codes, error } = await supabase
+            .from('alert_codes')
+            .select('*')
+            .order('display_order', { ascending: true });
+        
+        if (error) throw error;
+        
+        res.json({
+            success: true,
+            data: codes || []
+        });
+    } catch (error) {
+        console.error('Error fetching alert codes:', error);
+        res.status(500).json({
+            success: false,
+            message: 'שגיאה בטעינת קודי הזנקה'
+        });
+    }
+});
+
+// Admin: Get all medical codes (including inactive)
+app.get('/api/admin/codes/medical', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { data: codes, error } = await supabase
+            .from('medical_codes')
+            .select('*')
+            .order('display_order', { ascending: true });
+        
+        if (error) throw error;
+        
+        res.json({
+            success: true,
+            data: codes || []
+        });
+    } catch (error) {
+        console.error('Error fetching medical codes:', error);
+        res.status(500).json({
+            success: false,
+            message: 'שגיאה בטעינת קודים רפואיים'
+        });
+    }
+});
+
+// Admin: Create alert code
+app.post('/api/admin/codes/alert', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { code, description, display_order } = req.body;
+        
+        if (!code || !description) {
+            return res.status(400).json({
+                success: false,
+                message: 'קוד ותיאור הם שדות חובה'
+            });
+        }
+        
+        const { data, error } = await supabase
+            .from('alert_codes')
+            .insert([{
+                code,
+                description,
+                display_order: display_order || 0
+            }])
+            .select()
+            .single();
+        
+        if (error) throw error;
+        
+        res.status(201).json({
+            success: true,
+            message: 'קוד הזנקה נוצר בהצלחה',
+            data
+        });
+    } catch (error) {
+        console.error('Error creating alert code:', error);
+        res.status(500).json({
+            success: false,
+            message: 'שגיאה ביצירת קוד הזנקה'
+        });
+    }
+});
+
+// Admin: Create medical code
+app.post('/api/admin/codes/medical', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { code, description, display_order } = req.body;
+        
+        if (!code || !description) {
+            return res.status(400).json({
+                success: false,
+                message: 'קוד ותיאור הם שדות חובה'
+            });
+        }
+        
+        const { data, error } = await supabase
+            .from('medical_codes')
+            .insert([{
+                code,
+                description,
+                display_order: display_order || 0
+            }])
+            .select()
+            .single();
+        
+        if (error) throw error;
+        
+        res.status(201).json({
+            success: true,
+            message: 'קוד רפואי נוצר בהצלחה',
+            data
+        });
+    } catch (error) {
+        console.error('Error creating medical code:', error);
+        res.status(500).json({
+            success: false,
+            message: 'שגיאה ביצירת קוד רפואי'
+        });
+    }
+});
+
+// Admin: Update alert code
+app.put('/api/admin/codes/alert/:id', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { code, description, is_active, display_order } = req.body;
+        
+        const updateData = {};
+        if (code !== undefined) updateData.code = code;
+        if (description !== undefined) updateData.description = description;
+        if (is_active !== undefined) updateData.is_active = is_active;
+        if (display_order !== undefined) updateData.display_order = display_order;
+        
+        const { data, error } = await supabase
+            .from('alert_codes')
+            .update(updateData)
+            .eq('id', id)
+            .select()
+            .single();
+        
+        if (error) throw error;
+        
+        res.json({
+            success: true,
+            message: 'קוד הזנקה עודכן בהצלחה',
+            data
+        });
+    } catch (error) {
+        console.error('Error updating alert code:', error);
+        res.status(500).json({
+            success: false,
+            message: 'שגיאה בעדכון קוד הזנקה'
+        });
+    }
+});
+
+// Admin: Update medical code
+app.put('/api/admin/codes/medical/:id', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { code, description, is_active, display_order } = req.body;
+        
+        const updateData = {};
+        if (code !== undefined) updateData.code = code;
+        if (description !== undefined) updateData.description = description;
+        if (is_active !== undefined) updateData.is_active = is_active;
+        if (display_order !== undefined) updateData.display_order = display_order;
+        
+        const { data, error } = await supabase
+            .from('medical_codes')
+            .update(updateData)
+            .eq('id', id)
+            .select()
+            .single();
+        
+        if (error) throw error;
+        
+        res.json({
+            success: true,
+            message: 'קוד רפואי עודכן בהצלחה',
+            data
+        });
+    } catch (error) {
+        console.error('Error updating medical code:', error);
+        res.status(500).json({
+            success: false,
+            message: 'שגיאה בעדכון קוד רפואי'
+        });
+    }
+});
+
+// Admin: Delete alert code
+app.delete('/api/admin/codes/alert/:id', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        const { error } = await supabase
+            .from('alert_codes')
+            .delete()
+            .eq('id', id);
+        
+        if (error) throw error;
+        
+        res.json({
+            success: true,
+            message: 'קוד הזנקה נמחק בהצלחה'
+        });
+    } catch (error) {
+        console.error('Error deleting alert code:', error);
+        res.status(500).json({
+            success: false,
+            message: 'שגיאה במחיקת קוד הזנקה'
+        });
+    }
+});
+
+// Admin: Delete medical code
+app.delete('/api/admin/codes/medical/:id', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        const { error } = await supabase
+            .from('medical_codes')
+            .delete()
+            .eq('id', id);
+        
+        if (error) throw error;
+        
+        res.json({
+            success: true,
+            message: 'קוד רפואי נמחק בהצלחה'
+        });
+    } catch (error) {
+        console.error('Error deleting medical code:', error);
+        res.status(500).json({
+            success: false,
+            message: 'שגיאה במחיקת קוד רפואי'
         });
     }
 });

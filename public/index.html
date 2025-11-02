@@ -208,9 +208,24 @@
                         <input type="text" id="location" class="form-input" placeholder="מספר בית, כניסה, קומה..." autocomplete="off">
                     </div>
 
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="alertCode" class="form-label">קוד הזנקה</label>
+                            <select id="alertCode" class="form-input" required>
+                                <option value="">טוען...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="medicalCode" class="form-label">קוד רפואי</label>
+                            <select id="medicalCode" class="form-input" required>
+                                <option value="">טוען...</option>
+                            </select>
+                        </div>
+                    </div>
+
                     <div class="form-group">
-                        <label for="description" class="form-label">תיאור הקריאה</label>
-                        <textarea id="description" class="form-textarea" placeholder="תיאור קצר של הקריאה..." rows="3"></textarea>
+                        <label for="description" class="form-label">הערות נוספות (אופציונלי)</label>
+                        <textarea id="description" class="form-textarea" placeholder="הערות או פרטים נוספים..." rows="2"></textarea>
                     </div>
 
                     <button type="submit" class="submit-btn">
@@ -327,9 +342,24 @@
                         <input type="text" id="editLocation" class="form-input" autocomplete="off">
                     </div>
 
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editAlertCode" class="form-label">קוד הזנקה</label>
+                            <select id="editAlertCode" class="form-input" required>
+                                <option value="">טוען...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="editMedicalCode" class="form-label">קוד רפואי</label>
+                            <select id="editMedicalCode" class="form-input" required>
+                                <option value="">טוען...</option>
+                            </select>
+                        </div>
+                    </div>
+
                     <div class="form-group">
-                        <label for="editDescription" class="form-label">תיאור הקריאה</label>
-                        <textarea id="editDescription" class="form-textarea" rows="3"></textarea>
+                        <label for="editDescription" class="form-label">הערות נוספות (אופציונלי)</label>
+                        <textarea id="editDescription" class="form-textarea" rows="2"></textarea>
                     </div>
 
                     <div class="modal-actions">

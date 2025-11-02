@@ -104,10 +104,50 @@
                     <span class="icon">📞</span>
                     <span class="text">כל הקריאות</span>
                 </button>
+                <button id="manageCodesBtn" class="admin-action-btn">
+                    <span class="icon">🏷️</span>
+                    <span class="text">ניהול סוגי קריאות</span>
+                </button>
                 <button id="systemStatsBtn" class="admin-action-btn">
                     <span class="icon">📊</span>
                     <span class="text">סטטיסטיקות מערכת</span>
                 </button>
+            </div>
+        </section>
+
+        <!-- Codes Management -->
+        <section class="codes-section" id="codesSection" style="display: none;">
+            <div class="section-header">
+                <h2 class="section-title">ניהול סוגי קריאות</h2>
+                <button id="closeCodesBtn" class="close-section-btn">✕</button>
+            </div>
+            
+            <!-- Tabs for Alert and Medical Codes -->
+            <div class="codes-tabs">
+                <button class="codes-tab active" data-tab="alert">קודי הזנקה</button>
+                <button class="codes-tab" data-tab="medical">קודים רפואיים</button>
+            </div>
+            
+            <!-- Alert Codes Tab -->
+            <div class="codes-tab-content" id="alertCodesTab">
+                <div class="codes-header">
+                    <h3>קודי הזנקה</h3>
+                    <button id="addAlertCodeBtn" class="add-code-btn">+ הוסף קוד חדש</button>
+                </div>
+                <div id="alertCodesContainer" class="codes-container">
+                    <!-- Alert codes will be populated by JavaScript -->
+                </div>
+            </div>
+            
+            <!-- Medical Codes Tab -->
+            <div class="codes-tab-content hidden" id="medicalCodesTab">
+                <div class="codes-header">
+                    <h3>קודים רפואיים</h3>
+                    <button id="addMedicalCodeBtn" class="add-code-btn">+ הוסף קוד חדש</button>
+                </div>
+                <div id="medicalCodesContainer" class="codes-container">
+                    <!-- Medical codes will be populated by JavaScript -->
+                </div>
             </div>
         </section>
 
@@ -146,6 +186,50 @@
             </div>
         </section>
     </main>
+
+    <!-- Code Edit Modal -->
+    <div id="codeModal" class="modal hidden">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="codeModalTitle">הוסף קוד</h3>
+                <button class="modal-close" id="codeModalClose">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="codeForm" class="admin-form">
+                    <input type="hidden" id="codeId">
+                    <input type="hidden" id="codeType">
+                    
+                    <div class="form-group">
+                        <label for="codeValue" class="form-label">קוד</label>
+                        <input type="text" id="codeValue" class="form-input" required placeholder="לדוגמה: תאונה קלה">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="codeDescription" class="form-label">תיאור</label>
+                        <textarea id="codeDescription" class="form-textarea" required placeholder="תיאור מפורט של הקוד..." rows="3"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="codeOrder" class="form-label">סדר תצוגה</label>
+                        <input type="number" id="codeOrder" class="form-input" value="0" min="0">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="codeActive" checked>
+                            <span>פעיל</span>
+                        </label>
+                    </div>
+                    
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary" id="codeModalCancel">ביטול</button>
+                        <button type="submit" class="btn-primary">שמור</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <!-- Toast Notification -->
     <div id="toast" class="toast"></div>

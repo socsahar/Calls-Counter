@@ -89,6 +89,8 @@ class CallCounter {
         this.isLoading = false;
         this.calls = [];
         this.filteredCalls = [];
+        this.alertCodes = [];
+        this.medicalCodes = [];
         this.currentFilters = {
             callType: '',
             vehicleType: '',
@@ -277,6 +279,7 @@ class CallCounter {
                 console.log('🏍️ Loading vehicle settings and data...');
                 await this.loadVehicleSettings();
                 this.updateVehicleDisplay();
+                await this.loadCodes(); // Load alert and medical codes
                 await this.loadStats();
                 await this.loadCalls();
             }, 500);
@@ -697,6 +700,8 @@ class CallCounter {
             location: fullLocation,
             city: city,
             street: street,
+            alert_code_id: document.getElementById('alertCode').value || null,
+            medical_code_id: document.getElementById('medicalCode').value || null,
             description: document.getElementById('description').value || null
         };
     }
@@ -975,12 +980,36 @@ class CallCounter {
                 <div class="call-date">📅 ${callDate}</div>
                 <div class="call-location">📍 ${call.location}</div>
                 <div class="call-vehicle">${this.getVehicleEmojiFromType(vehicleType)} ${vehicleType} ${call.vehicle_number}</div>
-                ${call.description ? `<div class="call-description">${call.description}</div>` : ''}
+                ${this.getCodeDisplayHTML(call)}
+                ${call.description ? `<div class="call-description">💬 ${call.description}</div>` : ''}
                 <div class="call-footer">
                     <span class="call-duration">${duration}</span>
                 </div>
             </div>
         `;
+    }
+
+    // Get code display HTML for a call
+    getCodeDisplayHTML(call) {
+        let html = '';
+        
+        // Find alert code
+        if (call.alert_code_id && this.alertCodes) {
+            const alertCode = this.alertCodes.find(c => c.id == call.alert_code_id);
+            if (alertCode) {
+                html += `<div class="call-code">🚨 קוד הזנקה: ${alertCode.code}</div>`;
+            }
+        }
+        
+        // Find medical code
+        if (call.medical_code_id && this.medicalCodes) {
+            const medicalCode = this.medicalCodes.find(c => c.id == call.medical_code_id);
+            if (medicalCode) {
+                html += `<div class="call-code">🏥 קוד רפואי: ${medicalCode.code}</div>`;
+            }
+        }
+        
+        return html;
     }
 
     // Vehicle Management Methods
@@ -1031,6 +1060,76 @@ class CallCounter {
         
         if (vehicleNumber) vehicleNumber.value = this.currentVehicle.number;
         if (vehicleType) vehicleType.value = this.currentVehicle.type;
+    }
+
+    // Load alert and medical codes for dropdowns
+    async loadCodes() {
+        try {
+            console.log('📋 Loading codes...');
+            
+            // Load alert codes
+            const alertResponse = await fetch('/api/codes/alert', {
+                headers: this.getAuthHeaders()
+            });
+            
+            if (alertResponse.ok) {
+                const alertResult = await alertResponse.json();
+                this.alertCodes = alertResult.data || [];
+                console.log('📋 Loaded', this.alertCodes.length, 'alert codes');
+                this.populateAlertCodeDropdowns();
+            }
+            
+            // Load medical codes
+            const medicalResponse = await fetch('/api/codes/medical', {
+                headers: this.getAuthHeaders()
+            });
+            
+            if (medicalResponse.ok) {
+                const medicalResult = await medicalResponse.json();
+                this.medicalCodes = medicalResult.data || [];
+                console.log('📋 Loaded', this.medicalCodes.length, 'medical codes');
+                this.populateMedicalCodeDropdowns();
+            }
+        } catch (error) {
+            console.error('Error loading codes:', error);
+            this.showError('שגיאה בטעינת קודי הזנקה וקודים רפואיים');
+        }
+    }
+
+    // Populate alert code dropdowns
+    populateAlertCodeDropdowns() {
+        const alertCodeSelect = document.getElementById('alertCode');
+        const editAlertCodeSelect = document.getElementById('editAlertCode');
+        
+        const options = this.alertCodes.map(code => 
+            `<option value="${code.id}">${code.code} - ${code.description}</option>`
+        ).join('');
+        
+        if (alertCodeSelect) {
+            alertCodeSelect.innerHTML = '<option value="">בחר קוד הזנקה</option>' + options;
+        }
+        
+        if (editAlertCodeSelect) {
+            editAlertCodeSelect.innerHTML = '<option value="">בחר קוד הזנקה</option>' + options;
+        }
+    }
+
+    // Populate medical code dropdowns
+    populateMedicalCodeDropdowns() {
+        const medicalCodeSelect = document.getElementById('medicalCode');
+        const editMedicalCodeSelect = document.getElementById('editMedicalCode');
+        
+        const options = this.medicalCodes.map(code => 
+            `<option value="${code.id}">${code.code} - ${code.description}</option>`
+        ).join('');
+        
+        if (medicalCodeSelect) {
+            medicalCodeSelect.innerHTML = '<option value="">בחר קוד רפואי</option>' + options;
+        }
+        
+        if (editMedicalCodeSelect) {
+            editMedicalCodeSelect.innerHTML = '<option value="">בחר קוד רפואי</option>' + options;
+        }
     }
 
     updateVehicleDisplay() {
@@ -1332,6 +1431,10 @@ class CallCounter {
         document.getElementById('editStreet').value = locationParts[1] || '';
         document.getElementById('editLocation').value = locationParts.slice(2).join(', ') || '';
         
+        // Set code dropdowns
+        document.getElementById('editAlertCode').value = call.alert_code_id || '';
+        document.getElementById('editMedicalCode').value = call.medical_code_id || '';
+        
         document.getElementById('editDescription').value = call.description || '';
         
         document.getElementById('editModal').classList.remove('hidden');
@@ -1359,6 +1462,8 @@ class CallCounter {
             location: fullLocation,
             city: city,
             street: street,
+            alert_code_id: document.getElementById('editAlertCode').value || null,
+            medical_code_id: document.getElementById('editMedicalCode').value || null,
             description: document.getElementById('editDescription').value || null
         };
 
