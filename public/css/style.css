@@ -2985,3 +2985,54 @@ textarea:focus {
 .select2-container--open .select2-dropdown {
     z-index: 10051;
 }
+
+/* ===== GOOGLE PLACES AUTOCOMPLETE STYLING ===== */
+.google-suggestions {
+    background: var(--white);
+    border: 1px solid var(--mda-red);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-lg);
+    margin-top: 4px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.google-suggestions .suggestion-item {
+    padding: 12px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--gray-200);
+    transition: all var(--transition-fast);
+    background: var(--white);
+}
+
+.google-suggestions .suggestion-item:last-child {
+    border-bottom: none;
+}
+
+.google-suggestions .suggestion-item:hover,
+.google-suggestions .suggestion-item.selected {
+    background-color: var(--mda-red) !important;
+    color: var(--white) !important;
+}
+
+.google-suggestions .suggestion-main {
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 2px;
+    text-align: right;
+    direction: rtl;
+}
+
+.google-suggestions .suggestion-secondary {
+    font-size: 12px;
+    opacity: 0.7;
+    text-align: right;
+    direction: rtl;
+}
+
+.google-suggestions .suggestion-item:hover .suggestion-main,
+.google-suggestions .suggestion-item:hover .suggestion-secondary,
+.google-suggestions .suggestion-item.selected .suggestion-main,
+.google-suggestions .suggestion-item.selected .suggestion-secondary {
+    color: var(--white) !important;
+}

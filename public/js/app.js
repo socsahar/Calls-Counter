@@ -296,36 +296,63 @@ class CallCounter {
     }
 
     initAddressAutocomplete() {
+        // Try to use Google Places Autocomplete first, fallback to local list
+        const useGoogle = window.GoogleAddressAutocomplete;
+        
         // Initialize autocomplete for city input (cities only)
         const cityInput = document.getElementById('city');
-        if (cityInput && window.AddressAutocomplete) {
-            const cityAutocomplete = new window.AddressAutocomplete();
-            cityAutocomplete.init(cityInput, 'city');
-            console.log('📍 City autocomplete initialized');
+        if (cityInput) {
+            if (useGoogle) {
+                const cityAutocomplete = new window.GoogleAddressAutocomplete();
+                cityAutocomplete.init(cityInput, 'city');
+                console.log('📍 City autocomplete initialized (Google Maps)');
+            } else if (window.AddressAutocomplete) {
+                const cityAutocomplete = new window.AddressAutocomplete();
+                cityAutocomplete.init(cityInput, 'city');
+                console.log('📍 City autocomplete initialized (Local)');
+            }
         }
         
-        // Initialize autocomplete for street input (streets only)
+        // Initialize autocomplete for street input (addresses)
         const streetInput = document.getElementById('street');
-        if (streetInput && window.AddressAutocomplete) {
-            const streetAutocomplete = new window.AddressAutocomplete();
-            streetAutocomplete.init(streetInput, 'street');
-            console.log('📍 Street autocomplete initialized');
+        if (streetInput) {
+            if (useGoogle) {
+                const streetAutocomplete = new window.GoogleAddressAutocomplete();
+                streetAutocomplete.init(streetInput, 'address');
+                console.log('📍 Street autocomplete initialized (Google Maps)');
+            } else if (window.AddressAutocomplete) {
+                const streetAutocomplete = new window.AddressAutocomplete();
+                streetAutocomplete.init(streetInput, 'street');
+                console.log('📍 Street autocomplete initialized (Local)');
+            }
         }
         
         // Initialize autocomplete for edit modal city input
         const editCityInput = document.getElementById('editCity');
-        if (editCityInput && window.AddressAutocomplete) {
-            const editCityAutocomplete = new window.AddressAutocomplete();
-            editCityAutocomplete.init(editCityInput, 'city');
-            console.log('📍 Edit city autocomplete initialized');
+        if (editCityInput) {
+            if (useGoogle) {
+                const editCityAutocomplete = new window.GoogleAddressAutocomplete();
+                editCityAutocomplete.init(editCityInput, 'city');
+                console.log('📍 Edit city autocomplete initialized (Google Maps)');
+            } else if (window.AddressAutocomplete) {
+                const editCityAutocomplete = new window.AddressAutocomplete();
+                editCityAutocomplete.init(editCityInput, 'city');
+                console.log('📍 Edit city autocomplete initialized (Local)');
+            }
         }
         
         // Initialize autocomplete for edit modal street input
         const editStreetInput = document.getElementById('editStreet');
-        if (editStreetInput && window.AddressAutocomplete) {
-            const editStreetAutocomplete = new window.AddressAutocomplete();
-            editStreetAutocomplete.init(editStreetInput, 'street');
-            console.log('📍 Edit street autocomplete initialized');
+        if (editStreetInput) {
+            if (useGoogle) {
+                const editStreetAutocomplete = new window.GoogleAddressAutocomplete();
+                editStreetAutocomplete.init(editStreetInput, 'address');
+                console.log('📍 Edit street autocomplete initialized (Google Maps)');
+            } else if (window.AddressAutocomplete) {
+                const editStreetAutocomplete = new window.AddressAutocomplete();
+                editStreetAutocomplete.init(editStreetInput, 'street');
+                console.log('📍 Edit street autocomplete initialized (Local)');
+            }
         }
     }
 
