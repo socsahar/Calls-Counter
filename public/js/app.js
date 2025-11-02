@@ -994,17 +994,17 @@ class CallCounter {
         let html = '';
         
         // Find alert code
-        if (call.alert_code_id && this.alertCodes) {
+        if (call.alert_code_id && this.alertCodes && this.alertCodes.length > 0) {
             const alertCode = this.alertCodes.find(c => c.id == call.alert_code_id);
-            if (alertCode) {
+            if (alertCode && alertCode.code) {
                 html += `<div class="call-code">🚨 קוד הזנקה: ${alertCode.code}</div>`;
             }
         }
         
         // Find medical code
-        if (call.medical_code_id && this.medicalCodes) {
+        if (call.medical_code_id && this.medicalCodes && this.medicalCodes.length > 0) {
             const medicalCode = this.medicalCodes.find(c => c.id == call.medical_code_id);
-            if (medicalCode) {
+            if (medicalCode && medicalCode.code) {
                 html += `<div class="call-code">🏥 קוד רפואי: ${medicalCode.code}</div>`;
             }
         }
@@ -1101,15 +1101,21 @@ class CallCounter {
         const alertCodeSelect = document.getElementById('alertCode');
         const editAlertCodeSelect = document.getElementById('editAlertCode');
         
-        const options = this.alertCodes.map(code => 
-            `<option value="${code.id}">${code.code}</option>`
-        ).join('');
+        const options = this.alertCodes
+            .filter(code => code && code.code) // Only include codes with a valid code property
+            .map(code => `<option value="${code.id}">${code.code}</option>`)
+            .join('');
         
         if (alertCodeSelect) {
             alertCodeSelect.innerHTML = '<option value="">בחר קוד הזנקה</option>' + options;
+            // Destroy existing Select2 if it exists
+            if ($(alertCodeSelect).hasClass('select2-hidden-accessible')) {
+                $(alertCodeSelect).select2('destroy');
+            }
             // Initialize Select2 with search
             $(alertCodeSelect).select2({
                 placeholder: 'חפש או בחר קוד הזנקה',
+                allowClear: true,
                 dir: 'rtl',
                 language: {
                     noResults: function() {
@@ -1124,9 +1130,14 @@ class CallCounter {
         
         if (editAlertCodeSelect) {
             editAlertCodeSelect.innerHTML = '<option value="">בחר קוד הזנקה</option>' + options;
+            // Destroy existing Select2 if it exists
+            if ($(editAlertCodeSelect).hasClass('select2-hidden-accessible')) {
+                $(editAlertCodeSelect).select2('destroy');
+            }
             // Initialize Select2 with search
             $(editAlertCodeSelect).select2({
                 placeholder: 'חפש או בחר קוד הזנקה',
+                allowClear: true,
                 dir: 'rtl',
                 language: {
                     noResults: function() {
@@ -1145,15 +1156,21 @@ class CallCounter {
         const medicalCodeSelect = document.getElementById('medicalCode');
         const editMedicalCodeSelect = document.getElementById('editMedicalCode');
         
-        const options = this.medicalCodes.map(code => 
-            `<option value="${code.id}">${code.code}</option>`
-        ).join('');
+        const options = this.medicalCodes
+            .filter(code => code && code.code) // Only include codes with a valid code property
+            .map(code => `<option value="${code.id}">${code.code}</option>`)
+            .join('');
         
         if (medicalCodeSelect) {
             medicalCodeSelect.innerHTML = '<option value="">בחר קוד רפואי</option>' + options;
+            // Destroy existing Select2 if it exists
+            if ($(medicalCodeSelect).hasClass('select2-hidden-accessible')) {
+                $(medicalCodeSelect).select2('destroy');
+            }
             // Initialize Select2 with search
             $(medicalCodeSelect).select2({
                 placeholder: 'חפש או בחר קוד רפואי',
+                allowClear: true,
                 dir: 'rtl',
                 language: {
                     noResults: function() {
@@ -1168,9 +1185,14 @@ class CallCounter {
         
         if (editMedicalCodeSelect) {
             editMedicalCodeSelect.innerHTML = '<option value="">בחר קוד רפואי</option>' + options;
+            // Destroy existing Select2 if it exists
+            if ($(editMedicalCodeSelect).hasClass('select2-hidden-accessible')) {
+                $(editMedicalCodeSelect).select2('destroy');
+            }
             // Initialize Select2 with search
             $(editMedicalCodeSelect).select2({
                 placeholder: 'חפש או בחר קוד רפואי',
+                allowClear: true,
                 dir: 'rtl',
                 language: {
                     noResults: function() {
