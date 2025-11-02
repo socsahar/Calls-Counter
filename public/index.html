@@ -612,43 +612,64 @@
                 const token = localStorage.getItem('token');
                 if (!token) {
                     console.log('⏳ Waiting for authentication before loading Google Maps');
+                    // Retry after authentication
+                    setTimeout(loadGoogleMaps, 2000);
                     return;
                 }
+                
+                console.log('🗺️ Fetching Google Maps API key...');
                 
                 const response = await fetch('/api/config/google-maps-key', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 
                 if (!response.ok) {
-                    console.warn('⚠️ Failed to fetch Google Maps API key');
+                    console.warn('⚠️ Failed to fetch Google Maps API key:', response.status);
                     return;
                 }
                 
                 const { apiKey } = await response.json();
                 
                 if (!apiKey) {
-                    console.warn('⚠️ Google Maps API key not configured');
+                    console.warn('⚠️ Google Maps API key not configured on server');
                     return;
                 }
+                
+                console.log('🔑 API key retrieved, loading Google Maps...');
                 
                 const script = document.createElement('script');
                 script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&language=iw`;
                 script.async = true;
                 script.defer = true;
-                script.onload = () => console.log('✅ Google Maps API loaded successfully');
-                script.onerror = () => console.error('❌ Failed to load Google Maps API');
+                script.onload = () => {
+                    console.log('✅ Google Maps API loaded successfully');
+                    // Trigger re-initialization of autocomplete
+                    if (window.callCounter) {
+                        window.callCounter.initAddressAutocomplete();
+                    }
+                };
+                script.onerror = () => console.error('❌ Failed to load Google Maps API - check API key restrictions');
                 document.head.appendChild(script);
             } catch (error) {
                 console.error('❌ Error loading Google Maps:', error);
             }
         }
         
-        // Try to load Google Maps after a short delay to ensure token is available
-        setTimeout(loadGoogleMaps, 1000);
+        // Try to load Google Maps after app initialization
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(loadGoogleMaps, 1500);
+        });
+        
+        // Also try after storage event (when user logs in)
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'token' && e.newValue) {
+                setTimeout(loadGoogleMaps, 500);
+            }
+        });
     </script>
     
     <!-- Address Autocomplete Scripts -->
-    <script src="/js/addresses-google.js?v=1.0.1"></script>
-    <script src="/js/addresses.js?v=1.0.1"></script>
+    <script src="/js/addresses-google.js?v=1.0.2"></script>
+    <script src="/js/addresses.js?v=1.0.2"></script>
 </body>
 </html>
