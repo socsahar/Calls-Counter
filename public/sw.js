@@ -1,9 +1,8 @@
-const CACHE_NAME = 'mda-callcounter-v1';
+const CACHE_NAME = 'mda-callcounter-v2';
 const urlsToCache = [
     '/',
     '/css/style.css',
-    '/js/app.js',
-    'https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&display=swap'
+    '/js/app.js'
 ];
 
 // Install event - cache resources
@@ -23,21 +22,27 @@ self.addEventListener('fetch', (event) => {
         return;
     }
     
+    // Skip CDN resources - let them load directly without caching
+    const cdnDomains = [
+        'cdn.jsdelivr.net',
+        'code.jquery.com',
+        'maps.googleapis.com',
+        'maps.gstatic.com',
+        'fonts.googleapis.com',
+        'fonts.gstatic.com'
+    ];
+    
+    if (cdnDomains.some(domain => event.request.url.includes(domain))) {
+        // Let CDN resources pass through without service worker intervention
+        return;
+    }
+    
     event.respondWith(
         caches.match(event.request)
             .then((response) => {
                 // Return cached version if available
                 if (response) {
                     return response;
-                }
-                
-                // For font requests, handle CSP issues gracefully
-                if (event.request.url.includes('fonts.gstatic.com')) {
-                    return fetch(event.request).catch(() => {
-                        // If font fetch fails due to CSP, continue without error
-                        console.log('Font fetch blocked by CSP, using fallback');
-                        return new Response('', { status: 200 });
-                    });
                 }
                 
                 // For other requests, fetch from network

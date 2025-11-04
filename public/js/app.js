@@ -701,6 +701,11 @@ class CallCounter {
         
         const formData = this.getFormData();
         
+        // Check if getFormData returned null (validation failed)
+        if (!formData) {
+            return;
+        }
+        
         if (!this.validateFormData(formData)) {
             return;
         }
@@ -712,6 +717,13 @@ class CallCounter {
         const city = document.getElementById('city').value.trim();
         const street = document.getElementById('street').value.trim();
         const locationDetails = document.getElementById('location').value.trim();
+        const meterVisaNumber = document.getElementById('meterVisaNumber').value.trim();
+        
+        // Validate meter/visa number is numeric only if provided
+        if (meterVisaNumber && !/^\d+$/.test(meterVisaNumber)) {
+            this.showError('מספר מונה/ויזה חייב להכיל רק מספרים');
+            return null;
+        }
         
         // Combine city, street, and details into full location
         let fullLocation = `${city}, ${street}`;
@@ -729,6 +741,7 @@ class CallCounter {
             street: street,
             alert_code_id: document.getElementById('alertCode').value || null,
             medical_code_id: document.getElementById('medicalCode').value || null,
+            meter_visa_number: meterVisaNumber || null,
             description: document.getElementById('description').value || null
         };
     }

@@ -398,6 +398,21 @@ class HistoryViewer {
                     <div style="margin-bottom: 8px; color: #333;">
                         <strong style="color: #1976d2;">מיקום:</strong> <span style="color: #333;">${call.location || 'לא צוין'}</span>
                     </div>
+                    ${call.alert_code ? `
+                        <div style="margin-bottom: 8px; color: #333;">
+                            <strong style="color: #1976d2;">קוד הזנקה:</strong> <span style="color: #333;">${call.alert_code}</span>
+                        </div>
+                    ` : ''}
+                    ${call.medical_code ? `
+                        <div style="margin-bottom: 8px; color: #333;">
+                            <strong style="color: #1976d2;">קוד רפואי:</strong> <span style="color: #333;">${call.medical_code}</span>
+                        </div>
+                    ` : ''}
+                    ${call.meter_visa_number ? `
+                        <div style="margin-bottom: 8px; color: #333;">
+                            <strong style="color: #1976d2;">מספר מונה/ויזה:</strong> <span style="color: #333;">${call.meter_visa_number}</span>
+                        </div>
+                    ` : ''}
                     ${call.description ? `
                         <div style="margin-bottom: 8px; color: #333;">
                             <strong style="color: #1976d2;">תיאור:</strong> <span style="color: #333;">${call.description}</span>
@@ -540,6 +555,7 @@ class HistoryViewer {
         document.getElementById('editStartTime').value = callData.start_time || '';
         document.getElementById('editEndTime').value = callData.end_time || '';
         document.getElementById('editLocation').value = callData.location || '';
+        document.getElementById('editMeterVisaNumber').value = callData.meter_visa_number || '';
         document.getElementById('editDescription').value = callData.description || '';
 
         // Show modal
@@ -570,12 +586,22 @@ class HistoryViewer {
             this.setLoading(true);
             
             const callId = document.getElementById('editCallId').value;
+            const meterVisaNumber = document.getElementById('editMeterVisaNumber').value.trim();
+            
+            // Validate meter/visa number is numeric only if provided
+            if (meterVisaNumber && !/^\d+$/.test(meterVisaNumber)) {
+                this.showToast('מספר מונה/ויזה חייב להכיל רק מספרים', 'error');
+                this.setLoading(false);
+                return;
+            }
+            
             const formData = {
                 call_type: document.getElementById('editCallType').value,
                 call_date: document.getElementById('editCallDate').value,
                 start_time: document.getElementById('editStartTime').value,
                 end_time: document.getElementById('editEndTime').value,
                 location: document.getElementById('editLocation').value,
+                meter_visa_number: meterVisaNumber || null,
                 description: document.getElementById('editDescription').value
             };
 

@@ -626,9 +626,14 @@ app.get('/api/calls/historical', authenticateToken, async (req, res) => {
         }
 
         // Get calls data using call_date field for consistency - FILTERED BY USER
+        // JOIN with alert_codes and medical_codes to get the actual code values
         const { data: calls, error: callsError } = await supabase
             .from('calls')
-            .select('*')
+            .select(`
+                *,
+                alert_codes:alert_code_id(code),
+                medical_codes:medical_code_id(code)
+            `)
             .eq('user_id', req.user.user_id)  // CRITICAL: Only user's own data
             .gte('call_date', startDateStr)
             .lt('call_date', endDateStr)
@@ -643,6 +648,13 @@ app.get('/api/calls/historical', authenticateToken, async (req, res) => {
             });
         }
 
+        // Transform calls to flatten the joined data
+        const transformedCalls = calls ? calls.map(call => ({
+            ...call,
+            alert_code: call.alert_codes?.code || null,
+            medical_code: call.medical_codes?.code || null
+        })) : [];
+
         // Calculate statistics (handle both Hebrew and English call types)
         // Helper function to calculate total hours from calls
         const calculateHours = (calls) => {
@@ -656,25 +668,25 @@ app.get('/api/calls/historical', authenticateToken, async (req, res) => {
         };
 
         const stats = {
-            totalCalls: calls.length,
-            totalHours: calculateHours(calls),
-            urgentCalls: calls.filter(call => 
+            totalCalls: transformedCalls.length,
+            totalHours: calculateHours(transformedCalls),
+            urgentCalls: transformedCalls.filter(call => 
                 call.call_type === 'דחוף' || call.call_type === 'urgent'
             ).length,
-            atanCalls: calls.filter(call => 
+            atanCalls: transformedCalls.filter(call => 
                 call.call_type === 'אט"ן' || call.call_type === 'אט״ן' || call.call_type === 'atan'
             ).length,
-            aranCalls: calls.filter(call => 
+            aranCalls: transformedCalls.filter(call => 
                 call.call_type === 'ארן' || call.call_type === 'aran'
             ).length,
-            natbagCalls: calls.filter(call => 
+            natbagCalls: transformedCalls.filter(call => 
                 call.call_type === 'נתבג' || call.call_type === 'natbag'
             ).length
         };
 
         res.json({
             success: true,
-            calls: calls || [],
+            calls: transformedCalls,
             stats,
             period: {
                 year: parseInt(year),
@@ -755,7 +767,8 @@ app.post('/api/calls', authenticateToken, async (req, res) => {
             location,
             description,
             alert_code_id,
-            medical_code_id
+            medical_code_id,
+            meter_visa_number
         } = req.body;
 
         // Validation
@@ -863,6 +876,7 @@ app.post('/api/calls', authenticateToken, async (req, res) => {
             description: description || null,
             alert_code_id: alert_code_id || null,
             medical_code_id: medical_code_id || null,
+            meter_visa_number: meter_visa_number || null,
             duration_minutes,
             vehicle_number: userMdaCode,
             vehicle_type: `${vehicleEmoji} ${vehicleHebrewName}`,
@@ -906,7 +920,7 @@ app.post('/api/calls', authenticateToken, async (req, res) => {
 app.put('/api/calls/:id', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
-        const { call_type, call_date, start_time, end_time, location, description, alert_code_id, medical_code_id } = req.body;
+        const { call_type, call_date, start_time, end_time, location, description, alert_code_id, medical_code_id, meter_visa_number } = req.body;
 
         // CRITICAL: First check if the call belongs to the authenticated user
         const { data: currentCall } = await supabase
@@ -962,6 +976,7 @@ app.put('/api/calls/:id', authenticateToken, async (req, res) => {
         if (description !== undefined) updateData.description = description;
         if (alert_code_id !== undefined) updateData.alert_code_id = alert_code_id;
         if (medical_code_id !== undefined) updateData.medical_code_id = medical_code_id;
+        if (meter_visa_number !== undefined) updateData.meter_visa_number = meter_visa_number;
 
         const { data, error } = await supabase
             .from('calls')
