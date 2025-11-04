@@ -1325,6 +1325,27 @@ app.get('/api/health', (req, res) => {
     });
 });
 
+// Keep-alive endpoint for cron services (lightweight, no auth required)
+app.get('/api/keepalive', (req, res) => {
+    const userAgent = req.headers['user-agent'] || 'unknown';
+    const timestamp = new Date().toISOString();
+    
+    // Log the ping (helps monitor cron job activity)
+    console.log(`🏓 Keep-alive ping from: ${userAgent} at ${timestamp}`);
+    
+    // Return minimal response to save bandwidth
+    res.status(200).json({
+        status: 'alive',
+        timestamp: timestamp,
+        server: 'MDA-CallCounter'
+    });
+});
+
+// Keep-alive endpoint (alternative URL)
+app.get('/ping', (req, res) => {
+    res.status(200).send('pong');
+});
+
 // Simple diagnostic endpoint
 app.get('/api/status', (req, res) => {
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
