@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mda-callcounter-v2';
+const CACHE_NAME = 'mda-callcounter-v3';
 const urlsToCache = [
     '/',
     '/css/style.css',
