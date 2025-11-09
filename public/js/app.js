@@ -271,9 +271,6 @@ class CallCounter {
             this.bindEvents();
             this.setCurrentTime();
             
-            // Initialize address autocomplete
-            this.initAddressAutocomplete();
-            
             // Wait a moment for authentication to complete, then load data
             setTimeout(async () => {
                 console.log('🏍️ Loading vehicle settings and data...');
@@ -295,80 +292,6 @@ class CallCounter {
         }
     }
 
-    async initAddressAutocomplete() {
-        // Try to use Google Places Autocomplete first, fallback to local list
-        const useGoogle = window.GoogleAddressAutocomplete;
-        
-        // Get API key if using Google
-        let apiKey = null;
-        if (useGoogle) {
-            try {
-                const response = await fetch('/api/config/google-maps-key');
-                if (response.ok) {
-                    const data = await response.json();
-                    apiKey = data.apiKey;
-                }
-            } catch (error) {
-                console.warn('⚠️ Could not fetch Google Maps API key:', error);
-            }
-        }
-        
-        // Initialize autocomplete for city input (cities only)
-        const cityInput = document.getElementById('city');
-        if (cityInput) {
-            if (useGoogle && apiKey) {
-                const cityAutocomplete = new window.GoogleAddressAutocomplete(apiKey);
-                cityAutocomplete.init(cityInput, 'city');
-                console.log('📍 City autocomplete initialized (Google Maps)');
-            } else if (window.AddressAutocomplete) {
-                const cityAutocomplete = new window.AddressAutocomplete();
-                cityAutocomplete.init(cityInput, 'city');
-                console.log('📍 City autocomplete initialized (Local)');
-            }
-        }
-        
-        // Initialize autocomplete for street input (addresses)
-        const streetInput = document.getElementById('street');
-        if (streetInput) {
-            if (useGoogle && apiKey) {
-                const streetAutocomplete = new window.GoogleAddressAutocomplete(apiKey);
-                streetAutocomplete.init(streetInput, 'address');
-                console.log('📍 Street autocomplete initialized (Google Maps)');
-            } else if (window.AddressAutocomplete) {
-                const streetAutocomplete = new window.AddressAutocomplete();
-                streetAutocomplete.init(streetInput, 'street');
-                console.log('📍 Street autocomplete initialized (Local)');
-            }
-        }
-        
-        // Initialize autocomplete for edit modal city input
-        const editCityInput = document.getElementById('editCity');
-        if (editCityInput) {
-            if (useGoogle && apiKey) {
-                const editCityAutocomplete = new window.GoogleAddressAutocomplete(apiKey);
-                editCityAutocomplete.init(editCityInput, 'city');
-                console.log('📍 Edit city autocomplete initialized (Google Maps)');
-            } else if (window.AddressAutocomplete) {
-                const editCityAutocomplete = new window.AddressAutocomplete();
-                editCityAutocomplete.init(editCityInput, 'city');
-                console.log('📍 Edit city autocomplete initialized (Local)');
-            }
-        }
-        
-        // Initialize autocomplete for edit modal street input
-        const editStreetInput = document.getElementById('editStreet');
-        if (editStreetInput) {
-            if (useGoogle && apiKey) {
-                const editStreetAutocomplete = new window.GoogleAddressAutocomplete(apiKey);
-                editStreetAutocomplete.init(editStreetInput, 'address');
-                console.log('📍 Edit street autocomplete initialized (Google Maps)');
-            } else if (window.AddressAutocomplete) {
-                const editStreetAutocomplete = new window.AddressAutocomplete();
-                editStreetAutocomplete.init(editStreetInput, 'street');
-                console.log('📍 Edit street autocomplete initialized (Local)');
-            }
-        }
-    }
 
     bindEvents() {
         // Form submission

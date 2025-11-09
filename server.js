@@ -62,9 +62,9 @@ app.use(helmet({
             defaultSrc: ["'self'"],
             styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdn.jsdelivr.net"],
             fontSrc: ["'self'", "https://fonts.gstatic.com"],
-            scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://code.jquery.com", "https://cdn.jsdelivr.net", "https://maps.googleapis.com", "https://shir-gw.checkpoint.com", "https://zerophishing.iaas.checkpoint.com"],
-            imgSrc: ["'self'", "data:", "https:", "https://maps.googleapis.com", "https://maps.gstatic.com"],
-            connectSrc: ["'self'", "https://*.supabase.co", "https://maps.googleapis.com", "https://places.googleapis.com", "https://fonts.googleapis.com", "https://fonts.gstatic.com"]
+            scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://code.jquery.com", "https://cdn.jsdelivr.net", "https://shir-gw.checkpoint.com", "https://zerophishing.iaas.checkpoint.com"],
+            imgSrc: ["'self'", "data:", "https:"],
+            connectSrc: ["'self'", "https://*.supabase.co", "https://fonts.googleapis.com", "https://fonts.gstatic.com"]
         }
     }
 }));
@@ -218,14 +218,6 @@ const optionalAuth = async (req, res, next) => {
 // ================================================
 // CONFIGURATION ROUTES
 // ================================================
-
-// Get Google Maps API key
-// Google Maps API key endpoint - public access (API key is restricted on Google side)
-app.get('/api/config/google-maps-key', (req, res) => {
-    res.json({ 
-        apiKey: process.env.GOOGLE_MAPS_API_KEY || '' 
-    });
-});
 
 // ================================================
 // AUTHENTICATION ROUTES
