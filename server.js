@@ -220,7 +220,8 @@ const optionalAuth = async (req, res, next) => {
 // ================================================
 
 // Get Google Maps API key
-app.get('/api/config/google-maps-key', authenticateToken, (req, res) => {
+// Google Maps API key endpoint - public access (API key is restricted on Google side)
+app.get('/api/config/google-maps-key', (req, res) => {
     res.json({ 
         apiKey: process.env.GOOGLE_MAPS_API_KEY || '' 
     });
