@@ -420,7 +420,11 @@
     <!-- Select2 -->
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     
-    <script src="/js/addresses.js?v=1.0.1"></script>
+    <!-- Load addresses-google.js first (for Google Places API) -->
+    <script src="/js/addresses-google.js?v=1.0.3"></script>
+    <!-- Load local fallback addresses.js -->
+    <script src="/js/addresses.js?v=1.0.2"></script>
+    <!-- Main app script -->
     <script src="/js/app.js?v=1.0.1"></script>
     <script>
         // Vehicle type detection functions
@@ -608,86 +612,5 @@
             }
         });
     </script>
-    
-    <!-- Google Maps Loader - Simplified -->
-    <script>
-        // Load Google Maps API immediately (no auth wait)
-        async function loadGoogleMaps() {
-            // Prevent multiple loads
-            if (window.googleMapsLoading || window.google?.maps) {
-                console.log('🗺️ Google Maps already loading or loaded');
-                return;
-            }
-            
-            window.googleMapsLoading = true;
-            
-            try {
-                console.log('🗺️ Fetching Google Maps API key...');
-                
-                // Try without auth first, fallback to auth if needed
-                let response = await fetch('/api/config/google-maps-key');
-                
-                if (!response.ok && response.status === 401) {
-                    // Try with auth token
-                    const token = localStorage.getItem('token');
-                    if (token) {
-                        response = await fetch('/api/config/google-maps-key', {
-                            headers: { 'Authorization': `Bearer ${token}` }
-                        });
-                    }
-                }
-                
-                if (!response.ok) {
-                    console.warn('⚠️ Failed to fetch Google Maps API key:', response.status);
-                    window.googleMapsLoading = false;
-                    return;
-                }
-                
-                const { apiKey } = await response.json();
-                
-                if (!apiKey) {
-                    console.warn('⚠️ Google Maps API key not configured on server');
-                    window.googleMapsLoading = false;
-                    return;
-                }
-                
-                console.log('🔑 API key retrieved, loading Google Maps...');
-                
-                const script = document.createElement('script');
-                script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&language=iw`;
-                script.async = true;
-                script.defer = true;
-                script.onload = () => {
-                    console.log('✅ Google Maps API loaded successfully');
-                    window.googleMapsLoaded = true;
-                    window.googleMapsLoading = false;
-                    // Trigger autocomplete initialization
-                    if (window.callCounter?.initAddressAutocomplete) {
-                        window.callCounter.initAddressAutocomplete();
-                    }
-                };
-                script.onerror = () => {
-                    console.error('❌ Failed to load Google Maps API - check API key and restrictions');
-                    window.googleMapsLoading = false;
-                };
-                document.head.appendChild(script);
-            } catch (error) {
-                console.error('❌ Error loading Google Maps:', error);
-                window.googleMapsLoading = false;
-            }
-        }
-        
-        // Load immediately when DOM is ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', loadGoogleMaps);
-        } else {
-            // DOM already loaded
-            loadGoogleMaps();
-        }
-    </script>
-    
-    <!-- Address Autocomplete Scripts -->
-    <script src="/js/addresses-google.js?v=1.0.2"></script>
-    <script src="/js/addresses.js?v=1.0.2"></script>
 </body>
 </html>

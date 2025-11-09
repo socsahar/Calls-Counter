@@ -64,7 +64,7 @@ app.use(helmet({
             fontSrc: ["'self'", "https://fonts.gstatic.com"],
             scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://code.jquery.com", "https://cdn.jsdelivr.net", "https://maps.googleapis.com", "https://shir-gw.checkpoint.com", "https://zerophishing.iaas.checkpoint.com"],
             imgSrc: ["'self'", "data:", "https:", "https://maps.googleapis.com", "https://maps.gstatic.com"],
-            connectSrc: ["'self'", "https://*.supabase.co", "https://maps.googleapis.com", "https://fonts.googleapis.com", "https://fonts.gstatic.com"]
+            connectSrc: ["'self'", "https://*.supabase.co", "https://maps.googleapis.com", "https://places.googleapis.com", "https://fonts.googleapis.com", "https://fonts.gstatic.com"]
         }
     }
 }));

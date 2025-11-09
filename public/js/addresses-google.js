@@ -1,13 +1,12 @@
-// Israeli Addresses using Google Places Autocomplete API
+// Israeli Addresses using Google Places Autocomplete API (New API)
 class GoogleAddressAutocomplete {
     constructor(apiKey) {
         this.apiKey = apiKey;
-        this.autocompleteService = null;
-        this.sessionToken = null;
         this.currentInput = null;
         this.suggestionsList = null;
         this.selectedIndex = -1;
         this.initialized = false;
+        this.abortController = null;
     }
 
     // Initialize Google Places API
@@ -15,57 +14,25 @@ class GoogleAddressAutocomplete {
         this.currentInput = inputElement;
         this.filterType = type; // 'address', 'city', or 'street'
         
-        // Wait for Google Maps API to load
-        await this.waitForGoogleMaps();
+        // No need to wait for Google Maps SDK - we use REST API directly
+        this.initialized = true;
         
-        // Initialize services
-        if (window.google && window.google.maps && window.google.maps.places) {
-            this.autocompleteService = new google.maps.places.AutocompleteService();
-            this.sessionToken = new google.maps.places.AutocompleteSessionToken();
-            this.initialized = true;
-            
-            // Create suggestions dropdown
-            this.createSuggestionsList();
-            
-            // Add event listeners
-            this.currentInput.addEventListener('input', (e) => this.handleInput(e));
-            this.currentInput.addEventListener('keydown', (e) => this.handleKeydown(e));
-            this.currentInput.addEventListener('blur', () => {
-                setTimeout(() => this.hideSuggestions(), 200);
-            });
-            this.currentInput.addEventListener('focus', (e) => {
-                if (e.target.value.trim().length >= 2) {
-                    this.handleInput(e);
-                }
-            });
-            
-            console.log('✅ Google Places Autocomplete initialized for:', inputElement.id);
-        } else {
-            console.error('❌ Google Maps API not loaded');
-        }
-    }
-
-    // Wait for Google Maps to be ready
-    waitForGoogleMaps() {
-        return new Promise((resolve) => {
-            if (window.google && window.google.maps && window.google.maps.places) {
-                resolve();
-            } else {
-                const checkInterval = setInterval(() => {
-                    if (window.google && window.google.maps && window.google.maps.places) {
-                        clearInterval(checkInterval);
-                        resolve();
-                    }
-                }, 100);
-                
-                // Timeout after 10 seconds
-                setTimeout(() => {
-                    clearInterval(checkInterval);
-                    console.warn('⚠️ Google Maps API loading timeout');
-                    resolve();
-                }, 10000);
+        // Create suggestions dropdown
+        this.createSuggestionsList();
+        
+        // Add event listeners
+        this.currentInput.addEventListener('input', (e) => this.handleInput(e));
+        this.currentInput.addEventListener('keydown', (e) => this.handleKeydown(e));
+        this.currentInput.addEventListener('blur', () => {
+            setTimeout(() => this.hideSuggestions(), 200);
+        });
+        this.currentInput.addEventListener('focus', (e) => {
+            if (e.target.value.trim().length >= 2) {
+                this.handleInput(e);
             }
         });
+        
+        console.log('✅ Google Places Autocomplete initialized for:', inputElement.id);
     }
 
     createSuggestionsList() {
@@ -92,57 +59,74 @@ class GoogleAddressAutocomplete {
             return;
         }
 
+        // Cancel previous request
+        if (this.abortController) {
+            this.abortController.abort();
+        }
+
         try {
             const suggestions = await this.getSuggestions(value);
             this.showSuggestions(suggestions);
         } catch (error) {
-            console.error('Error fetching suggestions:', error);
+            if (error.name !== 'AbortError') {
+                console.error('Error fetching suggestions:', error);
+            }
         }
     }
 
-    getSuggestions(query) {
-        return new Promise((resolve, reject) => {
-            if (!this.autocompleteService) {
-                reject(new Error('Autocomplete service not initialized'));
-                return;
-            }
-
-            const request = {
+    async getSuggestions(query) {
+        // Use Fetch API to call Google Places API (New) directly
+        // This avoids the deprecated AutocompleteService
+        this.abortController = new AbortController();
+        
+        try {
+            const endpoint = 'https://places.googleapis.com/v1/places:autocomplete';
+            
+            const requestBody = {
                 input: query,
-                sessionToken: this.sessionToken,
-                componentRestrictions: { country: 'il' }, // Restrict to Israel
-                types: this.getPlaceTypes(),
-                language: 'iw' // Hebrew
+                languageCode: 'iw',
+                includedRegionCodes: ['IL'], // Israel only
+                locationRestriction: {
+                    rectangle: {
+                        low: { latitude: 29.5, longitude: 34.2 },
+                        high: { latitude: 33.3, longitude: 35.9 }
+                    }
+                }
             };
 
-            this.autocompleteService.getPlacePredictions(request, (predictions, status) => {
-                if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
-                    const suggestions = predictions.map(prediction => ({
-                        text: prediction.description,
-                        placeId: prediction.place_id,
-                        mainText: prediction.structured_formatting.main_text,
-                        secondaryText: prediction.structured_formatting.secondary_text
-                    }));
-                    resolve(suggestions);
-                } else if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
-                    resolve([]);
-                } else {
-                    console.warn('Places API status:', status);
-                    resolve([]);
-                }
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Goog-Api-Key': this.apiKey
+                },
+                body: JSON.stringify(requestBody),
+                signal: this.abortController.signal
             });
-        });
-    }
 
-    getPlaceTypes() {
-        switch (this.filterType) {
-            case 'city':
-                return ['(cities)'];
-            case 'street':
-            case 'address':
-                return ['address'];
-            default:
-                return ['geocode'];
+            if (!response.ok) {
+                throw new Error(`API error: ${response.status}`);
+            }
+
+            const data = await response.json();
+            
+            if (!data.suggestions || data.suggestions.length === 0) {
+                return [];
+            }
+
+            return data.suggestions.map(suggestion => ({
+                text: suggestion.placePrediction?.text?.text || '',
+                mainText: suggestion.placePrediction?.structuredFormat?.mainText?.text || '',
+                secondaryText: suggestion.placePrediction?.structuredFormat?.secondaryText?.text || '',
+                placeId: suggestion.placePrediction?.placeId || ''
+            }));
+            
+        } catch (error) {
+            if (error.name === 'AbortError') {
+                throw error;
+            }
+            console.error('Places API error:', error);
+            return [];
         }
     }
 
@@ -241,9 +225,6 @@ class GoogleAddressAutocomplete {
         this.currentInput.value = text;
         this.hideSuggestions();
         this.currentInput.focus();
-        
-        // Regenerate session token for next search
-        this.sessionToken = new google.maps.places.AutocompleteSessionToken();
     }
 }
 
