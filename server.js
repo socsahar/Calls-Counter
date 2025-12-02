@@ -2243,7 +2243,8 @@ app.post('/api/v1/calls', authenticateAPIKey, async (req, res) => {
             vehicle_type,
             status,
             patient_count,
-            duration_minutes
+            duration_minutes,
+            user_id
         } = req.body;
 
         // Validate required fields
@@ -2291,6 +2292,7 @@ app.post('/api/v1/calls', authenticateAPIKey, async (req, res) => {
         }
 
         const callData = {
+            user_id: user_id || null,
             vehicle_number,
             vehicle_type: vehicle_type || '🏍️ אופנוע',
             call_type: finalCallType || 'לא ידוע',
