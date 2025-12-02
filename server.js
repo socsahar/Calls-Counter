@@ -2433,10 +2433,10 @@ app.get('/api/v1/stats', authenticateAPIKey, async (req, res) => {
             timeZone: 'Asia/Jerusalem'
         });
 
-        // Get motorcycle number
+        // Get vehicle number
         const { data: settingsData, error: settingsError } = await supabase
             .from('vehicle_settings')
-            .select('motorcycle_number')
+            .select('vehicle_number')
             .limit(1)
             .single();
 
@@ -2444,13 +2444,13 @@ app.get('/api/v1/stats', authenticateAPIKey, async (req, res) => {
             console.error('Error fetching settings:', settingsError);
         }
 
-        const motorcycle_number = settingsData?.motorcycle_number || '5248';
+        const vehicle_number = settingsData?.vehicle_number || '5248';
 
         // Build query for calls
         let query = supabase
             .from('calls')
             .select('*, call_types!call_type_id(id, hebrew_name, english_name)')
-            .eq('motorcycle_number', motorcycle_number)
+            .eq('vehicle_number', vehicle_number)
             .eq('call_date', targetDate);
 
         // Apply optional filters
@@ -2500,7 +2500,7 @@ app.get('/api/v1/stats', authenticateAPIKey, async (req, res) => {
         res.json({
             success: true,
             date: targetDate,
-            motorcycle_number,
+            vehicle_number,
             filters: {
                 city: city || null,
                 type: type || null
