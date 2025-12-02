@@ -2279,13 +2279,24 @@ app.post('/api/v1/calls', authenticateAPIKey, async (req, res) => {
             timeZone: 'Asia/Jerusalem'
         });
 
+        // If call_type not provided but call_type_id is, fetch the type name
+        let finalCallType = call_type;
+        if (!finalCallType && call_type_id) {
+            const { data: typeData } = await supabase
+                .from('call_types')
+                .select('hebrew_name')
+                .eq('id', call_type_id)
+                .single();
+            finalCallType = typeData?.hebrew_name || 'לא ידוע';
+        }
+
         const callData = {
             vehicle_number,
             vehicle_type: vehicle_type || '🏍️ אופנוע',
-            call_type: call_type || null,
+            call_type: finalCallType || 'לא ידוע',
             call_type_id: call_type_id || null,
-            city: city || null,
-            location: location || street || null,
+            city: city || 'לא צוין',
+            location: location || street || city || 'לא צוין',
             street: street || null,
             location_details: location_details || null,
             alert_code_id: alert_code_id || null,
@@ -2294,7 +2305,7 @@ app.post('/api/v1/calls', authenticateAPIKey, async (req, res) => {
             entry_code: entry_code || null,
             description: description || '',
             call_date: israelDate,
-            start_time: start_time || null,
+            start_time: start_time || '00:00:00',
             end_time: end_time || null,
             duration_minutes: duration_minutes || null,
             status: status || 'completed',
