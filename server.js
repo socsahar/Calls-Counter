@@ -2227,39 +2227,52 @@ app.post('/api/v1/calls', authenticateAPIKey, async (req, res) => {
         const {
             city,
             street,
+            location,
             location_details,
             call_type_id,
+            call_type,
             alert_code_id,
             medical_code_id,
             meter_visa_number,
             entry_code,
             description,
-            call_date
+            call_date,
+            start_time,
+            end_time,
+            vehicle_number: provided_vehicle_number,
+            vehicle_type,
+            status,
+            patient_count,
+            duration_minutes
         } = req.body;
 
         // Validate required fields
-        if (!city || !call_type_id) {
+        if (!call_type_id && !call_type) {
             return res.status(400).json({
                 success: false,
-                message: 'Missing required fields: city and call_type_id are required'
+                message: 'Missing required field: call_type_id or call_type is required'
             });
         }
 
-        // Get motorcycle number from settings
-        const { data: settingsData, error: settingsError } = await supabase
-            .from('vehicle_settings')
-            .select('motorcycle_number')
-            .limit(1)
-            .single();
+        // Use provided vehicle number or get from settings
+        let vehicle_number = provided_vehicle_number;
+        
+        if (!vehicle_number) {
+            const { data: settingsData, error: settingsError } = await supabase
+                .from('vehicle_settings')
+                .select('vehicle_number')
+                .limit(1)
+                .single();
 
-        if (settingsError || !settingsData) {
-            return res.status(500).json({
-                success: false,
-                message: 'Error fetching motorcycle settings'
-            });
+            if (settingsError || !settingsData) {
+                return res.status(500).json({
+                    success: false,
+                    message: 'Error fetching vehicle settings'
+                });
+            }
+            
+            vehicle_number = settingsData.vehicle_number;
         }
-
-        const motorcycle_number = settingsData.motorcycle_number;
 
         // Use provided date or current date in Israel timezone
         const israelDate = call_date || new Date().toLocaleDateString('en-CA', {
@@ -2267,17 +2280,25 @@ app.post('/api/v1/calls', authenticateAPIKey, async (req, res) => {
         });
 
         const callData = {
-            motorcycle_number,
-            city,
+            vehicle_number,
+            vehicle_type: vehicle_type || '🏍️ אופנוע',
+            call_type: call_type || null,
+            call_type_id: call_type_id || null,
+            city: city || null,
+            location: location || street || null,
             street: street || null,
             location_details: location_details || null,
-            call_type_id,
             alert_code_id: alert_code_id || null,
             medical_code_id: medical_code_id || null,
             meter_visa_number: meter_visa_number || null,
             entry_code: entry_code || null,
-            description: description || null,
+            description: description || '',
             call_date: israelDate,
+            start_time: start_time || null,
+            end_time: end_time || null,
+            duration_minutes: duration_minutes || null,
+            status: status || 'completed',
+            patient_count: patient_count || 1,
             created_at: new Date().toISOString()
         };
 
