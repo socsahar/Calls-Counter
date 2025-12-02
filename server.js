@@ -2336,9 +2336,9 @@ app.get('/api/v1/calls', authenticateAPIKey, async (req, res) => {
             .from('calls')
             .select(`
                 *,
-                call_types!call_type_id (id, name, color),
-                alert_codes!alert_code_id (code, description),
-                medical_codes!medical_code_id (code, description)
+                call_types!call_type_id(id, hebrew_name, english_name),
+                alert_codes!alert_code_id(id, code),
+                medical_codes!medical_code_id(id, code)
             `, { count: 'exact' });
 
         // Apply date filters
@@ -2362,11 +2362,11 @@ app.get('/api/v1/calls', authenticateAPIKey, async (req, res) => {
         // Apply type filter
         // Support both 'type' (call type name) and 'call_type_id' (ID)
         if (type) {
-            // Query by call type name
+            // Query by call type name (search both hebrew and english names)
             const { data: callTypes, error: typeError } = await supabase
                 .from('call_types')
                 .select('id')
-                .ilike('name', `%${type}%`);
+                .or(`hebrew_name.ilike.%${type}%,english_name.ilike.%${type}%`);
 
             if (!typeError && callTypes && callTypes.length > 0) {
                 const typeIds = callTypes.map(ct => ct.id);
@@ -2449,7 +2449,7 @@ app.get('/api/v1/stats', authenticateAPIKey, async (req, res) => {
         // Build query for calls
         let query = supabase
             .from('calls')
-            .select('*, call_types!call_type_id (id, name)')
+            .select('*, call_types!call_type_id(id, hebrew_name, english_name)')
             .eq('motorcycle_number', motorcycle_number)
             .eq('call_date', targetDate);
 
@@ -2459,11 +2459,11 @@ app.get('/api/v1/stats', authenticateAPIKey, async (req, res) => {
         }
 
         if (type) {
-            // Query by call type name
+            // Query by call type name (search both hebrew and english names)
             const { data: callTypes } = await supabase
                 .from('call_types')
                 .select('id')
-                .ilike('name', `%${type}%`);
+                .or(`hebrew_name.ilike.%${type}%,english_name.ilike.%${type}%`);
 
             if (callTypes && callTypes.length > 0) {
                 const typeIds = callTypes.map(ct => ct.id);
@@ -2489,7 +2489,7 @@ app.get('/api/v1/stats', authenticateAPIKey, async (req, res) => {
         
         if (calls) {
             calls.forEach(call => {
-                const typeName = call.call_types?.name || 'Unknown';
+                const typeName = call.call_types?.hebrew_name || call.call_types?.english_name || 'Unknown';
                 callsByType[typeName] = (callsByType[typeName] || 0) + 1;
 
                 const cityName = call.city || 'Unknown';
