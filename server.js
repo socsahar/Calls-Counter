@@ -2336,9 +2336,9 @@ app.get('/api/v1/calls', authenticateAPIKey, async (req, res) => {
             .from('calls')
             .select(`
                 *,
-                call_types (id, name, color),
-                alert_codes (code, description),
-                medical_codes (code, description)
+                call_types!call_type_id (id, name, color),
+                alert_codes!alert_code_id (code, description),
+                medical_codes!medical_code_id (code, description)
             `, { count: 'exact' });
 
         // Apply date filters
@@ -2449,7 +2449,7 @@ app.get('/api/v1/stats', authenticateAPIKey, async (req, res) => {
         // Build query for calls
         let query = supabase
             .from('calls')
-            .select('*, call_types (id, name)')
+            .select('*, call_types!call_type_id (id, name)')
             .eq('motorcycle_number', motorcycle_number)
             .eq('call_date', targetDate);
 
