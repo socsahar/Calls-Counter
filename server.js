@@ -1380,7 +1380,9 @@ app.get('/api/stats', authenticateToken, async (req, res) => {
         monthStart.setHours(0, 0, 0, 0); // Start of first day of month
         const monthStartStr = monthStart.toISOString().split('T')[0];
         
-        const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+        // Calculate next month's first day - handles year transition automatically
+        const monthEnd = new Date(monthStart);
+        monthEnd.setMonth(monthEnd.getMonth() + 1); // JavaScript Date handles year rollover automatically
         monthEnd.setHours(0, 0, 0, 0); // Start of first day of next month (exclusive)
         const monthEndStr = monthEnd.toISOString().split('T')[0];
 
