@@ -108,6 +108,10 @@
                     <span class="icon">🏷️</span>
                     <span class="text">ניהול סוגי קריאות</span>
                 </button>
+                <button id="manageApiKeysBtn" class="admin-action-btn">
+                    <span class="icon">🔑</span>
+                    <span class="text">ניהול מפתחות API</span>
+                </button>
                 <button id="systemStatsBtn" class="admin-action-btn">
                     <span class="icon">📊</span>
                     <span class="text">סטטיסטיקות מערכת</span>
@@ -151,6 +155,25 @@
             </div>
         </section>
 
+        <!-- API Keys Management -->
+        <section class="api-keys-section" id="apiKeysSection" style="display: none;">
+            <div class="section-header">
+                <h2 class="section-title">ניהול מפתחות API</h2>
+                <button id="closeApiKeysBtn" class="close-section-btn">✕</button>
+            </div>
+            
+            <div class="api-keys-header">
+                <button id="generateApiKeyBtn" class="add-code-btn">+ צור מפתח API חדש</button>
+                <div class="api-keys-info">
+                    <p>מפתחות API מאפשרים לבוטים חיצוניים (כמו Discord) לגשת למערכת ולהוסיף קריאות</p>
+                </div>
+            </div>
+            
+            <div class="api-keys-container" id="apiKeysContainer">
+                <!-- API Keys will be populated by JavaScript -->
+            </div>
+        </section>
+
         <!-- Users Management -->
         <section class="users-section" id="usersSection" style="display: none;">
             <div class="section-header">
@@ -186,6 +209,101 @@
             </div>
         </section>
     </main>
+
+    <!-- Password Confirmation Modal -->
+    <div id="passwordModal" class="modal hidden">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">אימות סיסמה</h3>
+                <button class="modal-close" id="passwordModalClose">×</button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-description">אנא הזן את הסיסמה שלך כדי ליצור מפתח API חדש</p>
+                <form id="passwordForm" class="admin-form">
+                    <div class="form-group">
+                        <label for="confirmPassword" class="form-label">סיסמה</label>
+                        <input type="password" id="confirmPassword" class="form-input" required placeholder="הזן סיסמה">
+                    </div>
+                    
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary" id="passwordModalCancel">ביטול</button>
+                        <button type="submit" class="btn-primary">אישור</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- API Key Details Modal -->
+    <div id="apiKeyModal" class="modal hidden">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">צור מפתח API</h3>
+                <button class="modal-close" id="apiKeyModalClose">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="apiKeyForm" class="admin-form">
+                    <div class="form-group">
+                        <label for="keyName" class="form-label">שם המפתח</label>
+                        <input type="text" id="keyName" class="form-input" required placeholder="לדוגמה: Discord Bot - Production">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">הרשאות</label>
+                        <div class="permissions-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="permission" value="calls:read" checked>
+                                <span>קריאה של קריאות</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="permission" value="calls:write" checked>
+                                <span>יצירת קריאות חדשות</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="permission" value="stats:read" checked>
+                                <span>קריאת סטטיסטיקות</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary" id="apiKeyModalCancel">ביטול</button>
+                        <button type="submit" class="btn-primary">צור מפתח</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Generated API Key Display Modal -->
+    <div id="generatedKeyModal" class="modal hidden">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">מפתח API נוצר בהצלחה</h3>
+            </div>
+            <div class="modal-body">
+                <div class="warning-box">
+                    <strong>⚠️ חשוב מאוד:</strong>
+                    <p>זו ההזדמנות היחידה לראות את המפתח. העתק אותו עכשיו ושמור אותו במקום בטוח!</p>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">המפתח שלך:</label>
+                    <div class="api-key-display">
+                        <input type="text" id="generatedApiKey" class="form-input" readonly>
+                        <button type="button" id="copyApiKeyBtn" class="btn-copy">📋 העתק</button>
+                    </div>
+                </div>
+                
+                <div class="modal-actions">
+                    <button type="button" class="btn-primary" id="generatedKeyModalClose">הבנתי, סגור</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Code Edit Modal -->
     <div id="codeModal" class="modal hidden">

@@ -75,6 +75,10 @@
             
             <!-- Desktop header actions -->
             <div class="header-actions">
+                <button class="settings-btn" id="entryCodesBtn">
+                    <span class="settings-icon">🔑</span>
+                    קודי כניסה
+                </button>
                 <button class="settings-btn" id="historyBtn">
                     <span class="settings-icon">📊</span>
                     היסטוריה
@@ -108,6 +112,10 @@
                     </div>
                 </div>
                 <nav class="mobile-menu-nav">
+                    <button class="mobile-menu-item" id="mobileEntryCodesBtn">
+                        <span class="mobile-menu-icon">🔑</span>
+                        <span class="mobile-menu-text">קודי כניסה</span>
+                    </button>
                     <button class="mobile-menu-item" id="mobileHistoryBtn">
                         <span class="mobile-menu-icon">📊</span>
                         <span class="mobile-menu-text">היסטוריה</span>
@@ -225,6 +233,11 @@
                     <div class="form-group">
                         <label for="meterVisaNumber" class="form-label">מספר מונה/ויזה (אופציונלי)</label>
                         <input type="text" id="meterVisaNumber" class="form-input" placeholder="רק מספרים" pattern="[0-9]*" inputmode="numeric" autocomplete="off">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="entryCode" class="form-label">קוד כניסה (אופציונלי)</label>
+                        <input type="text" id="entryCode" class="form-input" placeholder="קוד כניסה לבניין/שער..." autocomplete="off">
                     </div>
 
                     <div class="form-row">
@@ -357,20 +370,30 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="editLocation" class="form-label">פרטים נוספים</label>
-                        <input type="text" id="editLocation" class="form-input" autocomplete="off">
+                        <label for="editLocation" class="form-label">פרטים נוספים (אופציונלי)</label>
+                        <input type="text" id="editLocation" class="form-input" placeholder="מספר בית, כניסה, קומה..." autocomplete="off">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editMeterVisaNumber" class="form-label">מספר מונה/ויזה (אופציונלי)</label>
+                        <input type="text" id="editMeterVisaNumber" class="form-input" placeholder="רק מספרים" pattern="[0-9]*" inputmode="numeric" autocomplete="off">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editEntryCode" class="form-label">קוד כניסה (אופציונלי)</label>
+                        <input type="text" id="editEntryCode" class="form-input" placeholder="קוד כניסה לבניין/שער..." autocomplete="off">
                     </div>
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="editAlertCode" class="form-label">קוד הזנקה</label>
-                            <select id="editAlertCode" class="form-input" required>
+                            <label for="editAlertCode" class="form-label">קוד הזנקה (אופציונלי)</label>
+                            <select id="editAlertCode" class="form-input">
                                 <option value="">טוען...</option>
                             </select>
                         </div>
                         <div class="form-group">
-                            <label for="editMedicalCode" class="form-label">קוד רפואי</label>
-                            <select id="editMedicalCode" class="form-input" required>
+                            <label for="editMedicalCode" class="form-label">קוד רפואי (אופציונלי)</label>
+                            <select id="editMedicalCode" class="form-input">
                                 <option value="">טוען...</option>
                             </select>
                         </div>

@@ -186,51 +186,87 @@
             <div class="modal-body">
                 <form id="editCallForm" class="call-form">
                     <input type="hidden" id="editCallId">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="editCallType" class="form-label">סוג הקריאה:</label>
-                            <select id="editCallType" class="form-input" required>
-                                <option value="urgent">🚨 דחוף</option>
-                                <option value="atan">🔴 אט"ן</option>
-                                <option value="aran">🟡 ארן</option>
-                                <option value="natbag">🟢 נתבג</option>
-                            </select>
-                        </div>
+                    
+                    <div class="form-group">
+                        <label for="editCallType" class="form-label">סוג הקריאה</label>
+                        <select id="editCallType" class="form-input" required>
+                            <option value="דחוף">דחוף</option>
+                            <option value="אט״ן">אט״ן</option>
+                            <option value="ארן">ארן</option>
+                            <option value="נתבג">נתבג</option>
+                        </select>
                     </div>
+
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="editCallDate" class="form-label">תאריך:</label>
+                            <label for="editCallDate" class="form-label">תאריך</label>
                             <input type="date" id="editCallDate" class="form-input" required>
                         </div>
                         <div class="form-group">
-                            <label for="editStartTime" class="form-label">שעת התחלה:</label>
+                            <label for="editStartTime" class="form-label">שעת התחלה</label>
                             <input type="time" id="editStartTime" class="form-input" required>
                         </div>
+                    </div>
+
+                    <div class="form-row">
                         <div class="form-group">
-                            <label for="editEndTime" class="form-label">שעת סיום:</label>
+                            <label for="editEndTime" class="form-label">שעת סיום</label>
                             <input type="time" id="editEndTime" class="form-input">
                         </div>
+                        <div class="form-group">
+                            <!-- Empty for spacing -->
+                        </div>
                     </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editCity" class="form-label">עיר</label>
+                            <input type="text" id="editCity" class="form-input" placeholder="התחל להקליד שם עיר..." required autocomplete="off">
+                        </div>
+                        <div class="form-group">
+                            <label for="editStreet" class="form-label">רחוב</label>
+                            <input type="text" id="editStreet" class="form-input" placeholder="התחל להקליד שם רחוב..." required autocomplete="off">
+                        </div>
+                    </div>
+
                     <div class="form-group">
-                        <label for="editLocation" class="form-label">מיקום:</label>
-                        <input type="text" id="editLocation" class="form-input" placeholder="כתובת או תיאור המיקום" required>
+                        <label for="editLocation" class="form-label">פרטים נוספים (אופציונלי)</label>
+                        <input type="text" id="editLocation" class="form-input" placeholder="מספר בית, כניסה, קומה..." autocomplete="off">
                     </div>
+
                     <div class="form-group">
-                        <label for="editMeterVisaNumber" class="form-label">מספר מונה/ויזה:</label>
-                        <input type="text" id="editMeterVisaNumber" class="form-input" placeholder="רק מספרים" pattern="[0-9]*" inputmode="numeric">
+                        <label for="editMeterVisaNumber" class="form-label">מספר מונה/ויזה (אופציונלי)</label>
+                        <input type="text" id="editMeterVisaNumber" class="form-input" placeholder="רק מספרים" pattern="[0-9]*" inputmode="numeric" autocomplete="off">
                     </div>
+
                     <div class="form-group">
-                        <label for="editDescription" class="form-label">תיאור:</label>
-                        <textarea id="editDescription" class="form-textarea" placeholder="תיאור קצר של הקריאה..." rows="3"></textarea>
+                        <label for="editEntryCode" class="form-label">קוד כניסה (אופציונלי)</label>
+                        <input type="text" id="editEntryCode" class="form-input" placeholder="קוד כניסה לבניין/שער..." autocomplete="off">
                     </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editAlertCode" class="form-label">קוד הזנקה (אופציונלי)</label>
+                            <select id="editAlertCode" class="form-input">
+                                <option value="">טוען...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="editMedicalCode" class="form-label">קוד רפואי (אופציונלי)</label>
+                            <select id="editMedicalCode" class="form-input">
+                                <option value="">טוען...</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editDescription" class="form-label">הערות נוספות/תיאור המקרה (אופציונלי)</label>
+                        <textarea id="editDescription" class="form-textarea" placeholder="הערות או פרטים נוספים..." rows="2"></textarea>
+                    </div>
+
                     <div class="modal-actions">
-                        <button type="submit" class="btn-primary">
-                            <span class="btn-icon">💾</span>
-                            שמור שינויים
-                        </button>
-                        <button type="button" class="btn-secondary" id="editModalCancel">
-                            ביטול
-                        </button>
+                        <button type="button" class="btn-secondary" id="editModalCancel">ביטול</button>
+                        <button type="submit" class="btn-primary">עדכן קריאה</button>
                     </div>
                 </form>
             </div>

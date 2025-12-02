@@ -215,6 +215,68 @@ const optionalAuth = async (req, res, next) => {
     next();
 };
 
+// API Key authentication middleware
+const authenticateAPIKey = async (req, res, next) => {
+    const apiKey = req.headers['x-api-key'];
+
+    if (!apiKey) {
+        return res.status(401).json({
+            success: false,
+            message: 'API key required',
+            code: 'NO_API_KEY'
+        });
+    }
+
+    try {
+        // Hash the provided API key to compare with stored hash
+        const keyHash = crypto.createHash('sha256').update(apiKey).digest('hex');
+        
+        // Look up the API key in the database
+        const { data: apiKeyData, error } = await supabase
+            .from('api_keys')
+            .select('*, users(*)')
+            .eq('key_hash', keyHash)
+            .eq('is_active', true)
+            .single();
+
+        if (error || !apiKeyData) {
+            return res.status(403).json({
+                success: false,
+                message: 'Invalid or inactive API key',
+                code: 'INVALID_API_KEY'
+            });
+        }
+
+        // Update last_used_at timestamp
+        await supabase
+            .from('api_keys')
+            .update({ last_used_at: new Date().toISOString() })
+            .eq('id', apiKeyData.id);
+
+        // Attach user info from the API key's owner
+        req.user = {
+            user_id: apiKeyData.user_id,
+            username: apiKeyData.users.username,
+            mda_code: apiKeyData.users.mda_code,
+            mdaCode: apiKeyData.users.mda_code,
+            full_name: apiKeyData.users.full_name,
+            is_admin: apiKeyData.users.is_admin
+        };
+        
+        req.apiKey = apiKeyData;
+        
+        console.log('🔑 API Key authenticated for user:', req.user.username);
+        next();
+    } catch (error) {
+        console.error('API Key verification error:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Error verifying API key',
+            code: 'API_KEY_ERROR'
+        });
+    }
+};
+
 // ================================================
 // CONFIGURATION ROUTES
 // ================================================
@@ -761,7 +823,8 @@ app.post('/api/calls', authenticateToken, async (req, res) => {
             description,
             alert_code_id,
             medical_code_id,
-            meter_visa_number
+            meter_visa_number,
+            entry_code
         } = req.body;
 
         // Validation
@@ -870,6 +933,7 @@ app.post('/api/calls', authenticateToken, async (req, res) => {
             alert_code_id: alert_code_id || null,
             medical_code_id: medical_code_id || null,
             meter_visa_number: meter_visa_number || null,
+            entry_code: entry_code || null,
             duration_minutes,
             vehicle_number: userMdaCode,
             vehicle_type: `${vehicleEmoji} ${vehicleHebrewName}`,
@@ -913,7 +977,7 @@ app.post('/api/calls', authenticateToken, async (req, res) => {
 app.put('/api/calls/:id', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
-        const { call_type, call_date, start_time, end_time, location, description, alert_code_id, medical_code_id, meter_visa_number } = req.body;
+        const { call_type, call_date, start_time, end_time, location, description, alert_code_id, medical_code_id, meter_visa_number, entry_code } = req.body;
 
         // CRITICAL: First check if the call belongs to the authenticated user
         const { data: currentCall } = await supabase
@@ -970,6 +1034,7 @@ app.put('/api/calls/:id', authenticateToken, async (req, res) => {
         if (alert_code_id !== undefined) updateData.alert_code_id = alert_code_id;
         if (medical_code_id !== undefined) updateData.medical_code_id = medical_code_id;
         if (meter_visa_number !== undefined) updateData.meter_visa_number = meter_visa_number;
+        if (entry_code !== undefined) updateData.entry_code = entry_code;
 
         const { data, error } = await supabase
             .from('calls')
@@ -1047,6 +1112,76 @@ app.delete('/api/calls/:id', authenticateToken, async (req, res) => {
         res.json({
             success: true,
             message: 'קריאה נמחקה בהצלחה'
+        });
+    } catch (error) {
+        console.error('Server error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'שגיאת שרת פנימית',
+            error: error.message
+        });
+    }
+});
+
+// Get all unique entry codes with their locations
+app.get('/api/entry-codes', authenticateToken, async (req, res) => {
+    try {
+        console.log('🔑 Fetching entry codes...');
+
+        // Get distinct entry codes with city, street, and location details
+        // We parse the location field which is in format: "City, Street, Details"
+        const { data, error } = await supabase
+            .from('calls')
+            .select('entry_code, city, street, location')
+            .not('entry_code', 'is', null)
+            .not('entry_code', 'eq', '')
+            .order('city', { ascending: true })
+            .order('street', { ascending: true });
+
+        if (error) {
+            console.error('Supabase error:', error);
+            return res.status(400).json({
+                success: false,
+                message: 'שגיאה בטעינת קודי כניסה',
+                error: error.message
+            });
+        }
+
+        // Process and deduplicate the results
+        const entryCodesMap = new Map();
+        
+        data.forEach(call => {
+            // Extract location details (everything after city and street)
+            let locationDetails = '';
+            if (call.location) {
+                const parts = call.location.split(',').map(s => s.trim());
+                if (parts.length > 2) {
+                    locationDetails = parts.slice(2).join(', ');
+                }
+            }
+
+            // Create a unique key for each combination
+            const key = `${call.entry_code}|${call.city}|${call.street}`;
+            
+            if (!entryCodesMap.has(key)) {
+                entryCodesMap.set(key, {
+                    entry_code: call.entry_code,
+                    city: call.city || '',
+                    street: call.street || '',
+                    location_details: locationDetails
+                });
+            }
+        });
+
+        // Convert map to array
+        const uniqueEntryCodes = Array.from(entryCodesMap.values());
+
+        console.log(`🔑 Found ${uniqueEntryCodes.length} unique entry codes`);
+
+        res.json({
+            success: true,
+            data: uniqueEntryCodes,
+            count: uniqueEntryCodes.length
         });
     } catch (error) {
         console.error('Server error:', error);
@@ -1919,6 +2054,405 @@ app.delete('/api/admin/codes/medical/:id', authenticateToken, requireAdmin, asyn
         res.status(500).json({
             success: false,
             message: 'שגיאה במחיקת קוד רפואי'
+        });
+    }
+});
+
+// ============================================
+// API KEY MANAGEMENT ROUTES (Admin Only)
+// ============================================
+
+// Generate new API key
+app.post('/api/admin/api-keys', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { key_name, permissions } = req.body;
+        
+        if (!key_name || !key_name.trim()) {
+            return res.status(400).json({
+                success: false,
+                message: 'שם המפתח חובה'
+            });
+        }
+
+        // Generate random API key (32 bytes = 64 hex characters)
+        const apiKey = crypto.randomBytes(32).toString('hex');
+        
+        // Hash the key before storing
+        const keyHash = crypto.createHash('sha256').update(apiKey).digest('hex');
+        
+        // Default permissions if not specified
+        const keyPermissions = Array.isArray(permissions) && permissions.length > 0 
+            ? permissions 
+            : ['calls:read', 'calls:write', 'stats:read'];
+
+        const { data, error } = await supabase
+            .from('api_keys')
+            .insert({
+                key_name: key_name.trim(),
+                key_hash: keyHash,
+                user_id: req.user.user_id,
+                permissions: keyPermissions,
+                is_active: true
+            })
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Error creating API key:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'שגיאה ביצירת מפתח API'
+            });
+        }
+
+        // Return the unhashed key ONLY this one time
+        res.json({
+            success: true,
+            message: 'מפתח API נוצר בהצלחה',
+            api_key: apiKey, // This will never be shown again!
+            key_info: {
+                id: data.id,
+                key_name: data.key_name,
+                permissions: data.permissions,
+                created_at: data.created_at
+            }
+        });
+    } catch (error) {
+        console.error('Error in POST /api/admin/api-keys:', error);
+        res.status(500).json({
+            success: false,
+            message: 'שגיאה ביצירת מפתח API'
+        });
+    }
+});
+
+// List all API keys for the authenticated user
+app.get('/api/admin/api-keys', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('api_keys')
+            .select('id, key_name, permissions, is_active, last_used_at, created_at, updated_at')
+            .eq('user_id', req.user.user_id)
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('Error fetching API keys:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'שגיאה בטעינת מפתחות API'
+            });
+        }
+
+        res.json({
+            success: true,
+            api_keys: data || []
+        });
+    } catch (error) {
+        console.error('Error in GET /api/admin/api-keys:', error);
+        res.status(500).json({
+            success: false,
+            message: 'שגיאה בטעינת מפתחות API'
+        });
+    }
+});
+
+// Revoke (delete) an API key
+app.delete('/api/admin/api-keys/:id', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const keyId = req.params.id;
+
+        // Verify the key belongs to the authenticated user
+        const { data: keyData, error: fetchError } = await supabase
+            .from('api_keys')
+            .select('id, user_id')
+            .eq('id', keyId)
+            .single();
+
+        if (fetchError || !keyData) {
+            return res.status(404).json({
+                success: false,
+                message: 'מפתח API לא נמצא'
+            });
+        }
+
+        if (keyData.user_id !== req.user.user_id) {
+            return res.status(403).json({
+                success: false,
+                message: 'אין הרשאה למחוק מפתח זה'
+            });
+        }
+
+        // Delete the key
+        const { error: deleteError } = await supabase
+            .from('api_keys')
+            .delete()
+            .eq('id', keyId);
+
+        if (deleteError) {
+            console.error('Error deleting API key:', deleteError);
+            return res.status(500).json({
+                success: false,
+                message: 'שגיאה במחיקת מפתח API'
+            });
+        }
+
+        res.json({
+            success: true,
+            message: 'מפתח API נמחק בהצלחה'
+        });
+    } catch (error) {
+        console.error('Error in DELETE /api/admin/api-keys/:id:', error);
+        res.status(500).json({
+            success: false,
+            message: 'שגיאה במחיקת מפתח API'
+        });
+    }
+});
+
+// ============================================
+// PUBLIC API v1 ENDPOINTS (API Key Auth)
+// ============================================
+
+// Create a new call via API
+app.post('/api/v1/calls', authenticateAPIKey, async (req, res) => {
+    try {
+        // Check permission
+        if (!req.apiKey.permissions.includes('calls:write')) {
+            return res.status(403).json({
+                success: false,
+                message: 'API key does not have permission to create calls'
+            });
+        }
+
+        const {
+            city,
+            street,
+            location_details,
+            call_type_id,
+            alert_code_id,
+            medical_code_id,
+            meter_visa_number,
+            entry_code,
+            description,
+            call_date
+        } = req.body;
+
+        // Validate required fields
+        if (!city || !call_type_id) {
+            return res.status(400).json({
+                success: false,
+                message: 'Missing required fields: city and call_type_id are required'
+            });
+        }
+
+        // Get motorcycle number from settings
+        const { data: settingsData, error: settingsError } = await supabase
+            .from('vehicle_settings')
+            .select('motorcycle_number')
+            .limit(1)
+            .single();
+
+        if (settingsError || !settingsData) {
+            return res.status(500).json({
+                success: false,
+                message: 'Error fetching motorcycle settings'
+            });
+        }
+
+        const motorcycle_number = settingsData.motorcycle_number;
+
+        // Use provided date or current date in Israel timezone
+        const israelDate = call_date || new Date().toLocaleDateString('en-CA', {
+            timeZone: 'Asia/Jerusalem'
+        });
+
+        const callData = {
+            motorcycle_number,
+            city,
+            street: street || null,
+            location_details: location_details || null,
+            call_type_id,
+            alert_code_id: alert_code_id || null,
+            medical_code_id: medical_code_id || null,
+            meter_visa_number: meter_visa_number || null,
+            entry_code: entry_code || null,
+            description: description || null,
+            call_date: israelDate,
+            created_at: new Date().toISOString()
+        };
+
+        const { data, error } = await supabase
+            .from('calls')
+            .insert([callData])
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Error creating call via API:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Error creating call'
+            });
+        }
+
+        res.status(201).json({
+            success: true,
+            message: 'Call created successfully',
+            call: data
+        });
+    } catch (error) {
+        console.error('Error in POST /api/v1/calls:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+});
+
+// Get calls via API with filtering
+app.get('/api/v1/calls', authenticateAPIKey, async (req, res) => {
+    try {
+        // Check permission
+        if (!req.apiKey.permissions.includes('calls:read')) {
+            return res.status(403).json({
+                success: false,
+                message: 'API key does not have permission to read calls'
+            });
+        }
+
+        const {
+            start_date,
+            end_date,
+            city,
+            call_type_id,
+            limit = 100,
+            offset = 0
+        } = req.query;
+
+        // Build query
+        let query = supabase
+            .from('calls')
+            .select(`
+                *,
+                call_types (name, color),
+                alert_codes (code, description),
+                medical_codes (code, description)
+            `, { count: 'exact' });
+
+        // Apply filters
+        if (start_date) {
+            query = query.gte('call_date', start_date);
+        }
+        if (end_date) {
+            query = query.lte('call_date', end_date);
+        }
+        if (city) {
+            query = query.ilike('city', `%${city}%`);
+        }
+        if (call_type_id) {
+            query = query.eq('call_type_id', call_type_id);
+        }
+
+        // Apply pagination
+        query = query
+            .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1)
+            .order('created_at', { ascending: false });
+
+        const { data, error, count } = await query;
+
+        if (error) {
+            console.error('Error fetching calls via API:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Error fetching calls'
+            });
+        }
+
+        res.json({
+            success: true,
+            calls: data || [],
+            pagination: {
+                total: count,
+                limit: parseInt(limit),
+                offset: parseInt(offset)
+            }
+        });
+    } catch (error) {
+        console.error('Error in GET /api/v1/calls:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+});
+
+// Get statistics via API
+app.get('/api/v1/stats', authenticateAPIKey, async (req, res) => {
+    try {
+        // Check permission
+        if (!req.apiKey.permissions.includes('stats:read')) {
+            return res.status(403).json({
+                success: false,
+                message: 'API key does not have permission to read stats'
+            });
+        }
+
+        const { date } = req.query;
+        
+        // Use provided date or today in Israel timezone
+        const targetDate = date || new Date().toLocaleDateString('en-CA', {
+            timeZone: 'Asia/Jerusalem'
+        });
+
+        // Get motorcycle number
+        const { data: settingsData } = await supabase
+            .from('vehicle_settings')
+            .select('motorcycle_number')
+            .limit(1)
+            .single();
+
+        const motorcycle_number = settingsData?.motorcycle_number || '5248';
+
+        // Get calls for the date
+        const { data: calls, error: callsError } = await supabase
+            .from('calls')
+            .select('*, call_types (name)')
+            .eq('motorcycle_number', motorcycle_number)
+            .eq('call_date', targetDate);
+
+        if (callsError) {
+            console.error('Error fetching stats via API:', callsError);
+            return res.status(500).json({
+                success: false,
+                message: 'Error fetching statistics'
+            });
+        }
+
+        // Calculate statistics
+        const totalCalls = calls?.length || 0;
+        const callsByType = {};
+        
+        if (calls) {
+            calls.forEach(call => {
+                const typeName = call.call_types?.name || 'Unknown';
+                callsByType[typeName] = (callsByType[typeName] || 0) + 1;
+            });
+        }
+
+        res.json({
+            success: true,
+            date: targetDate,
+            motorcycle_number,
+            stats: {
+                total_calls: totalCalls,
+                calls_by_type: callsByType
+            }
+        });
+    } catch (error) {
+        console.error('Error in GET /api/v1/stats:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error'
         });
     }
 });

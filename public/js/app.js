@@ -286,6 +286,14 @@ class CallCounter {
                 this.loadStats();
                 this.loadCalls();
             }, 30000);
+            
+            // Check and update date every minute (to catch midnight transition)
+            setInterval(() => {
+                this.updateDateIfNeeded();
+            }, 60000); // Check every minute
+            
+            // Also set up a specific check at midnight
+            this.setupMidnightDateUpdate();
         } catch (error) {
             console.error('Error during initialization:', error);
             this.setLoading(false);
@@ -337,6 +345,14 @@ class CallCounter {
         if (historyBtn) {
             historyBtn.addEventListener('click', () => {
                 window.location.href = '/history.html';
+            });
+        }
+
+        // Entry codes button
+        const entryCodesBtn = document.getElementById('entryCodesBtn');
+        if (entryCodesBtn) {
+            entryCodesBtn.addEventListener('click', () => {
+                window.location.href = '/entry-codes.html';
             });
         }
 
@@ -462,6 +478,50 @@ class CallCounter {
         if (dateInput && !dateInput.value) {
             dateInput.value = dateString;
         }
+        
+        // Store the current date for comparison
+        this.lastSetDate = dateString;
+    }
+    
+    updateDateIfNeeded() {
+        const now = new Date();
+        const currentDateString = now.toISOString().split('T')[0];
+        const dateInput = document.getElementById('callDate');
+        
+        // Only update if the date has changed and the field hasn't been manually modified
+        if (dateInput && this.lastSetDate && currentDateString !== this.lastSetDate) {
+            console.log('📅 Date changed from', this.lastSetDate, 'to', currentDateString);
+            
+            // Only auto-update if the field still has yesterday's date (user hasn't changed it)
+            if (dateInput.value === this.lastSetDate) {
+                dateInput.value = currentDateString;
+                console.log('📅 Auto-updated date field to:', currentDateString);
+            }
+            
+            this.lastSetDate = currentDateString;
+        }
+    }
+    
+    setupMidnightDateUpdate() {
+        const now = new Date();
+        const tomorrow = new Date(now);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(0, 0, 0, 0);
+        
+        const msUntilMidnight = tomorrow - now;
+        
+        // Set timeout to update at midnight
+        setTimeout(() => {
+            console.log('🌙 Midnight reached - updating date');
+            this.updateDateIfNeeded();
+            
+            // Set up next midnight update (24 hours from now)
+            setInterval(() => {
+                this.updateDateIfNeeded();
+            }, 24 * 60 * 60 * 1000); // Every 24 hours
+        }, msUntilMidnight);
+        
+        console.log('📅 Midnight date update scheduled in', Math.round(msUntilMidnight / 1000 / 60), 'minutes');
     }
 
     createAndShowMenu(event, callId) {
@@ -655,6 +715,7 @@ class CallCounter {
         const street = document.getElementById('street').value.trim();
         const locationDetails = document.getElementById('location').value.trim();
         const meterVisaNumber = document.getElementById('meterVisaNumber').value.trim();
+        const entryCode = document.getElementById('entryCode').value.trim();
         
         // Validate meter/visa number is numeric only if provided
         if (meterVisaNumber && !/^\d+$/.test(meterVisaNumber)) {
@@ -679,6 +740,7 @@ class CallCounter {
             alert_code_id: document.getElementById('alertCode').value || null,
             medical_code_id: document.getElementById('medicalCode').value || null,
             meter_visa_number: meterVisaNumber || null,
+            entry_code: entryCode || null,
             description: document.getElementById('description').value || null
         };
     }
@@ -1486,6 +1548,12 @@ class CallCounter {
         document.getElementById('editStreet').value = locationParts[1] || '';
         document.getElementById('editLocation').value = locationParts.slice(2).join(', ') || '';
         
+        // Set meter/visa number
+        document.getElementById('editMeterVisaNumber').value = call.meter_visa_number || '';
+        
+        // Set entry code
+        document.getElementById('editEntryCode').value = call.entry_code || '';
+        
         // Set code dropdowns
         document.getElementById('editAlertCode').value = call.alert_code_id || '';
         document.getElementById('editMedicalCode').value = call.medical_code_id || '';
@@ -1502,6 +1570,14 @@ class CallCounter {
         const city = document.getElementById('editCity').value.trim();
         const street = document.getElementById('editStreet').value.trim();
         const locationDetails = document.getElementById('editLocation').value.trim();
+        const meterVisaNumber = document.getElementById('editMeterVisaNumber').value.trim();
+        const entryCode = document.getElementById('editEntryCode').value.trim();
+        
+        // Validate meter/visa number is numeric only if provided
+        if (meterVisaNumber && !/^\d+$/.test(meterVisaNumber)) {
+            this.showToast('מספר מונה/ויזה חייב להכיל רק מספרים', 'error');
+            return;
+        }
         
         // Combine city, street, and details into full location
         let fullLocation = `${city}, ${street}`;
@@ -1517,6 +1593,8 @@ class CallCounter {
             location: fullLocation,
             city: city,
             street: street,
+            meter_visa_number: meterVisaNumber || null,
+            entry_code: entryCode || null,
             alert_code_id: document.getElementById('editAlertCode').value || null,
             medical_code_id: document.getElementById('editMedicalCode').value || null,
             description: document.getElementById('editDescription').value || null
@@ -1721,12 +1799,19 @@ class CallCounter {
         
         // Mobile menu items
         const mobileHistoryBtn = document.getElementById('mobileHistoryBtn');
+        const mobileEntryCodesBtn = document.getElementById('mobileEntryCodesBtn');
         const mobileAdminBtn = document.getElementById('mobileAdminBtn');
         const mobileLogoutBtn = document.getElementById('mobileLogoutBtn');
         
         if (mobileHistoryBtn) {
             mobileHistoryBtn.addEventListener('click', () => {
                 window.location.href = '/history.html';
+            });
+        }
+        
+        if (mobileEntryCodesBtn) {
+            mobileEntryCodesBtn.addEventListener('click', () => {
+                window.location.href = '/entry-codes.html';
             });
         }
         

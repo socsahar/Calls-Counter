@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>קודי כניסה - CallCounter</title>
+    <meta name="description" content="רשימת קודי כניסה לבניינים">
+    <meta name="theme-color" content="#dc2626">
+    
+    <!-- Cache Control -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
+    <!-- PWA Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="קודי כניסה">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" type="image/png" href="/favicon-16.svg">
+    <link rel="apple-touch-icon" href="/favicon.svg">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏍️</text></svg>">
+    
+    <link rel="stylesheet" href="/css/style.css?v=1.0.1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-container">
+            <div class="logo">
+                <span class="logo-icon">🔑</span>
+                <h1 class="logo-text">קודי כניסה</h1>
+            </div>
+            
+            <!-- Mobile burger menu button -->
+            <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="תפריט">
+                <span class="burger-line"></span>
+                <span class="burger-line"></span>
+                <span class="burger-line"></span>
+            </button>
+            
+            <!-- Desktop header actions -->
+            <div class="header-actions">
+                <button class="settings-btn" id="backBtn">
+                    <span class="settings-icon">🔙</span>
+                    חזרה
+                </button>
+                <div class="motorcycle-badge">
+                    <span class="badge-label">רכב</span>
+                    <span class="badge-number" id="currentVehicle">-</span>
+                    <span class="badge-type" id="currentVehicleType">טוען...</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Mobile Menu Overlay -->
+    <div class="mobile-menu-overlay" id="mobileMenuOverlay">
+        <div class="mobile-menu">
+            <div class="mobile-menu-header">
+                <div class="mobile-menu-title">תפריט</div>
+                <button class="mobile-menu-close" id="mobileMenuClose">×</button>
+            </div>
+            <div class="mobile-menu-content">
+                <div class="mobile-menu-user">
+                    <div class="mobile-motorcycle-badge" id="mobileBadge">
+                        <span class="mobile-badge-label">רכב</span>
+                        <span class="mobile-badge-number" id="mobileCurrentVehicle">-</span>
+                        <span class="mobile-badge-type" id="mobileCurrentVehicleType">טוען...</span>
+                    </div>
+                </div>
+                <nav class="mobile-menu-nav">
+                    <button class="mobile-menu-item" id="mobileBackBtn">
+                        <span class="mobile-menu-icon">🔙</span>
+                        <span class="mobile-menu-text">חזרה לעמוד הראשי</span>
+                    </button>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Filters Section -->
+        <section class="form-section">
+            <div class="form-container">
+                <h2 class="form-title">חיפוש וסינון קודי כניסה</h2>
+                
+                <div class="filters-grid">
+                    <div class="form-group">
+                        <label for="filterCity" class="form-label">עיר</label>
+                        <input type="text" id="filterCity" class="form-input" placeholder="חפש לפי עיר...">
+                    </div>
+                    <div class="form-group">
+                        <label for="filterStreet" class="form-label">רחוב</label>
+                        <input type="text" id="filterStreet" class="form-input" placeholder="חפש לפי רחוב...">
+                    </div>
+                    <div class="form-group">
+                        <label for="filterEntryCode" class="form-label">קוד כניסה</label>
+                        <input type="text" id="filterEntryCode" class="form-input" placeholder="חפש לפי קוד...">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" style="opacity: 0;">פעולות</label>
+                        <button class="filter-clear-btn" id="clearFiltersBtn">נקה סינון</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Entry Codes Table -->
+        <section class="calls-section">
+            <div class="calls-container">
+                <div class="calls-header">
+                    <h2 class="section-title">רשימת קודי כניסה (<span id="entriesCount">0</span>)</h2>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="entry-codes-table" id="entryCodesTable">
+                        <thead>
+                            <tr>
+                                <th class="sortable" data-sort="entry_code">
+                                    קוד כניסה
+                                    <span class="sort-indicator"></span>
+                                </th>
+                                <th class="sortable" data-sort="city">
+                                    עיר
+                                    <span class="sort-indicator"></span>
+                                </th>
+                                <th class="sortable" data-sort="street">
+                                    רחוב
+                                    <span class="sort-indicator"></span>
+                                </th>
+                                <th class="sortable" data-sort="location_details">
+                                    פרטים נוספים
+                                    <span class="sort-indicator"></span>
+                                </th>
+                                <th>פעולות</th>
+                            </tr>
+                        </thead>
+                        <tbody id="entryCodesBody">
+                            <tr class="loading-row">
+                                <td colspan="5" class="text-center">
+                                    <div class="loading-spinner"></div>
+                                    <p>טוען קודי כניסה...</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <p class="footer-text">מערכת רישום ומעקב נסיעות | סהר מלול</p>
+            <p class="footer-version">CallCounter v1.0 - קודי כניסה</p>
+        </div>
+    </footer>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="loading-spinner"></div>
+        <p class="loading-text">טוען נתונים...</p>
+    </div>
+
+    <!-- Success Toast -->
+    <div id="successToast" class="toast toast-success hidden">
+        <span class="toast-icon">✅</span>
+        <span class="toast-message">הקוד הועתק ללוח!</span>
+    </div>
+
+    <!-- Error Toast -->
+    <div id="errorToast" class="toast toast-error hidden">
+        <span class="toast-icon">❌</span>
+        <span class="toast-message">שגיאה בטעינת הנתונים</span>
+    </div>
+
+    <script src="/js/entry-codes.js?v=1.0.1"></script>
+    <script>
+        // Vehicle type detection functions
+        function detectVehicleType(mdaCode) {
+            if (!mdaCode || mdaCode.length < 2) return 'ambulance';
+            
+            const firstDigit = mdaCode.charAt(0);
+            const firstTwoDigits = mdaCode.substring(0, 2);
+            
+            if (mdaCode.length === 5 && firstTwoDigits === '12') {
+                return 'personal_standby';
+            }
+            
+            if (mdaCode.length === 4) {
+                if (firstDigit === '5') return 'motorcycle';
+                if (firstDigit === '6') return 'picanto';
+                if (['1', '2', '3', '4', '7', '8', '9'].includes(firstDigit)) return 'ambulance';
+            }
+            
+            if ((mdaCode.length === 2 || mdaCode.length === 3) && 
+                ['1', '2', '3', '4', '7', '8', '9'].includes(firstDigit)) {
+                return 'ambulance';
+            }
+            
+            return 'ambulance';
+        }
+        
+        function getVehicleEmoji(vehicleType) {
+            switch(vehicleType) {
+                case 'motorcycle': return '🏍️';
+                case 'picanto': return '🚗';
+                case 'ambulance': return '🚑';
+                case 'personal_standby': return '👨‍⚕️';
+                default: return '🚑';
+            }
+        }
+
+        function getVehicleHebrewName(vehicleType) {
+            switch(vehicleType) {
+                case 'motorcycle': return 'אופנוע';
+                case 'picanto': return 'פיקנטו';
+                case 'ambulance': return 'אמבולנס';
+                case 'personal_standby': return 'כונן אישי';
+                default: return 'אמבולנס';
+            }
+        }
+
+        // Update vehicle badge
+        document.addEventListener('DOMContentLoaded', function() {
+            const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+            if (!token) {
+                window.location.href = '/login.html';
+                return;
+            }
+
+            setTimeout(() => {
+                const userData = localStorage.getItem('userData') || sessionStorage.getItem('userData');
+                if (userData) {
+                    try {
+                        const user = JSON.parse(userData);
+                        const mdaCode = user.mda_code || user.mdaCode;
+                        if (mdaCode) {
+                            const vehicleType = detectVehicleType(mdaCode);
+                            const vehicleEmoji = getVehicleEmoji(vehicleType);
+                            const vehicleHebrewName = getVehicleHebrewName(vehicleType);
+                            
+                            document.getElementById('currentVehicle').textContent = mdaCode;
+                            document.getElementById('currentVehicleType').innerHTML = vehicleEmoji + ' ' + vehicleHebrewName;
+                            
+                            const mobileVehicle = document.getElementById('mobileCurrentVehicle');
+                            const mobileVehicleType = document.getElementById('mobileCurrentVehicleType');
+                            if (mobileVehicle) mobileVehicle.textContent = mdaCode;
+                            if (mobileVehicleType) mobileVehicleType.innerHTML = vehicleEmoji + ' ' + vehicleHebrewName;
+                        }
+                    } catch (e) {
+                        console.error('Failed to parse user data:', e);
+                    }
+                }
+            }, 200);
+        });
+    </script>
+</body>
+</html>

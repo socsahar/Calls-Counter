@@ -2,6 +2,8 @@
 class HistoryViewer {
     constructor() {
         this.isLoading = false;
+        this.alertCodes = [];
+        this.medicalCodes = [];
         this.currentVehicle = {
             number: '5248',
             type: 'motorcycle'
@@ -60,6 +62,9 @@ class HistoryViewer {
             
             // Load and display vehicle information
             await this.loadVehicleDisplay();
+            
+            // Load alert and medical codes
+            await this.loadCodes();
             
             this.bindEvents();
             this.populateYearOptions();
@@ -546,7 +551,7 @@ class HistoryViewer {
 
         // Populate form fields
         document.getElementById('editCallId').value = callId;
-        document.getElementById('editCallType').value = this.normalizeCallTypeForEdit(callData.call_type);
+        document.getElementById('editCallType').value = callData.call_type || 'דחוף';
         
         // Format date properly
         const callDate = new Date(callData.call_date || callData.created_at);
@@ -554,8 +559,23 @@ class HistoryViewer {
         
         document.getElementById('editStartTime').value = callData.start_time || '';
         document.getElementById('editEndTime').value = callData.end_time || '';
-        document.getElementById('editLocation').value = callData.location || '';
+        
+        // Split location into city, street, and details
+        // Expected format: "City, Street, Details" or "City, Street"
+        const locationParts = (callData.location || '').split(',').map(s => s.trim());
+        document.getElementById('editCity').value = locationParts[0] || '';
+        document.getElementById('editStreet').value = locationParts[1] || '';
+        document.getElementById('editLocation').value = locationParts.slice(2).join(', ') || '';
+        
         document.getElementById('editMeterVisaNumber').value = callData.meter_visa_number || '';
+        
+        // Set entry code
+        document.getElementById('editEntryCode').value = callData.entry_code || '';
+        
+        // Set code dropdowns
+        document.getElementById('editAlertCode').value = callData.alert_code_id || '';
+        document.getElementById('editMedicalCode').value = callData.medical_code_id || '';
+        
         document.getElementById('editDescription').value = callData.description || '';
 
         // Show modal
@@ -586,7 +606,11 @@ class HistoryViewer {
             this.setLoading(true);
             
             const callId = document.getElementById('editCallId').value;
+            const city = document.getElementById('editCity').value.trim();
+            const street = document.getElementById('editStreet').value.trim();
+            const locationDetails = document.getElementById('editLocation').value.trim();
             const meterVisaNumber = document.getElementById('editMeterVisaNumber').value.trim();
+            const entryCode = document.getElementById('editEntryCode').value.trim();
             
             // Validate meter/visa number is numeric only if provided
             if (meterVisaNumber && !/^\d+$/.test(meterVisaNumber)) {
@@ -595,14 +619,25 @@ class HistoryViewer {
                 return;
             }
             
+            // Combine city, street, and details into full location
+            let fullLocation = `${city}, ${street}`;
+            if (locationDetails) {
+                fullLocation += `, ${locationDetails}`;
+            }
+            
             const formData = {
                 call_type: document.getElementById('editCallType').value,
                 call_date: document.getElementById('editCallDate').value,
                 start_time: document.getElementById('editStartTime').value,
-                end_time: document.getElementById('editEndTime').value,
-                location: document.getElementById('editLocation').value,
+                end_time: document.getElementById('editEndTime').value || null,
+                location: fullLocation,
+                city: city,
+                street: street,
                 meter_visa_number: meterVisaNumber || null,
-                description: document.getElementById('editDescription').value
+                entry_code: entryCode || null,
+                alert_code_id: document.getElementById('editAlertCode').value || null,
+                medical_code_id: document.getElementById('editMedicalCode').value || null,
+                description: document.getElementById('editDescription').value || null
             };
 
             const response = await fetch(`/api/calls/${callId}`, {
@@ -635,6 +670,64 @@ class HistoryViewer {
             this.showToast('שגיאה בעדכון הקריאה', 'error');
         } finally {
             this.setLoading(false);
+        }
+    }
+
+    async loadCodes() {
+        try {
+            console.log('📋 Loading codes...');
+            
+            // Load alert codes
+            const alertResponse = await fetch('/api/codes/alert', {
+                headers: this.getAuthHeaders()
+            });
+            
+            if (alertResponse.ok) {
+                const alertResult = await alertResponse.json();
+                this.alertCodes = alertResult.data || [];
+                console.log('📋 Loaded', this.alertCodes.length, 'alert codes');
+                this.populateAlertCodeDropdowns();
+            }
+            
+            // Load medical codes
+            const medicalResponse = await fetch('/api/codes/medical', {
+                headers: this.getAuthHeaders()
+            });
+            
+            if (medicalResponse.ok) {
+                const medicalResult = await medicalResponse.json();
+                this.medicalCodes = medicalResult.data || [];
+                console.log('📋 Loaded', this.medicalCodes.length, 'medical codes');
+                this.populateMedicalCodeDropdowns();
+            }
+        } catch (error) {
+            console.error('Error loading codes:', error);
+        }
+    }
+
+    populateAlertCodeDropdowns() {
+        const editAlertCodeSelect = document.getElementById('editAlertCode');
+        
+        const options = this.alertCodes
+            .filter(code => code && code.code)
+            .map(code => `<option value="${code.id}">${code.code}</option>`)
+            .join('');
+        
+        if (editAlertCodeSelect) {
+            editAlertCodeSelect.innerHTML = '<option value="">בחר קוד הזנקה</option>' + options;
+        }
+    }
+
+    populateMedicalCodeDropdowns() {
+        const editMedicalCodeSelect = document.getElementById('editMedicalCode');
+        
+        const options = this.medicalCodes
+            .filter(code => code && code.code)
+            .map(code => `<option value="${code.id}">${code.code}</option>`)
+            .join('');
+        
+        if (editMedicalCodeSelect) {
+            editMedicalCodeSelect.innerHTML = '<option value="">בחר קוד רפואי</option>' + options;
         }
     }
 }

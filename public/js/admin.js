@@ -83,6 +83,10 @@ class AdminPanel {
             this.showCodesSection();
         });
 
+        document.getElementById('manageApiKeysBtn')?.addEventListener('click', () => {
+            this.showApiKeysSection();
+        });
+
         document.getElementById('systemStatsBtn')?.addEventListener('click', () => {
             this.showSystemStats();
         });
@@ -98,6 +102,10 @@ class AdminPanel {
 
         document.getElementById('closeCodesBtn')?.addEventListener('click', () => {
             document.getElementById('codesSection').style.display = 'none';
+        });
+
+        document.getElementById('closeApiKeysBtn')?.addEventListener('click', () => {
+            document.getElementById('apiKeysSection').style.display = 'none';
         });
 
         // Codes management
@@ -861,6 +869,327 @@ class AdminPanel {
         } catch (error) {
             console.error('Error deleting code:', error);
             this.showToast('שגיאה במחיקת הקוד', 'error');
+        }
+    }
+
+    // ============================================
+    // API KEYS MANAGEMENT
+    // ============================================
+
+    async showApiKeysSection() {
+        const section = document.getElementById('apiKeysSection');
+        section.style.display = 'block';
+        section.scrollIntoView({ behavior: 'smooth' });
+        
+        await this.loadApiKeys();
+        this.bindApiKeysEvents();
+    }
+
+    bindApiKeysEvents() {
+        // Generate API Key button
+        const generateBtn = document.getElementById('generateApiKeyBtn');
+        if (generateBtn && !generateBtn.hasListener) {
+            generateBtn.hasListener = true;
+            generateBtn.addEventListener('click', () => {
+                this.showPasswordModal();
+            });
+        }
+
+        // Password Modal
+        const passwordModal = document.getElementById('passwordModal');
+        const passwordForm = document.getElementById('passwordForm');
+        const passwordModalClose = document.getElementById('passwordModalClose');
+        const passwordModalCancel = document.getElementById('passwordModalCancel');
+
+        if (passwordForm && !passwordForm.hasListener) {
+            passwordForm.hasListener = true;
+            passwordForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await this.verifyPasswordAndShowKeyForm();
+            });
+        }
+
+        if (passwordModalClose) {
+            passwordModalClose.onclick = () => this.hidePasswordModal();
+        }
+        if (passwordModalCancel) {
+            passwordModalCancel.onclick = () => this.hidePasswordModal();
+        }
+
+        // API Key Form Modal
+        const apiKeyModal = document.getElementById('apiKeyModal');
+        const apiKeyForm = document.getElementById('apiKeyForm');
+        const apiKeyModalClose = document.getElementById('apiKeyModalClose');
+        const apiKeyModalCancel = document.getElementById('apiKeyModalCancel');
+
+        if (apiKeyForm && !apiKeyForm.hasListener) {
+            apiKeyForm.hasListener = true;
+            apiKeyForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await this.generateApiKey();
+            });
+        }
+
+        if (apiKeyModalClose) {
+            apiKeyModalClose.onclick = () => this.hideApiKeyModal();
+        }
+        if (apiKeyModalCancel) {
+            apiKeyModalCancel.onclick = () => this.hideApiKeyModal();
+        }
+
+        // Generated Key Modal
+        const generatedKeyModal = document.getElementById('generatedKeyModal');
+        const generatedKeyModalClose = document.getElementById('generatedKeyModalClose');
+        const copyApiKeyBtn = document.getElementById('copyApiKeyBtn');
+
+        if (generatedKeyModalClose) {
+            generatedKeyModalClose.onclick = () => this.hideGeneratedKeyModal();
+        }
+
+        if (copyApiKeyBtn && !copyApiKeyBtn.hasListener) {
+            copyApiKeyBtn.hasListener = true;
+            copyApiKeyBtn.addEventListener('click', () => {
+                const input = document.getElementById('generatedApiKey');
+                input.select();
+                document.execCommand('copy');
+                this.showToast('מפתח הועתק ללוח', 'success');
+            });
+        }
+    }
+
+    showPasswordModal() {
+        const modal = document.getElementById('passwordModal');
+        modal.classList.remove('hidden');
+        document.getElementById('confirmPassword').value = '';
+        document.getElementById('confirmPassword').focus();
+    }
+
+    hidePasswordModal() {
+        const modal = document.getElementById('passwordModal');
+        modal.classList.add('hidden');
+        document.getElementById('confirmPassword').value = '';
+    }
+
+    hideApiKeyModal() {
+        const modal = document.getElementById('apiKeyModal');
+        modal.classList.add('hidden');
+        document.getElementById('keyName').value = '';
+    }
+
+    hideGeneratedKeyModal() {
+        const modal = document.getElementById('generatedKeyModal');
+        modal.classList.add('hidden');
+        document.getElementById('generatedApiKey').value = '';
+    }
+
+    async verifyPasswordAndShowKeyForm() {
+        try {
+            const password = document.getElementById('confirmPassword').value;
+            
+            if (!password) {
+                this.showToast('נא להזין סיסמה', 'error');
+                return;
+            }
+
+            // Get user email from localStorage
+            const userData = localStorage.getItem('userData') || sessionStorage.getItem('userData');
+            if (!userData) {
+                this.showToast('שגיאה בטעינת נתוני משתמש', 'error');
+                return;
+            }
+
+            const user = JSON.parse(userData);
+            const username = user.username;
+
+            if (!username) {
+                this.showToast('לא נמצא שם משתמש', 'error');
+                return;
+            }
+
+            // Verify password by attempting to login with username
+            const response = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username, password })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok || !data.success) {
+                this.showToast('סיסמה שגויה', 'error');
+                return;
+            }
+
+            // Password is correct, show API key form
+            this.hidePasswordModal();
+            this.showApiKeyModal();
+
+        } catch (error) {
+            console.error('Error verifying password:', error);
+            this.showToast('שגיאה באימות סיסמה', 'error');
+        }
+    }
+
+    showApiKeyModal() {
+        const modal = document.getElementById('apiKeyModal');
+        modal.classList.remove('hidden');
+        document.getElementById('keyName').focus();
+    }
+
+    async loadApiKeys() {
+        try {
+            const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+            const response = await fetch('/api/admin/api-keys', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Failed to load API keys');
+            }
+
+            this.renderApiKeys(data.api_keys || []);
+
+        } catch (error) {
+            console.error('Error loading API keys:', error);
+            this.showToast('שגיאה בטעינת מפתחות API', 'error');
+        }
+    }
+
+    renderApiKeys(apiKeys) {
+        const container = document.getElementById('apiKeysContainer');
+        
+        if (!apiKeys || apiKeys.length === 0) {
+            container.innerHTML = '<div class="empty-state">אין מפתחות API עדיין. צור מפתח חדש כדי להתחיל.</div>';
+            return;
+        }
+
+        container.innerHTML = apiKeys.map(key => `
+            <div class="api-key-card" data-key-id="${key.id}">
+                <div class="api-key-header">
+                    <h4 class="api-key-name">${key.key_name}</h4>
+                    <span class="api-key-status ${key.is_active ? 'active' : 'inactive'}">
+                        ${key.is_active ? '🟢 פעיל' : '🔴 לא פעיל'}
+                    </span>
+                </div>
+                
+                <div class="api-key-info">
+                    <div class="info-row">
+                        <span class="info-label">הרשאות:</span>
+                        <span class="info-value">${key.permissions.join(', ')}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">נוצר:</span>
+                        <span class="info-value">${new Date(key.created_at).toLocaleDateString('he-IL')}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">שימוש אחרון:</span>
+                        <span class="info-value">${key.last_used_at ? new Date(key.last_used_at).toLocaleString('he-IL') : 'מעולם לא'}</span>
+                    </div>
+                </div>
+                
+                <div class="api-key-actions">
+                    <button class="btn-delete-key" data-key-id="${key.id}" title="מחק מפתח">
+                        🗑️ מחק
+                    </button>
+                </div>
+            </div>
+        `).join('');
+
+        // Bind delete buttons
+        container.querySelectorAll('.btn-delete-key').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const keyId = e.target.dataset.keyId;
+                if (confirm('האם אתה בטוח שברצונך למחוק מפתח זה? הפעולה בלתי הפיכה.')) {
+                    await this.deleteApiKey(keyId);
+                }
+            });
+        });
+    }
+
+    async generateApiKey() {
+        try {
+            const keyName = document.getElementById('keyName').value.trim();
+            
+            if (!keyName) {
+                this.showToast('נא להזין שם למפתח', 'error');
+                return;
+            }
+
+            // Get selected permissions
+            const permissionCheckboxes = document.querySelectorAll('input[name="permission"]:checked');
+            const permissions = Array.from(permissionCheckboxes).map(cb => cb.value);
+
+            if (permissions.length === 0) {
+                this.showToast('נא לבחור לפחות הרשאה אחת', 'error');
+                return;
+            }
+
+            const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+            const response = await fetch('/api/admin/api-keys', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    key_name: keyName,
+                    permissions: permissions
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Failed to generate API key');
+            }
+
+            // Hide form modal
+            this.hideApiKeyModal();
+
+            // Show the generated key (one time only!)
+            document.getElementById('generatedApiKey').value = data.api_key;
+            const generatedModal = document.getElementById('generatedKeyModal');
+            generatedModal.classList.remove('hidden');
+
+            // Reload the keys list
+            await this.loadApiKeys();
+
+            this.showToast('מפתח API נוצר בהצלחה', 'success');
+
+        } catch (error) {
+            console.error('Error generating API key:', error);
+            this.showToast('שגיאה ביצירת מפתח API', 'error');
+        }
+    }
+
+    async deleteApiKey(keyId) {
+        try {
+            const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+            const response = await fetch(`/api/admin/api-keys/${keyId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Failed to delete API key');
+            }
+
+            this.showToast('מפתח נמחק בהצלחה', 'success');
+            await this.loadApiKeys();
+
+        } catch (error) {
+            console.error('Error deleting API key:', error);
+            this.showToast('שגיאה במחיקת מפתח', 'error');
         }
     }
 }
