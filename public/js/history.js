@@ -205,8 +205,8 @@ class HistoryViewer {
         const currentYear = new Date().getFullYear();
         yearSelect.innerHTML = '';
         
-        // Add years from current year back to 2020
-        for (let year = currentYear; year >= 2020; year--) {
+        // Add years from current year back to 2025 (data started in October 2025)
+        for (let year = currentYear; year >= 2025; year--) {
             const option = document.createElement('option');
             option.value = year;
             option.textContent = year;
@@ -214,6 +214,59 @@ class HistoryViewer {
                 option.selected = true;
             }
             yearSelect.appendChild(option);
+        }
+        
+        // Add event listener to update months when year changes
+        yearSelect.addEventListener('change', () => {
+            this.updateMonthOptions();
+        });
+        
+        // Update month options for the initially selected year
+        this.updateMonthOptions();
+    }
+    
+    updateMonthOptions() {
+        const yearSelect = document.getElementById('historyYear');
+        const monthSelect = document.getElementById('historyMonth');
+        if (!yearSelect || !monthSelect) return;
+        
+        const selectedYear = parseInt(yearSelect.value);
+        const currentDate = new Date();
+        const currentYear = currentDate.getFullYear();
+        const currentMonth = currentDate.getMonth() + 1; // 1-12
+        
+        // Get all month options (skip the first "all year" option)
+        const monthOptions = monthSelect.querySelectorAll('option:not([value=""])');
+        
+        monthOptions.forEach(option => {
+            const monthValue = parseInt(option.value);
+            
+            if (selectedYear === 2025) {
+                // For 2025: only show October (10) onwards
+                option.style.display = monthValue >= 10 ? '' : 'none';
+                option.disabled = monthValue < 10;
+            } else if (selectedYear === currentYear) {
+                // For current year: show months from January up to current month
+                option.style.display = monthValue <= currentMonth ? '' : 'none';
+                option.disabled = monthValue > currentMonth;
+            } else if (selectedYear < currentYear) {
+                // For past years: show all months
+                option.style.display = '';
+                option.disabled = false;
+            } else {
+                // For future years: hide all months
+                option.style.display = 'none';
+                option.disabled = true;
+            }
+        });
+        
+        // If currently selected month is now hidden/disabled, reset to "all year"
+        const selectedMonth = parseInt(monthSelect.value);
+        if (selectedMonth) {
+            const selectedOption = monthSelect.querySelector(`option[value="${selectedMonth}"]`);
+            if (selectedOption && (selectedOption.style.display === 'none' || selectedOption.disabled)) {
+                monthSelect.value = ''; // Reset to "all year"
+            }
         }
     }
 
