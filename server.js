@@ -2280,6 +2280,17 @@ app.post('/api/v1/calls', authenticateAPIKey, async (req, res) => {
             timeZone: 'Asia/Jerusalem'
         });
 
+        // Get default user_id from vehicle settings if not provided
+        let finalUserId = user_id;
+        if (!finalUserId) {
+            const { data: userData } = await supabase
+                .from('users')
+                .select('id')
+                .eq('username', 'סהר')
+                .single();
+            finalUserId = userData?.id || null;
+        }
+
         // If call_type not provided but call_type_id is, fetch the type name
         let finalCallType = call_type;
         if (!finalCallType && call_type_id) {
@@ -2292,7 +2303,7 @@ app.post('/api/v1/calls', authenticateAPIKey, async (req, res) => {
         }
 
         const callData = {
-            user_id: user_id || null,
+            user_id: finalUserId,
             vehicle_number,
             vehicle_type: vehicle_type || '🏍️ אופנוע',
             call_type: finalCallType || 'לא ידוע',
