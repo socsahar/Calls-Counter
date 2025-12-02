@@ -2321,9 +2321,11 @@ app.get('/api/v1/calls', authenticateAPIKey, async (req, res) => {
         }
 
         const {
+            date,
             start_date,
             end_date,
             city,
+            type,
             call_type_id,
             limit = 100,
             offset = 0
@@ -2334,28 +2336,52 @@ app.get('/api/v1/calls', authenticateAPIKey, async (req, res) => {
             .from('calls')
             .select(`
                 *,
-                call_types (name, color),
+                call_types (id, name, color),
                 alert_codes (code, description),
                 medical_codes (code, description)
             `, { count: 'exact' });
 
-        // Apply filters
-        if (start_date) {
-            query = query.gte('call_date', start_date);
+        // Apply date filters
+        // Support both 'date' (exact date) and 'start_date/end_date' (range)
+        if (date) {
+            query = query.eq('call_date', date);
+        } else {
+            if (start_date) {
+                query = query.gte('call_date', start_date);
+            }
+            if (end_date) {
+                query = query.lte('call_date', end_date);
+            }
         }
-        if (end_date) {
-            query = query.lte('call_date', end_date);
-        }
+
+        // Apply city filter
         if (city) {
             query = query.ilike('city', `%${city}%`);
         }
-        if (call_type_id) {
-            query = query.eq('call_type_id', call_type_id);
+
+        // Apply type filter
+        // Support both 'type' (call type name) and 'call_type_id' (ID)
+        if (type) {
+            // Query by call type name
+            const { data: callTypes, error: typeError } = await supabase
+                .from('call_types')
+                .select('id')
+                .ilike('name', `%${type}%`);
+
+            if (!typeError && callTypes && callTypes.length > 0) {
+                const typeIds = callTypes.map(ct => ct.id);
+                query = query.in('call_type_id', typeIds);
+            }
+        } else if (call_type_id) {
+            query = query.eq('call_type_id', parseInt(call_type_id));
         }
 
-        // Apply pagination
+        // Validate and apply pagination
+        const safeLimit = Math.min(Math.max(parseInt(limit) || 100, 1), 1000);
+        const safeOffset = Math.max(parseInt(offset) || 0, 0);
+
         query = query
-            .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1)
+            .range(safeOffset, safeOffset + safeLimit - 1)
             .order('created_at', { ascending: false });
 
         const { data, error, count } = await query;
@@ -2364,7 +2390,8 @@ app.get('/api/v1/calls', authenticateAPIKey, async (req, res) => {
             console.error('Error fetching calls via API:', error);
             return res.status(500).json({
                 success: false,
-                message: 'Error fetching calls'
+                message: 'Error fetching calls',
+                error: error.message
             });
         }
 
@@ -2372,16 +2399,18 @@ app.get('/api/v1/calls', authenticateAPIKey, async (req, res) => {
             success: true,
             calls: data || [],
             pagination: {
-                total: count,
-                limit: parseInt(limit),
-                offset: parseInt(offset)
+                total: count || 0,
+                limit: safeLimit,
+                offset: safeOffset,
+                returned: data?.length || 0
             }
         });
     } catch (error) {
         console.error('Error in GET /api/v1/calls:', error);
         res.status(500).json({
             success: false,
-            message: 'Internal server error'
+            message: 'Internal server error',
+            error: error.message
         });
     }
 });
@@ -2397,7 +2426,7 @@ app.get('/api/v1/stats', authenticateAPIKey, async (req, res) => {
             });
         }
 
-        const { date } = req.query;
+        const { date, city, type } = req.query;
         
         // Use provided date or today in Israel timezone
         const targetDate = date || new Date().toLocaleDateString('en-CA', {
@@ -2405,37 +2434,66 @@ app.get('/api/v1/stats', authenticateAPIKey, async (req, res) => {
         });
 
         // Get motorcycle number
-        const { data: settingsData } = await supabase
+        const { data: settingsData, error: settingsError } = await supabase
             .from('vehicle_settings')
             .select('motorcycle_number')
             .limit(1)
             .single();
 
+        if (settingsError) {
+            console.error('Error fetching settings:', settingsError);
+        }
+
         const motorcycle_number = settingsData?.motorcycle_number || '5248';
 
-        // Get calls for the date
-        const { data: calls, error: callsError } = await supabase
+        // Build query for calls
+        let query = supabase
             .from('calls')
-            .select('*, call_types (name)')
+            .select('*, call_types (id, name)')
             .eq('motorcycle_number', motorcycle_number)
             .eq('call_date', targetDate);
+
+        // Apply optional filters
+        if (city) {
+            query = query.ilike('city', `%${city}%`);
+        }
+
+        if (type) {
+            // Query by call type name
+            const { data: callTypes } = await supabase
+                .from('call_types')
+                .select('id')
+                .ilike('name', `%${type}%`);
+
+            if (callTypes && callTypes.length > 0) {
+                const typeIds = callTypes.map(ct => ct.id);
+                query = query.in('call_type_id', typeIds);
+            }
+        }
+
+        const { data: calls, error: callsError } = await query;
 
         if (callsError) {
             console.error('Error fetching stats via API:', callsError);
             return res.status(500).json({
                 success: false,
-                message: 'Error fetching statistics'
+                message: 'Error fetching statistics',
+                error: callsError.message
             });
         }
 
         // Calculate statistics
         const totalCalls = calls?.length || 0;
         const callsByType = {};
+        const callsByCity = {};
         
         if (calls) {
             calls.forEach(call => {
                 const typeName = call.call_types?.name || 'Unknown';
                 callsByType[typeName] = (callsByType[typeName] || 0) + 1;
+
+                const cityName = call.city || 'Unknown';
+                callsByCity[cityName] = (callsByCity[cityName] || 0) + 1;
             });
         }
 
@@ -2443,16 +2501,22 @@ app.get('/api/v1/stats', authenticateAPIKey, async (req, res) => {
             success: true,
             date: targetDate,
             motorcycle_number,
+            filters: {
+                city: city || null,
+                type: type || null
+            },
             stats: {
                 total_calls: totalCalls,
-                calls_by_type: callsByType
+                calls_by_type: callsByType,
+                calls_by_city: callsByCity
             }
         });
     } catch (error) {
         console.error('Error in GET /api/v1/stats:', error);
         res.status(500).json({
             success: false,
-            message: 'Internal server error'
+            message: 'Internal server error',
+            error: error.message
         });
     }
 });
