@@ -122,6 +122,23 @@ class CallCounter {
     }
 
     // Helper method to get user's vehicle number from their MDA code
+    // Get current user ID
+    getUserId() {
+        if (this.currentUser && this.currentUser.id) {
+            return this.currentUser.id;
+        }
+        const userData = localStorage.getItem('userData') || sessionStorage.getItem('userData');
+        if (userData) {
+            try {
+                const user = JSON.parse(userData);
+                return user.id;
+            } catch (error) {
+                console.error('Error parsing user data:', error);
+            }
+        }
+        return null;
+    }
+
     getUserVehicleNumber() {
         try {
             // Try both localStorage and sessionStorage
@@ -1261,11 +1278,158 @@ class CallCounter {
             console.error('🚗 Error loading current vehicle:', error);
         }
         
+        // Load recent vehicles
+        this.loadRecentVehicles();
+        
         // Show modal
         const modal = document.getElementById('vehicleSelectionModal');
         if (modal) {
             modal.classList.remove('hidden');
         }
+    }
+
+    // Save vehicle to recent history
+    saveRecentVehicle(vehicleNumber, vehicleType) {
+        const userId = this.getUserId();
+        if (!userId) return;
+
+        const storageKey = `recentVehicles_${userId}`;
+        let recentVehicles = JSON.parse(localStorage.getItem(storageKey) || '[]');
+        
+        // Remove if already exists
+        recentVehicles = recentVehicles.filter(v => v.number !== vehicleNumber);
+        
+        // Add to beginning
+        recentVehicles.unshift({
+            number: vehicleNumber,
+            type: vehicleType,
+            lastUsed: new Date().toISOString()
+        });
+        
+        // Keep only last 5 vehicles
+        recentVehicles = recentVehicles.slice(0, 5);
+        
+        localStorage.setItem(storageKey, JSON.stringify(recentVehicles));
+    }
+
+    // Load and display recent vehicles
+    loadRecentVehicles() {
+        const userId = this.getUserId();
+        if (!userId) return;
+
+        const storageKey = `recentVehicles_${userId}`;
+        const recentVehicles = JSON.parse(localStorage.getItem(storageKey) || '[]');
+        
+        const section = document.getElementById('recentVehiclesSection');
+        const list = document.getElementById('recentVehiclesList');
+        
+        // Filter out the current vehicle
+        const currentVehicleNumber = this.currentVehicle?.number;
+        const availableVehicles = recentVehicles.filter(v => v.number !== currentVehicleNumber);
+        
+        if (availableVehicles.length === 0) {
+            if (section) section.style.display = 'none';
+            return;
+        }
+        
+        if (section) section.style.display = 'block';
+        if (!list) return;
+        
+        list.innerHTML = availableVehicles.map(vehicle => {
+            const icon = this.getVehicleIcon(vehicle.type);
+            const typeName = this.getVehicleTypeName(vehicle.type);
+            
+            return `
+                <div class="recent-vehicle-item" data-vehicle-number="${vehicle.number}" data-vehicle-type="${vehicle.type}">
+                    <div class="recent-vehicle-info">
+                        <div class="recent-vehicle-number">${vehicle.number}</div>
+                        <div class="recent-vehicle-type">${typeName}</div>
+                    </div>
+                    <div class="recent-vehicle-icon">${icon}</div>
+                </div>
+            `;
+        }).join('');
+        
+        // Add click handlers
+        list.querySelectorAll('.recent-vehicle-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const number = item.dataset.vehicleNumber;
+                const type = item.dataset.vehicleType;
+                this.selectRecentVehicle(number, type);
+            });
+        });
+    }
+
+    // Select a vehicle from recent history
+    async selectRecentVehicle(vehicleNumber, vehicleType) {
+        console.log('🚗 Selecting recent vehicle:', vehicleNumber, vehicleType);
+        
+        // Clear previous messages
+        this.hideVehicleMessages();
+        
+        try {
+            const response = await fetch('/api/vehicle/current', {
+                method: 'POST',
+                headers: this.getAuthHeaders(),
+                body: JSON.stringify({ 
+                    vehicle_number: vehicleNumber,
+                    vehicle_type: vehicleType
+                })
+            });
+            
+            const result = await response.json();
+            console.log('🚗 Vehicle selection result:', result);
+            
+            if (response.ok && result.success) {
+                this.showVehicleSuccess(result.message || 'הרכב נבחר בהצלחה!');
+                
+                this.currentVehicle = {
+                    number: result.data.vehicle_number,
+                    type: result.data.vehicle_type
+                };
+                
+                // Save to recent
+                this.saveRecentVehicle(vehicleNumber, vehicleType);
+                
+                this.updateVehicleDisplay();
+                await this.loadStats();
+                await this.loadCalls();
+                
+                setTimeout(() => {
+                    const modal = document.getElementById('vehicleSelectionModal');
+                    if (modal) modal.classList.add('hidden');
+                }, 1500);
+            } else if (response.status === 409) {
+                this.showVehicleError(result.message || 'רכב זה כבר בשימוש על ידי משתמש אחר');
+            } else {
+                this.showVehicleError(result.message || 'שגיאה בבחירת רכב');
+            }
+        } catch (error) {
+            console.error('🚗 Error selecting vehicle:', error);
+            this.showVehicleError('שגיאה בתקשורת עם השרת');
+        }
+    }
+
+    // Get vehicle icon emoji
+    getVehicleIcon(vehicleType) {
+        const icons = {
+            'motorcycle': '🏍️',
+            'picanto': '🚗',
+            'personal_standby': '🚙',
+            'amblance': '🚑'
+        };
+        return icons[vehicleType] || '🚗';
+    }
+
+    // Get vehicle type display name
+    getVehicleTypeName(vehicleType) {
+        const names = {
+            'motorcycle': 'אופנוע',
+            'picanto': 'פיקנטו',
+            'personal_standby': 'כונן אישי',
+            'amblance': 'אמבולנס'
+        };
+        return names[vehicleType] || vehicleType;
     }
 
     // Handle vehicle selection form submission
@@ -1310,6 +1474,9 @@ class CallCounter {
                     number: result.data.vehicle_number,
                     type: result.data.vehicle_type
                 };
+                
+                // Save to recent vehicles
+                this.saveRecentVehicle(vehicleNumber, vehicleType);
                 
                 // Update display
                 this.updateVehicleDisplay();
