@@ -237,14 +237,49 @@ class CallCounter {
 
     // Initialize user info display
     initUserInfo() {
-        const userData = localStorage.getItem('userData');
+        const userData = localStorage.getItem('userData') || sessionStorage.getItem('userData');
+        console.log('👤 User data from storage:', userData);
         if (userData) {
             const user = JSON.parse(userData);
+            console.log('👤 Parsed user:', user);
+            // Check both isAdmin and is_admin for compatibility
+            const isAdmin = user.isAdmin || user.is_admin;
+            console.log('👤 Is admin?', isAdmin);
+            this.currentUser = user;
             const userNameEl = document.getElementById('userName');
             const userCodeEl = document.getElementById('userCode');
             
-            if (userNameEl) userNameEl.textContent = user.fullName;
-            if (userCodeEl) userCodeEl.textContent = user.mdaCode;
+            if (userNameEl) userNameEl.textContent = user.fullName || user.full_name;
+            if (userCodeEl) userCodeEl.textContent = user.mdaCode || user.mda_code;
+            
+            // Show admin buttons if user is admin (both desktop and mobile)
+            if (isAdmin) {
+                const adminBtn = document.getElementById('adminBtn');
+                const mobileAdminBtn = document.getElementById('mobileAdminBtn');
+                
+                console.log('✅ User is admin - showing admin buttons');
+                console.log('📱 Window width:', window.innerWidth);
+                console.log('📱 Window height:', window.innerHeight);
+                
+                if (adminBtn) {
+                    console.log('🔍 Before: adminBtn.style.display =', adminBtn.style.display);
+                    console.log('🔍 Before: computed display =', window.getComputedStyle(adminBtn).display);
+                    adminBtn.style.display = 'flex';
+                    adminBtn.style.visibility = 'visible';
+                    console.log('🔍 After: adminBtn.style.display =', adminBtn.style.display);
+                    console.log('🔍 After: computed display =', window.getComputedStyle(adminBtn).display);
+                    console.log('✅ Desktop admin button shown');
+                }
+                if (mobileAdminBtn) {
+                    mobileAdminBtn.style.display = 'flex';
+                    mobileAdminBtn.style.visibility = 'visible';
+                    console.log('✅ Mobile admin button shown');
+                }
+            } else {
+                console.log('❌ User is not admin');
+            }
+        } else {
+            console.log('❌ No user data found in storage');
         }
     }
 
@@ -353,6 +388,16 @@ class CallCounter {
         if (entryCodesBtn) {
             entryCodesBtn.addEventListener('click', () => {
                 window.location.href = '/entry-codes.html';
+            });
+        }
+
+        // Admin button - show only for admin users
+        const adminBtn = document.getElementById('adminBtn');
+        const isAdmin = this.currentUser && (this.currentUser.isAdmin || this.currentUser.is_admin);
+        if (adminBtn && isAdmin) {
+            adminBtn.style.display = 'flex';
+            adminBtn.addEventListener('click', () => {
+                window.location.href = '/admin.html';
             });
         }
 

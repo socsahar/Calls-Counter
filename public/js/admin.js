@@ -31,11 +31,20 @@ class AdminPanel {
             const userData = localStorage.getItem('userData') || sessionStorage.getItem('userData');
             if (userData) {
                 const user = JSON.parse(userData);
+                const fullName = user.full_name || user.fullName || 'מנהל';
+                const mdaCode = user.mda_code || user.mdaCode || '';
+                const displayName = mdaCode ? `${fullName} (${mdaCode})` : fullName;
+                
+                // Update desktop admin name
                 const adminNameEl = document.getElementById('adminName');
                 if (adminNameEl) {
-                    const fullName = user.full_name || user.fullName || 'מנהל';
-                    const mdaCode = user.mda_code || user.mdaCode || '';
-                    adminNameEl.textContent = mdaCode ? `${fullName} (${mdaCode})` : fullName;
+                    adminNameEl.textContent = displayName;
+                }
+                
+                // Update mobile admin name
+                const mobileAdminNameEl = document.getElementById('mobileAdminName');
+                if (mobileAdminNameEl) {
+                    mobileAdminNameEl.textContent = displayName;
                 }
             }
         } catch (error) {
@@ -54,11 +63,93 @@ class AdminPanel {
     }
 
     bindEvents() {
-        // Back button
-        const backBtn = document.getElementById('backBtn');
-        if (backBtn) {
-            backBtn.addEventListener('click', () => {
+        // Header navigation buttons
+        const mainPageBtn = document.getElementById('mainPageBtn');
+        if (mainPageBtn) {
+            mainPageBtn.addEventListener('click', () => {
                 window.location.href = '/index.html';
+            });
+        }
+
+        const entryCodesBtn = document.getElementById('entryCodesBtn');
+        if (entryCodesBtn) {
+            entryCodesBtn.addEventListener('click', () => {
+                window.location.href = '/entry-codes.html';
+            });
+        }
+
+        const historyBtn = document.getElementById('historyBtn');
+        if (historyBtn) {
+            historyBtn.addEventListener('click', () => {
+                window.location.href = '/history.html';
+            });
+        }
+
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', () => {
+                if (confirm('האם אתה בטוח שברצונך להתנתק?')) {
+                    this.logout();
+                }
+            });
+        }
+
+        // Mobile menu functionality
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const mobileMenuOverlay = document.getElementById('mobileMenuOverlay');
+        const mobileMenuClose = document.getElementById('mobileMenuClose');
+
+        if (mobileMenuBtn) {
+            mobileMenuBtn.addEventListener('click', () => {
+                mobileMenuOverlay.classList.add('active');
+                mobileMenuBtn.classList.add('active');
+            });
+        }
+
+        if (mobileMenuClose) {
+            mobileMenuClose.addEventListener('click', () => {
+                mobileMenuOverlay.classList.remove('active');
+                mobileMenuBtn.classList.remove('active');
+            });
+        }
+
+        if (mobileMenuOverlay) {
+            mobileMenuOverlay.addEventListener('click', (e) => {
+                if (e.target === mobileMenuOverlay) {
+                    mobileMenuOverlay.classList.remove('active');
+                    mobileMenuBtn.classList.remove('active');
+                }
+            });
+        }
+
+        // Mobile menu buttons
+        const mobileMainPageBtn = document.getElementById('mobileMainPageBtn');
+        if (mobileMainPageBtn) {
+            mobileMainPageBtn.addEventListener('click', () => {
+                window.location.href = '/index.html';
+            });
+        }
+
+        const mobileEntryCodesBtn = document.getElementById('mobileEntryCodesBtn');
+        if (mobileEntryCodesBtn) {
+            mobileEntryCodesBtn.addEventListener('click', () => {
+                window.location.href = '/entry-codes.html';
+            });
+        }
+
+        const mobileHistoryBtn = document.getElementById('mobileHistoryBtn');
+        if (mobileHistoryBtn) {
+            mobileHistoryBtn.addEventListener('click', () => {
+                window.location.href = '/history.html';
+            });
+        }
+
+        const mobileLogoutBtn = document.getElementById('mobileLogoutBtn');
+        if (mobileLogoutBtn) {
+            mobileLogoutBtn.addEventListener('click', () => {
+                if (confirm('האם אתה בטוח שברצונך להתנתק?')) {
+                    this.logout();
+                }
             });
         }
 
@@ -91,10 +182,6 @@ class AdminPanel {
             this.showApiKeysSection();
         });
 
-        document.getElementById('systemStatsBtn')?.addEventListener('click', () => {
-            this.showSystemStats();
-        });
-
         // Close section buttons
         document.getElementById('closeUsersBtn')?.addEventListener('click', () => {
             document.getElementById('usersSection').style.display = 'none';
@@ -114,6 +201,14 @@ class AdminPanel {
 
         // Codes management
         this.bindCodesEvents();
+    }
+
+    closeAllSections() {
+        document.getElementById('usersSection').style.display = 'none';
+        document.getElementById('allCallsSection').style.display = 'none';
+        document.getElementById('codesSection').style.display = 'none';
+        document.getElementById('entryCodesSection').style.display = 'none';
+        document.getElementById('apiKeysSection').style.display = 'none';
     }
 
     async loadDashboard() {
@@ -376,6 +471,9 @@ class AdminPanel {
         try {
             this.setLoading(true);
             
+            // Close all other sections first
+            this.closeAllSections();
+            
             const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
             // Add cache-busting parameter to force fresh data
             const response = await fetch(`/api/admin/users?_=${Date.now()}`, {
@@ -429,28 +527,24 @@ class AdminPanel {
             }
 
             return `
-                <div class="user-card" data-user-id="${user.id}">
-                    <div class="user-header">
-                        <div class="user-info">
-                            <div class="user-name">${user.full_name && user.full_name.trim() !== '' ? user.full_name : user.username}</div>
-                            <div class="user-details">
-                                <span class="user-username">@${user.username}</span>
-                                <span class="user-vehicle">${vehicleEmoji} ${vehicleType} ${user.mda_code || ''}</span>
-                            </div>
-                        </div>
-                        <div class="user-badges">
+                <div class="user-list-item" data-user-id="${user.id}">
+                    <div class="user-list-info">
+                        <div class="user-list-main">
+                            <span class="user-list-name">${user.full_name && user.full_name.trim() !== '' ? user.full_name : user.username}</span>
                             ${user.is_admin ? '<span class="admin-badge">מנהל</span>' : ''}
                         </div>
+                        <div class="user-list-details">
+                            <span class="user-list-username">👤 @${user.username}</span>
+                            <span class="user-list-vehicle">${vehicleEmoji} ${vehicleType} ${user.mda_code || ''}</span>
+                            <span class="user-list-date">📅 ${joinDate}</span>
+                        </div>
                     </div>
-                    <div class="user-details">
-                        <div class="user-join-date">📅 הצטרף: ${joinDate}</div>
-                    </div>
-                    <div class="user-actions">
+                    <div class="user-list-actions">
                         <button class="toggle-admin-btn" data-user-id="${user.id}" data-is-admin="${user.is_admin}">
-                            ${user.is_admin ? 'הסר הרשאות מנהל' : 'הפוך למנהל'}
+                            ${user.is_admin ? 'הסר הרשאות' : 'הפוך למנהל'}
                         </button>
                         <button class="delete-user-btn" data-user-id="${user.id}" data-username="${user.username}">
-                            מחק משתמש
+                            מחק
                         </button>
                     </div>
                 </div>
@@ -554,6 +648,9 @@ class AdminPanel {
         try {
             this.setLoading(true);
             
+            // Close all other sections first
+            this.closeAllSections();
+            
             const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
             const response = await fetch('/api/admin/calls', {
                 headers: {
@@ -598,19 +695,39 @@ class AdminPanel {
                 : (call.end_time ? 'לא חושב' : 'בתהליך');
 
             return `
-                <div class="admin-call-item">
-                    <div class="admin-call-header">
-                        <div class="admin-call-type">${callTypeDisplay}</div>
-                        <div class="admin-call-user">👤 ${call.users?.username || 'לא ידוע'}</div>
-                        <div class="admin-call-date">${formattedDate}</div>
+                <div class="call-item">
+                    <div class="call-header">
+                        <div class="call-type-badge ${callTypeDisplay.includes('דחוף') ? 'urgent' : callTypeDisplay.includes('אט') ? 'atan' : ''}">
+                            ${callTypeDisplay}
+                        </div>
+                        <div class="call-date">${formattedDate}</div>
                     </div>
-                    <div class="admin-call-content">
-                        <div class="admin-call-time">⏰ ${formattedTime}</div>
-                        <div class="admin-call-duration">⏱️ ${duration}</div>
-                        <div class="admin-call-location">📍 ${call.location || 'לא צוין'}</div>
-                        ${call.description ? `<div class="admin-call-description">💬 ${call.description}</div>` : ''}
-                        <div class="admin-call-vehicle">
-                            🚑 ${call.users?.vehicle_type || 'לא צוין'} ${call.users?.vehicle_number || ''}
+                    <div class="call-body">
+                        <div class="call-row">
+                            <span class="call-label">👤 משתמש:</span>
+                            <span class="call-value">${call.users?.username || 'לא ידוע'}</span>
+                        </div>
+                        <div class="call-row">
+                            <span class="call-label">⏰ זמן:</span>
+                            <span class="call-value">${formattedTime}</span>
+                        </div>
+                        <div class="call-row">
+                            <span class="call-label">⏱️ משך:</span>
+                            <span class="call-value">${duration}</span>
+                        </div>
+                        <div class="call-row">
+                            <span class="call-label">📍 מיקום:</span>
+                            <span class="call-value">${call.city || ''} ${call.street || ''} ${call.location || 'לא צוין'}</span>
+                        </div>
+                        ${call.description ? `
+                            <div class="call-row">
+                                <span class="call-label">📝 תיאור:</span>
+                                <span class="call-value">${call.description}</span>
+                            </div>
+                        ` : ''}
+                        <div class="call-row">
+                            <span class="call-label">🚑 רכב:</span>
+                            <span class="call-value">${call.vehicle_number || call.users?.vehicle_number || 'לא צוין'}</span>
                         </div>
                     </div>
                 </div>
@@ -701,6 +818,10 @@ class AdminPanel {
     async showCodesSection() {
         try {
             this.setLoading(true);
+            
+            // Close all other sections first
+            this.closeAllSections();
+            
             await this.loadAlertCodes();
             await this.loadMedicalCodes();
             document.getElementById('codesSection').style.display = 'block';
@@ -924,6 +1045,9 @@ class AdminPanel {
     // ============================================
 
     async showEntryCodesSection() {
+        // Close all other sections first
+        this.closeAllSections();
+        
         const section = document.getElementById('entryCodesSection');
         section.style.display = 'block';
         section.scrollIntoView({ behavior: 'smooth' });
@@ -1042,14 +1166,14 @@ class AdminPanel {
 
         tbody.innerHTML = codes.map(code => `
             <tr>
-                <td><strong>${this.escapeHtml(code.entry_code)}</strong></td>
-                <td>${this.escapeHtml(code.city)}</td>
-                <td>${this.escapeHtml(code.street)}</td>
-                <td>${this.escapeHtml(code.location_details || '-')}</td>
-                <td>${this.escapeHtml(code.notes || '-')}</td>
-                <td>
-                    <button class="edit-btn" data-id="${code.id}">✏️</button>
-                    <button class="delete-btn" data-id="${code.id}">🗑️</button>
+                <td data-label="קוד:">${this.escapeHtml(code.entry_code)}</td>
+                <td data-label="עיר:">${this.escapeHtml(code.city)}</td>
+                <td data-label="רחוב:">${this.escapeHtml(code.street)}</td>
+                <td data-label="פרטים:">${this.escapeHtml(code.location_details || '-')}</td>
+                <td data-label="הערות:">${this.escapeHtml(code.notes || '-')}</td>
+                <td data-label="פעולות:" class="entry-code-actions">
+                    <button class="edit-btn" data-id="${code.id}">ערוך</button>
+                    <button class="delete-btn" data-id="${code.id}">מחק</button>
                 </td>
             </tr>
         `).join('');
@@ -1163,6 +1287,9 @@ class AdminPanel {
     // ============================================
 
     async showApiKeysSection() {
+        // Close all other sections first
+        this.closeAllSections();
+        
         const section = document.getElementById('apiKeysSection');
         section.style.display = 'block';
         section.scrollIntoView({ behavior: 'smooth' });
@@ -1477,6 +1604,17 @@ class AdminPanel {
             console.error('Error deleting API key:', error);
             this.showToast('שגיאה במחיקת מפתח', 'error');
         }
+    }
+
+    logout() {
+        // Clear authentication data
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userData');
+        sessionStorage.removeItem('authToken');
+        sessionStorage.removeItem('userData');
+        
+        // Redirect to login page
+        window.location.href = '/login.html';
     }
 }
 

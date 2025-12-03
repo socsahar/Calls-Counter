@@ -98,7 +98,7 @@ Update the CSP meta tag in index.html to allow Google Maps:
 ```html
 <meta http-equiv="Content-Security-Policy" content="
     default-src 'self';
-    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://code.jquery.com https://cdn.jsdelivr.net https://maps.googleapis.com https://shir-gw.checkpoint.com https://zerophishing.iaas.checkpoint.com;
+    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://code.jquery.com https://cdn.jsdelivr.net https://maps.googleapis.com;
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net;
     font-src 'self' https://fonts.gstatic.com;
     connect-src 'self' https://*.supabase.co https://maps.googleapis.com https://fonts.googleapis.com https://fonts.gstatic.com;

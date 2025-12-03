@@ -4,12 +4,71 @@ class HistoryViewer {
         this.isLoading = false;
         this.alertCodes = [];
         this.medicalCodes = [];
+        this.allCalls = []; // Store all loaded calls for filtering
         this.currentVehicle = {
-            number: '5248',
-            type: 'motorcycle'
+            number: this.getUserVehicleNumber(),
+            type: this.getUserVehicleType()
         };
         
         this.init();
+    }
+
+    getUserVehicleNumber() {
+        try {
+            const userData = localStorage.getItem('userData') || sessionStorage.getItem('userData');
+            if (userData) {
+                const user = JSON.parse(userData);
+                const mdaCode = user.mdaCode || user.mda_code;
+                return mdaCode || '5248';
+            }
+            return '5248';
+        } catch (error) {
+            console.error('Error getting user vehicle number:', error);
+            return '5248';
+        }
+    }
+
+    getUserVehicleType() {
+        try {
+            const mdaCode = this.getUserVehicleNumber();
+            return this.detectVehicleType(mdaCode);
+        } catch (error) {
+            console.error('Error detecting vehicle type:', error);
+            return 'motorcycle';
+        }
+    }
+
+    detectVehicleType(code) {
+        if (!code) return 'motorcycle';
+        
+        const codeStr = String(code);
+        const codeNum = parseInt(codeStr);
+        const len = codeStr.length;
+        const firstDigit = codeStr[0];
+        const firstTwo = codeStr.substring(0, 2);
+        
+        // Motorcycle codes (5xxx)
+        if (len === 4 && firstDigit === '5') {
+            return 'motorcycle';
+        }
+        
+        // Picanto codes (4 digits starting with 6, 7, 8, 9)
+        if (len === 4 && ['6', '7', '8', '9'].includes(firstDigit)) {
+            return 'picanto';
+        }
+        
+        // Ambulance codes (3 digits)
+        if (len === 3) {
+            return 'ambulance';
+        }
+        
+        // Personal standby (9 digits)
+        if (len === 9) {
+            return 'personal_standby';
+        }
+        
+        // Default to motorcycle
+        return 'motorcycle';
     }
 
     // Helper method to get authentication headers
@@ -108,6 +167,32 @@ class HistoryViewer {
             });
         }
 
+        // Entry codes button
+        const entryCodesBtn = document.getElementById('entryCodesBtn');
+        if (entryCodesBtn) {
+            entryCodesBtn.addEventListener('click', () => {
+                window.location.href = '/entry-codes.html';
+            });
+        }
+
+        // Admin button - show only for admin users
+        const userData = localStorage.getItem('userData') || sessionStorage.getItem('userData');
+        if (userData) {
+            try {
+                const user = JSON.parse(userData);
+                const adminBtn = document.getElementById('adminBtn');
+                const isAdmin = user.isAdmin || user.is_admin;
+                if (adminBtn && isAdmin) {
+                    adminBtn.style.display = 'flex';
+                    adminBtn.addEventListener('click', () => {
+                        window.location.href = '/admin.html';
+                    });
+                }
+            } catch (e) {
+                console.error('Failed to parse user data:', e);
+            }
+        }
+
         // Mobile menu functionality
         const mobileMenuBtn = document.getElementById('mobileMenuBtn');
         const mobileMenuOverlay = document.getElementById('mobileMenuOverlay');
@@ -143,6 +228,39 @@ class HistoryViewer {
             });
         }
 
+        // Mobile menu buttons
+        const mobileEntryCodesBtn = document.getElementById('mobileEntryCodesBtn');
+        if (mobileEntryCodesBtn) {
+            mobileEntryCodesBtn.addEventListener('click', () => {
+                window.location.href = '/entry-codes.html';
+            });
+        }
+
+        const mobileAdminBtn = document.getElementById('mobileAdminBtn');
+        if (mobileAdminBtn && userData) {
+            try {
+                const user = JSON.parse(userData);
+                const isAdmin = user.isAdmin || user.is_admin;
+                if (isAdmin) {
+                    mobileAdminBtn.style.display = 'flex';
+                    mobileAdminBtn.addEventListener('click', () => {
+                        window.location.href = '/admin.html';
+                    });
+                }
+            } catch (e) {
+                console.error('Failed to parse user data for mobile admin button:', e);
+            }
+        }
+
+        const mobileLogoutBtn = document.getElementById('mobileLogoutBtn');
+        if (mobileLogoutBtn) {
+            mobileLogoutBtn.addEventListener('click', () => {
+                if (confirm('האם אתה בטוח שברצונך להתנתק?')) {
+                    this.logout();
+                }
+            });
+        }
+
         // Vehicle settings form
         const vehicleForm = document.getElementById('vehicleSettingsForm');
         if (vehicleForm) {
@@ -154,6 +272,33 @@ class HistoryViewer {
         if (loadHistoricalBtn) {
             loadHistoricalBtn.addEventListener('click', () => {
                 this.loadHistoricalCalls();
+            });
+        }
+
+        // Live search functionality
+        const liveSearchInput = document.getElementById('liveSearchInput');
+        const clearSearchBtn = document.getElementById('clearSearchBtn');
+        
+        if (liveSearchInput) {
+            liveSearchInput.addEventListener('input', (e) => {
+                const searchTerm = e.target.value.trim();
+                
+                // Show/hide clear button
+                if (clearSearchBtn) {
+                    clearSearchBtn.style.display = searchTerm ? 'flex' : 'none';
+                }
+                
+                this.filterCalls(searchTerm);
+            });
+        }
+        
+        if (clearSearchBtn) {
+            clearSearchBtn.addEventListener('click', () => {
+                if (liveSearchInput) {
+                    liveSearchInput.value = '';
+                    clearSearchBtn.style.display = 'none';
+                    this.filterCalls('');
+                }
             });
         }
 
@@ -304,8 +449,20 @@ class HistoryViewer {
 
             const data = await response.json();
             
+            // Store all calls for filtering
+            this.allCalls = data.calls || [];
+            
             this.displayHistoricalStats(data.stats, year, month);
-            this.displayHistoricalCalls(data.calls, year, month);
+            this.displayHistoricalCalls(this.allCalls, year, month);
+            
+            // Show search container if there are calls
+            const searchContainer = document.getElementById('searchContainer');
+            console.log('🔍 Search container element:', searchContainer);
+            console.log('🔍 Number of calls:', this.allCalls.length);
+            if (searchContainer) {
+                searchContainer.style.display = this.allCalls.length > 0 ? 'block' : 'none';
+                console.log('🔍 Search container display set to:', searchContainer.style.display);
+            }
             
         } catch (error) {
             console.error('Error loading historical calls:', error);
@@ -437,47 +594,69 @@ class HistoryViewer {
                 }
             }
 
-            // Simple display structure - back to basics
+            // Modern card layout for historical calls
             return `
-                <div class="call-item" style="border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px; background: white; color: #333;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                        <strong style="color: #d32f2f; font-size: 1.1em;">${displayCallType}</strong>
-                        <div style="display: flex; gap: 8px; align-items: center;">
-                            <button class="edit-call-btn" data-call-id="${call.id}" data-call-data='${JSON.stringify(call).replace(/'/g, "&apos;")}' style="background: #1976d2; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85em; display: flex; align-items: center; gap: 4px;">✏️ עריכה</button>
-                            <span style="color: #555; font-size: 0.9em; background: #f5f5f5; padding: 4px 8px; border-radius: 4px;">${formattedDate}</span>
+                <div class="call-item">
+                    <div class="call-header">
+                        <div class="call-type-badge ${displayCallType.includes('דחוף') ? 'urgent' : displayCallType.includes('אט') ? 'atan' : ''}">
+                            ${displayCallType}
                         </div>
+                        <div class="call-date">${formattedDate}</div>
                     </div>
-                    <div style="margin-bottom: 8px; color: #333;">
-                        <strong style="color: #1976d2;">זמן:</strong> <span style="color: #333;">${formattedTime}</span>
+                    
+                    <div class="call-body">
+                        <div class="call-row">
+                            <span class="call-label">⏰ זמן:</span>
+                            <span class="call-value">${formattedTime}</span>
+                        </div>
+                        <div class="call-row">
+                            <span class="call-label">⏱️ משך:</span>
+                            <span class="call-value">${duration}</span>
+                        </div>
+                        <div class="call-row">
+                            <span class="call-label">📍 מיקום:</span>
+                            <span class="call-value">${call.city || ''} ${call.street || ''} ${call.location || ''}</span>
+                        </div>
+                        ${call.alert_code ? `
+                            <div class="call-row">
+                                <span class="call-label">🔴 קוד הזנקה:</span>
+                                <span class="call-value">${call.alert_code}</span>
+                            </div>
+                        ` : ''}
+                        ${call.medical_code ? `
+                            <div class="call-row">
+                                <span class="call-label">🏥 קוד רפואי:</span>
+                                <span class="call-value">${call.medical_code}</span>
+                            </div>
+                        ` : ''}
+                        ${call.meter_visa_number ? `
+                            <div class="call-row">
+                                <span class="call-label">💳 מונה/ויזה:</span>
+                                <span class="call-value">${call.meter_visa_number}</span>
+                            </div>
+                        ` : ''}
+                        ${call.entry_code ? `
+                            <div class="call-row">
+                                <span class="call-label">🔑 קוד כניסה:</span>
+                                <span class="call-value">${call.entry_code}</span>
+                            </div>
+                        ` : ''}
+                        ${call.description ? `
+                            <div class="call-row">
+                                <span class="call-label">📝 תיאור:</span>
+                                <span class="call-value">${call.description}</span>
+                            </div>
+                        ` : ''}
                     </div>
-                    <div style="margin-bottom: 8px; color: #333;">
-                        <strong style="color: #1976d2;">משך:</strong> <span style="color: #333;">${duration}</span>
-                    </div>
-                    <div style="margin-bottom: 8px; color: #333;">
-                        <strong style="color: #1976d2;">מיקום:</strong> <span style="color: #333;">${call.location || 'לא צוין'}</span>
-                    </div>
-                    ${call.alert_code ? `
-                        <div style="margin-bottom: 8px; color: #333;">
-                            <strong style="color: #1976d2;">קוד הזנקה:</strong> <span style="color: #333;">${call.alert_code}</span>
+                    
+                    <div class="call-footer">
+                        <div class="call-vehicle">
+                            <span class="vehicle-emoji">${vehicleEmoji}</span>
+                            <span class="vehicle-info">${vehicleTypeHebrew} ${vehicleNumber}</span>
                         </div>
-                    ` : ''}
-                    ${call.medical_code ? `
-                        <div style="margin-bottom: 8px; color: #333;">
-                            <strong style="color: #1976d2;">קוד רפואי:</strong> <span style="color: #333;">${call.medical_code}</span>
-                        </div>
-                    ` : ''}
-                    ${call.meter_visa_number ? `
-                        <div style="margin-bottom: 8px; color: #333;">
-                            <strong style="color: #1976d2;">מספר מונה/ויזה:</strong> <span style="color: #333;">${call.meter_visa_number}</span>
-                        </div>
-                    ` : ''}
-                    ${call.description ? `
-                        <div style="margin-bottom: 8px; color: #333;">
-                            <strong style="color: #1976d2;">תיאור:</strong> <span style="color: #333;">${call.description}</span>
-                        </div>
-                    ` : ''}
-                    <div style="color: #666; font-size: 0.9em; background: #f8f9fa; padding: 8px; border-radius: 4px; border-left: 3px solid #2196f3;">
-                        <strong style="color: #333;">רכב:</strong> <span style="color: #333;">${vehicleEmoji} ${vehicleTypeHebrew} ${vehicleNumber}</span>
+                        <button class="edit-call-btn" data-call-id="${call.id}" data-call-data='${JSON.stringify(call).replace(/'/g, "&apos;")}'>
+                            ✏️ עריכה
+                        </button>
                     </div>
                 </div>
             `;
@@ -501,18 +680,212 @@ class HistoryViewer {
         });
     }
 
+    filterCalls(searchTerm) {
+        if (!this.allCalls || this.allCalls.length === 0) return;
+        
+        const searchLower = searchTerm.toLowerCase().trim();
+        
+        if (!searchLower) {
+            // Show all calls if search is empty
+            this.displayFilteredCalls(this.allCalls);
+            return;
+        }
+        
+        const filteredCalls = this.allCalls.filter(call => {
+            // Search in medical code
+            if (call.medical_code && call.medical_code.toLowerCase().includes(searchLower)) {
+                return true;
+            }
+            
+            // Search in alert code (קוד הזנקה)
+            if (call.alert_code && call.alert_code.toLowerCase().includes(searchLower)) {
+                return true;
+            }
+            
+            // Search in date
+            if (call.call_date) {
+                const callDate = new Date(call.call_date);
+                const formattedDate = callDate.toLocaleDateString('he-IL');
+                if (formattedDate.includes(searchTerm)) {
+                    return true;
+                }
+                // Also check ISO format
+                if (call.call_date.includes(searchTerm)) {
+                    return true;
+                }
+            }
+            
+            // Search in vehicle number
+            if (call.vehicle_number && call.vehicle_number.toString().includes(searchTerm)) {
+                return true;
+            }
+            
+            // Search in location
+            if (call.city && call.city.toLowerCase().includes(searchLower)) {
+                return true;
+            }
+            if (call.street && call.street.toLowerCase().includes(searchLower)) {
+                return true;
+            }
+            if (call.location && call.location.toLowerCase().includes(searchLower)) {
+                return true;
+            }
+            
+            // Search in call type
+            if (call.call_type && call.call_type.toLowerCase().includes(searchLower)) {
+                return true;
+            }
+            
+            return false;
+        });
+        
+        this.displayFilteredCalls(filteredCalls);
+    }
+
+    displayFilteredCalls(calls) {
+        const callsList = document.getElementById('historicalCallsList');
+        if (!callsList) return;
+
+        if (!calls || calls.length === 0) {
+            callsList.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">🔍</div>
+                    <p class="empty-text">לא נמצאו תוצאות</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Use the same rendering logic as displayHistoricalCalls
+        const callsHtml = calls.map(call => {
+            const callDate = new Date(call.call_date || call.created_at);
+            const formattedDate = callDate.toLocaleDateString('he-IL');
+            const formattedTime = `${call.start_time}${call.end_time ? ` - ${call.end_time}` : ' (פעיל)'}`;
+            
+            const duration = call.duration_minutes 
+                ? `${call.duration_minutes} דקות`
+                : (call.end_time ? 'לא חושב' : 'בתהליך');
+
+            let displayCallType = call.call_type || 'לא צוין';
+            if (displayCallType === 'urgent') displayCallType = '🚨 דחוף';
+            else if (displayCallType === 'דחוף') displayCallType = '🚨 דחוף';
+            else if (displayCallType === 'atan') displayCallType = '🔴 אט"ן';
+            else if (displayCallType === 'אט"ן') displayCallType = '🔴 אט"ן';
+            else if (displayCallType === 'אט״ן') displayCallType = '🔴 אט"ן';
+            else if (displayCallType === 'aran') displayCallType = 'ארן';
+            else if (displayCallType === 'natbag') displayCallType = 'נתבג';
+
+            let vehicleTypeHebrew = call.vehicle_type;
+            let vehicleEmoji = '🚑';
+            const vehicleNumber = call.vehicle_number || '';
+            
+            if (vehicleNumber) {
+                if (vehicleNumber.toString().startsWith('5')) {
+                    vehicleTypeHebrew = 'אופנוע';
+                    vehicleEmoji = '🏍️';
+                } else if (vehicleNumber.toString().startsWith('6')) {
+                    vehicleTypeHebrew = 'פיקנטו';
+                    vehicleEmoji = '🚗';
+                } else if (vehicleNumber.toString().length === 5 && (vehicleNumber.toString().startsWith('1') || vehicleNumber.toString().startsWith('2'))) {
+                    vehicleTypeHebrew = 'כונן אישי';
+                    vehicleEmoji = '👨‍⚕️';
+                } else {
+                    vehicleTypeHebrew = 'אמבולנס';
+                    vehicleEmoji = '🚑';
+                }
+            }
+
+            return `
+                <div class="call-item">
+                    <div class="call-header">
+                        <div class="call-type-badge ${displayCallType.includes('דחוף') ? 'urgent' : displayCallType.includes('אט') ? 'atan' : ''}">
+                            ${displayCallType}
+                        </div>
+                        <div class="call-date">${formattedDate}</div>
+                    </div>
+                    
+                    <div class="call-body">
+                        <div class="call-row">
+                            <span class="call-label">⏰ זמן:</span>
+                            <span class="call-value">${formattedTime}</span>
+                        </div>
+                        <div class="call-row">
+                            <span class="call-label">⏱️ משך:</span>
+                            <span class="call-value">${duration}</span>
+                        </div>
+                        <div class="call-row">
+                            <span class="call-label">📍 מיקום:</span>
+                            <span class="call-value">${call.city || ''} ${call.street || ''} ${call.location || ''}</span>
+                        </div>
+                        ${call.alert_code ? `
+                            <div class="call-row">
+                                <span class="call-label">🔴 קוד הזנקה:</span>
+                                <span class="call-value">${call.alert_code}</span>
+                            </div>
+                        ` : ''}
+                        ${call.medical_code ? `
+                            <div class="call-row">
+                                <span class="call-label">🏥 קוד רפואי:</span>
+                                <span class="call-value">${call.medical_code}</span>
+                            </div>
+                        ` : ''}
+                        ${call.meter_visa_number ? `
+                            <div class="call-row">
+                                <span class="call-label">💳 מונה/ויזה:</span>
+                                <span class="call-value">${call.meter_visa_number}</span>
+                            </div>
+                        ` : ''}
+                        ${call.entry_code ? `
+                            <div class="call-row">
+                                <span class="call-label">🔑 קוד כניסה:</span>
+                                <span class="call-value">${call.entry_code}</span>
+                            </div>
+                        ` : ''}
+                        ${call.description ? `
+                            <div class="call-row">
+                                <span class="call-label">📝 תיאור:</span>
+                                <span class="call-value">${call.description}</span>
+                            </div>
+                        ` : ''}
+                    </div>
+                    
+                    <div class="call-footer">
+                        <div class="call-vehicle">
+                            <span class="vehicle-emoji">${vehicleEmoji}</span>
+                            <span class="vehicle-info">${vehicleTypeHebrew} ${vehicleNumber}</span>
+                        </div>
+                        <button class="edit-call-btn" data-call-id="${call.id}" data-call-data='${JSON.stringify(call).replace(/'/g, "&apos;")}'>
+                            ✏️ עריכה
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        callsList.innerHTML = callsHtml;
+        this.bindEditButtons();
+    }
+
     // Vehicle display methods
     async loadVehicleDisplay() {
         try {
+            // First set from user data
+            this.currentVehicle = {
+                number: this.getUserVehicleNumber(),
+                type: this.getUserVehicleType()
+            };
+            this.updateVehicleDisplay();
+            
+            // Then try to get from API (in case user customized it)
             const response = await fetch('/api/vehicle/current', {
                 headers: this.getAuthHeaders()
             });
             if (response.ok) {
                 const result = await response.json();
-                if (result.success && result.data) {
+                if (result.success && result.data && result.data.vehicle_number) {
                     this.currentVehicle = {
                         number: result.data.vehicle_number,
-                        type: result.data.vehicle_type
+                        type: result.data.vehicle_type || this.currentVehicle.type
                     };
                     this.updateVehicleDisplay();
                 }
@@ -782,6 +1155,17 @@ class HistoryViewer {
         if (editMedicalCodeSelect) {
             editMedicalCodeSelect.innerHTML = '<option value="">בחר קוד רפואי</option>' + options;
         }
+    }
+
+    logout() {
+        // Clear authentication data
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userData');
+        sessionStorage.removeItem('authToken');
+        sessionStorage.removeItem('userData');
+        
+        // Redirect to login page
+        window.location.href = '/login.html';
     }
 }
 

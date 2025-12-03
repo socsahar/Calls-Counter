@@ -28,25 +28,73 @@
 <body>
     <!-- Header -->
     <header class="header">
-        <div class="header-content">
-            <button id="backBtn" class="back-btn" aria-label="חזרה לדף הראשי">
-                <span class="icon">←</span>
-            </button>
-            
-            <div class="header-info">
-                <h1 class="header-title">ממשק מנהל מערכת</h1>
-                <div class="header-subtitle">
-                    <span id="adminName" class="vehicle-info">טוען...</span>
-                </div>
+        <div class="header-container">
+            <div class="logo">
+                <span class="logo-icon">⚙️</span>
+                <h1 class="logo-text">ממשק מנהל</h1>
             </div>
             
+            <!-- Mobile burger menu button -->
+            <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="תפריט">
+                <span class="burger-line"></span>
+                <span class="burger-line"></span>
+                <span class="burger-line"></span>
+            </button>
+            
+            <!-- Desktop header actions -->
             <div class="header-actions">
-                <button id="refreshBtn" class="action-btn refresh-btn" title="רענון נתונים">
-                    <span class="icon">🔄</span>
+                <button class="settings-btn" id="mainPageBtn">
+                    <span class="settings-icon">🏠</span>
+                    עמוד ראשי
+                </button>
+                <button class="settings-btn" id="entryCodesBtn">
+                    <span class="settings-icon">🔑</span>
+                    קודי כניסה
+                </button>
+                <button class="settings-btn" id="historyBtn">
+                    <span class="settings-icon">📊</span>
+                    היסטוריה
+                </button>
+                <button class="settings-btn logout-btn" id="logoutBtn">
+                    <span class="settings-icon">🚪</span>
+                    יציאה
                 </button>
             </div>
         </div>
     </header>
+
+    <!-- Mobile Menu Overlay -->
+    <div class="mobile-menu-overlay" id="mobileMenuOverlay">
+        <div class="mobile-menu">
+            <div class="mobile-menu-header">
+                <div class="mobile-menu-title">תפריט ניהול</div>
+                <button class="mobile-menu-close" id="mobileMenuClose">×</button>
+            </div>
+            <div class="mobile-menu-content">
+                <div class="mobile-menu-user">
+                    <div class="admin-name-mobile" id="mobileAdminName">טוען...</div>
+                </div>
+                <nav class="mobile-menu-nav">
+                    <button class="mobile-menu-item" id="mobileMainPageBtn">
+                        <span class="mobile-menu-icon">🏠</span>
+                        <span class="mobile-menu-text">עמוד ראשי</span>
+                    </button>
+                    <button class="mobile-menu-item" id="mobileEntryCodesBtn">
+                        <span class="mobile-menu-icon">🔑</span>
+                        <span class="mobile-menu-text">קודי כניסה</span>
+                    </button>
+                    <button class="mobile-menu-item" id="mobileHistoryBtn">
+                        <span class="mobile-menu-icon">📊</span>
+                        <span class="mobile-menu-text">היסטוריה</span>
+                    </button>
+                    <button class="mobile-menu-item" id="mobileLogoutBtn">
+                        <span class="mobile-menu-icon">🚪</span>
+                        <span class="mobile-menu-text">יציאה</span>
+                    </button>
+                </nav>
+            </div>
+        </div>
+    </div>
 
     <!-- Loading Overlay -->
     <div id="loadingOverlay" class="loading-overlay">
@@ -56,6 +104,36 @@
 
     <!-- Main Content -->
     <main class="main-content">
+        <!-- Quick Actions -->
+        <section class="actions-section">
+            <div class="section-header">
+                <h2 class="section-title">פעולות מהירות</h2>
+            </div>
+            
+            <div class="action-buttons">
+                <button id="viewUsersBtn" class="admin-action-btn">
+                    <span class="icon">👥</span>
+                    <span class="text">ניהול משתמשים</span>
+                </button>
+                <button id="viewAllCallsBtn" class="admin-action-btn">
+                    <span class="icon">📞</span>
+                    <span class="text">כל הקריאות</span>
+                </button>
+                <button id="manageCodesBtn" class="admin-action-btn">
+                    <span class="icon">🏷️</span>
+                    <span class="text">ניהול סוגי קריאות</span>
+                </button>
+                <button id="manageEntryCodesBtn" class="admin-action-btn">
+                    <span class="icon">🔑</span>
+                    <span class="text">ניהול קודי כניסה</span>
+                </button>
+                <button id="manageApiKeysBtn" class="admin-action-btn">
+                    <span class="icon">🔐</span>
+                    <span class="text">ניהול מפתחות API</span>
+                </button>
+            </div>
+        </section>
+
         <!-- Dashboard Stats -->
         <section class="dashboard-section">
             <div class="section-header">
@@ -86,40 +164,6 @@
             
             <div class="vehicle-calls-grid" id="vehicleCallsGrid">
                 <!-- Vehicle call stats will be populated by JavaScript -->
-            </div>
-        </section>
-
-        <!-- Quick Actions -->
-        <section class="actions-section">
-            <div class="section-header">
-                <h2 class="section-title">פעולות מהירות</h2>
-            </div>
-            
-            <div class="action-buttons">
-                <button id="viewUsersBtn" class="admin-action-btn">
-                    <span class="icon">👥</span>
-                    <span class="text">ניהול משתמשים</span>
-                </button>
-                <button id="viewAllCallsBtn" class="admin-action-btn">
-                    <span class="icon">📞</span>
-                    <span class="text">כל הקריאות</span>
-                </button>
-                <button id="manageCodesBtn" class="admin-action-btn">
-                    <span class="icon">🏷️</span>
-                    <span class="text">ניהול סוגי קריאות</span>
-                </button>
-                <button id="manageEntryCodesBtn" class="admin-action-btn">
-                    <span class="icon">🔑</span>
-                    <span class="text">ניהול קודי כניסה</span>
-                </button>
-                <button id="manageApiKeysBtn" class="admin-action-btn">
-                    <span class="icon">🔐</span>
-                    <span class="text">ניהול מפתחות API</span>
-                </button>
-                <button id="systemStatsBtn" class="admin-action-btn">
-                    <span class="icon">📊</span>
-                    <span class="text">סטטיסטיקות מערכת</span>
-                </button>
             </div>
         </section>
 
@@ -275,16 +319,6 @@
             </div>
         </section>
 
-        <!-- Recent Activity -->
-        <section class="activity-section">
-            <div class="section-header">
-                <h2 class="section-title">פעילות אחרונה</h2>
-            </div>
-            
-            <div class="activity-container" id="activityContainer">
-                <!-- Recent activity will be populated by JavaScript -->
-            </div>
-        </section>
     </main>
 
     <!-- Password Confirmation Modal -->

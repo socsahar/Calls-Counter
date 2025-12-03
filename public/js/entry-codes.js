@@ -61,6 +61,42 @@ class EntryCodesManager {
             });
         }
 
+        // History button
+        const historyBtn = document.getElementById('historyBtn');
+        if (historyBtn) {
+            historyBtn.addEventListener('click', () => {
+                window.location.href = '/history.html';
+            });
+        }
+
+        // Logout button
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', () => {
+                if (confirm('האם אתה בטוח שברצונך להתנתק?')) {
+                    this.logout();
+                }
+            });
+        }
+
+        // Admin button - show only for admin users
+        const userData = localStorage.getItem('userData') || sessionStorage.getItem('userData');
+        if (userData) {
+            try {
+                const user = JSON.parse(userData);
+                const isAdmin = user.isAdmin || user.is_admin;
+                const adminBtn = document.getElementById('adminBtn');
+                if (adminBtn && isAdmin) {
+                    adminBtn.style.display = 'flex';
+                    adminBtn.addEventListener('click', () => {
+                        window.location.href = '/admin.html';
+                    });
+                }
+            } catch (e) {
+                console.error('Failed to parse user data:', e);
+            }
+        }
+
         // Mobile menu functionality
         const mobileMenuBtn = document.getElementById('mobileMenuBtn');
         const mobileMenuOverlay = document.getElementById('mobileMenuOverlay');
@@ -93,6 +129,39 @@ class EntryCodesManager {
         if (mobileBackBtn) {
             mobileBackBtn.addEventListener('click', () => {
                 window.location.href = '/';
+            });
+        }
+
+        // Mobile menu buttons
+        const mobileHistoryBtn = document.getElementById('mobileHistoryBtn');
+        if (mobileHistoryBtn) {
+            mobileHistoryBtn.addEventListener('click', () => {
+                window.location.href = '/history.html';
+            });
+        }
+
+        const mobileAdminBtn = document.getElementById('mobileAdminBtn');
+        if (mobileAdminBtn && userData) {
+            try {
+                const user = JSON.parse(userData);
+                const isAdmin = user.isAdmin || user.is_admin;
+                if (isAdmin) {
+                    mobileAdminBtn.style.display = 'flex';
+                    mobileAdminBtn.addEventListener('click', () => {
+                        window.location.href = '/admin.html';
+                    });
+                }
+            } catch (e) {
+                console.error('Failed to parse user data for mobile admin button:', e);
+            }
+        }
+
+        const mobileLogoutBtn = document.getElementById('mobileLogoutBtn');
+        if (mobileLogoutBtn) {
+            mobileLogoutBtn.addEventListener('click', () => {
+                if (confirm('האם אתה בטוח שברצונך להתנתק?')) {
+                    this.logout();
+                }
             });
         }
 
@@ -258,11 +327,6 @@ class EntryCodesManager {
                 <td data-label="עיר">${this.escapeHtml(entry.city)}</td>
                 <td data-label="רחוב">${this.escapeHtml(entry.street)}</td>
                 <td class="location-details-cell" data-label="פרטים נוספים">${this.escapeHtml(entry.location_details || '-')}</td>
-                <td data-label="פעולות">
-                    <button class="copy-btn" onclick="entryCodesManager.copyToClipboard('${this.escapeHtml(entry.entry_code)}')">
-                        📋 העתק
-                    </button>
-                </td>
             </tr>
         `).join('');
     }
@@ -271,7 +335,7 @@ class EntryCodesManager {
         const tbody = document.getElementById('entryCodesBody');
         tbody.innerHTML = `
             <tr class="empty-state-row">
-                <td colspan="5" class="text-center">
+                <td colspan="4" class="text-center">
                     <div class="empty-icon">🔍</div>
                     <p class="empty-text">לא נמצאו קודי כניסה</p>
                 </td>
@@ -337,6 +401,17 @@ class EntryCodesManager {
                 toast.classList.add('hidden');
             }, 3000);
         }
+    }
+
+    logout() {
+        // Clear authentication data
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userData');
+        sessionStorage.removeItem('authToken');
+        sessionStorage.removeItem('userData');
+        
+        // Redirect to login page
+        window.location.href = '/login.html';
     }
 }
 

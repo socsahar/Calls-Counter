@@ -47,8 +47,20 @@
             <!-- Desktop header actions -->
             <div class="header-actions">
                 <button class="settings-btn" id="backBtn">
-                    <span class="settings-icon">🔙</span>
-                    חזרה
+                    <span class="settings-icon">🏠</span>
+                    עמוד ראשי
+                </button>
+                <button class="settings-btn" id="historyBtn">
+                    <span class="settings-icon">📊</span>
+                    היסטוריה
+                </button>
+                <button class="settings-btn" id="adminBtn" style="display: none;">
+                    <span class="settings-icon">⚙️</span>
+                    ניהול מערכת
+                </button>
+                <button class="settings-btn logout-btn" id="logoutBtn">
+                    <span class="settings-icon">🚪</span>
+                    יציאה
                 </button>
                 <div class="motorcycle-badge">
                     <span class="badge-label">רכב</span>
@@ -76,8 +88,20 @@
                 </div>
                 <nav class="mobile-menu-nav">
                     <button class="mobile-menu-item" id="mobileBackBtn">
-                        <span class="mobile-menu-icon">🔙</span>
-                        <span class="mobile-menu-text">חזרה לעמוד הראשי</span>
+                        <span class="mobile-menu-icon">🏠</span>
+                        <span class="mobile-menu-text">עמוד ראשי</span>
+                    </button>
+                    <button class="mobile-menu-item" id="mobileHistoryBtn">
+                        <span class="mobile-menu-icon">📊</span>
+                        <span class="mobile-menu-text">היסטוריה</span>
+                    </button>
+                    <button class="mobile-menu-item" id="mobileAdminBtn" style="display: none;">
+                        <span class="mobile-menu-icon">⚙️</span>
+                        <span class="mobile-menu-text">ניהול מערכת</span>
+                    </button>
+                    <button class="mobile-menu-item" id="mobileLogoutBtn">
+                        <span class="mobile-menu-icon">🚪</span>
+                        <span class="mobile-menu-text">יציאה</span>
                     </button>
                 </nav>
             </div>
@@ -139,7 +163,6 @@
                                     פרטים נוספים
                                     <span class="sort-indicator"></span>
                                 </th>
-                                <th>פעולות</th>
                             </tr>
                         </thead>
                         <tbody id="entryCodesBody">

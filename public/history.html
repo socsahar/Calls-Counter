@@ -47,8 +47,16 @@
             <!-- Desktop header actions -->
             <div class="header-actions">
                 <button class="settings-btn" id="backBtn">
-                    <span class="settings-icon">🔙</span>
-                    חזרה
+                    <span class="settings-icon">🏠</span>
+                    עמוד ראשי
+                </button>
+                <button class="settings-btn" id="entryCodesBtn">
+                    <span class="settings-icon">🔑</span>
+                    קודי כניסה
+                </button>
+                <button class="settings-btn" id="adminBtn" style="display: none;">
+                    <span class="settings-icon">⚙️</span>
+                    ניהול מערכת
                 </button>
                 <div class="motorcycle-badge">
                     <span class="badge-label">רכב</span>
@@ -76,8 +84,20 @@
                 </div>
                 <nav class="mobile-menu-nav">
                     <button class="mobile-menu-item" id="mobileBackBtn">
-                        <span class="mobile-menu-icon">🔙</span>
-                        <span class="mobile-menu-text">חזרה לעמוד הראשי</span>
+                        <span class="mobile-menu-icon">🏠</span>
+                        <span class="mobile-menu-text">עמוד ראשי</span>
+                    </button>
+                    <button class="mobile-menu-item" id="mobileEntryCodesBtn">
+                        <span class="mobile-menu-icon">🔑</span>
+                        <span class="mobile-menu-text">קודי כניסה</span>
+                    </button>
+                    <button class="mobile-menu-item" id="mobileAdminBtn" style="display: none;">
+                        <span class="mobile-menu-icon">⚙️</span>
+                        <span class="mobile-menu-text">ניהול מערכת</span>
+                    </button>
+                    <button class="mobile-menu-item" id="mobileLogoutBtn">
+                        <span class="mobile-menu-icon">🚪</span>
+                        <span class="mobile-menu-text">יציאה</span>
                     </button>
                 </nav>
             </div>
@@ -138,6 +158,17 @@
             <div class="calls-container">
                 <div class="calls-header">
                     <h2 class="section-title" id="historicalTitle">בחר תקופה להצגת קריאות</h2>
+                    <!-- Live Search Filter -->
+                    <div class="search-container" id="searchContainer" style="display: none;">
+                        <input 
+                            type="text" 
+                            id="liveSearchInput" 
+                            class="search-input" 
+                            placeholder="חיפוש לפי קוד רפואי, קוד הזנקה, תאריך או רכב..."
+                            autocomplete="off"
+                        />
+                        <button id="clearSearchBtn" class="clear-search-btn" style="display: none;">×</button>
+                    </div>
                 </div>
                 <div id="historicalCallsList" class="calls-list">
                     <div class="empty-state">
@@ -354,19 +385,23 @@
             if (!user) return;
             
             // Detect vehicle type and get appropriate details
-            const vehicleType = detectVehicleType(user.mda_code || user.mdaCode);
+            const mdaCode = user.mda_code || user.mdaCode;
+            const vehicleType = detectVehicleType(mdaCode);
             const vehicleEmoji = getVehicleEmoji(vehicleType);
             const vehicleHebrewName = getVehicleHebrewName(vehicleType);
             
             // Update the vehicle badge to show proper vehicle info
             const vehicleNumber = document.getElementById('currentVehicle');
             const vehicleTypeElement = document.getElementById('currentVehicleType');
-            if (vehicleNumber && vehicleTypeElement) {
-                vehicleNumber.textContent = user.mda_code || user.mdaCode;
-                vehicleTypeElement.innerHTML = `${vehicleEmoji} ${vehicleHebrewName}`;
-            }
+            const mobileVehicleNumber = document.getElementById('mobileCurrentVehicle');
+            const mobileVehicleType = document.getElementById('mobileCurrentVehicleType');
             
-            console.log('🏍️ History page vehicle updated:', user.mda_code || user.mdaCode, vehicleType, vehicleHebrewName);
+            if (vehicleNumber) vehicleNumber.textContent = mdaCode;
+            if (vehicleTypeElement) vehicleTypeElement.innerHTML = `${vehicleEmoji} ${vehicleHebrewName}`;
+            if (mobileVehicleNumber) mobileVehicleNumber.textContent = mdaCode;
+            if (mobileVehicleType) mobileVehicleType.innerHTML = `${vehicleEmoji} ${vehicleHebrewName}`;
+            
+            console.log('🏍️ History page vehicle updated:', mdaCode, vehicleType, vehicleHebrewName);
         }
         
         function getVehicleHebrewName(vehicleType) {
