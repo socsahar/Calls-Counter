@@ -1351,7 +1351,6 @@ class CallCounter {
             adminBtn.innerHTML = '<span class="icon">⚙️</span>';
             adminBtn.addEventListener('click', () => {
                 console.log('🔐 Admin button clicked, navigating to admin panel');
-                alert('Navigating to admin panel...'); // Temporary alert for testing
                 window.location.href = '/admin.html';
             });
             

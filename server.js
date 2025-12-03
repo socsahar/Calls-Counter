@@ -1132,9 +1132,19 @@ app.get('/api/entry-codes', authenticateToken, async (req, res) => {
     try {
         console.log('🔑 Fetching entry codes...');
 
-        // Get distinct entry codes with city, street, and location details
-        // We parse the location field which is in format: "City, Street, Details"
-        const { data, error } = await supabase
+        // Query 1: Get manually added entry codes from entry_codes table
+        const { data: manualCodes, error: manualError } = await supabase
+            .from('entry_codes')
+            .select('entry_code, city, street, location_details, id, notes')
+            .order('city', { ascending: true })
+            .order('street', { ascending: true });
+
+        if (manualError) {
+            console.error('Error fetching manual entry codes:', manualError);
+        }
+
+        // Query 2: Get entry codes from calls
+        const { data: callCodes, error: callError } = await supabase
             .from('calls')
             .select('entry_code, city, street, location')
             .not('entry_code', 'is', null)
@@ -1142,50 +1152,257 @@ app.get('/api/entry-codes', authenticateToken, async (req, res) => {
             .order('city', { ascending: true })
             .order('street', { ascending: true });
 
-        if (error) {
-            console.error('Supabase error:', error);
-            return res.status(400).json({
-                success: false,
-                message: 'שגיאה בטעינת קודי כניסה',
-                error: error.message
-            });
+        if (callError) {
+            console.error('Error fetching entry codes from calls:', callError);
         }
 
         // Process and deduplicate the results
         const entryCodesMap = new Map();
         
-        data.forEach(call => {
-            // Extract location details (everything after city and street)
-            let locationDetails = '';
-            if (call.location) {
-                const parts = call.location.split(',').map(s => s.trim());
-                if (parts.length > 2) {
-                    locationDetails = parts.slice(2).join(', ');
-                }
-            }
-
-            // Create a unique key for each combination
-            const key = `${call.entry_code}|${call.city}|${call.street}`;
-            
-            if (!entryCodesMap.has(key)) {
+        // Add manual codes first (they have priority)
+        if (manualCodes) {
+            manualCodes.forEach(code => {
+                const key = `${code.entry_code}|${code.city}|${code.street}`;
                 entryCodesMap.set(key, {
-                    entry_code: call.entry_code,
-                    city: call.city || '',
-                    street: call.street || '',
-                    location_details: locationDetails
+                    entry_code: code.entry_code,
+                    city: code.city || '',
+                    street: code.street || '',
+                    location_details: code.location_details || '',
+                    source: 'manual',
+                    id: code.id
                 });
-            }
-        });
+            });
+        }
+        
+        // Add codes from calls (skip if already exists)
+        if (callCodes) {
+            callCodes.forEach(call => {
+                // Extract location details (everything after city and street)
+                let locationDetails = '';
+                if (call.location) {
+                    const parts = call.location.split(',').map(s => s.trim());
+                    if (parts.length > 2) {
+                        locationDetails = parts.slice(2).join(', ');
+                    }
+                }
+
+                // Create a unique key for each combination
+                const key = `${call.entry_code}|${call.city}|${call.street}`;
+                
+                if (!entryCodesMap.has(key)) {
+                    entryCodesMap.set(key, {
+                        entry_code: call.entry_code,
+                        city: call.city || '',
+                        street: call.street || '',
+                        location_details: locationDetails,
+                        source: 'call'
+                    });
+                }
+            });
+        }
 
         // Convert map to array
         const uniqueEntryCodes = Array.from(entryCodesMap.values());
 
-        console.log(`🔑 Found ${uniqueEntryCodes.length} unique entry codes`);
+        console.log(`🔑 Found ${uniqueEntryCodes.length} unique entry codes (${manualCodes?.length || 0} manual, ${callCodes?.length || 0} from calls)`);
 
         res.json({
             success: true,
             data: uniqueEntryCodes,
             count: uniqueEntryCodes.length
+        });
+    } catch (error) {
+        console.error('Server error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'שגיאת שרת פנימית',
+            error: error.message
+        });
+    }
+});
+
+// ===== ADMIN ENTRY CODES MANAGEMENT =====
+
+// Create new entry code (Admin only)
+app.post('/api/admin/entry-codes', authenticateToken, async (req, res) => {
+    try {
+        // Check if user is admin
+        if (!req.user || !req.user.is_admin) {
+            return res.status(403).json({
+                success: false,
+                message: 'גישה נדחתה - נדרשות הרשאות מנהל'
+            });
+        }
+
+        const { entry_code, city, street, location_details, notes } = req.body;
+
+        // Validation
+        if (!entry_code || !city || !street) {
+            return res.status(400).json({
+                success: false,
+                message: 'קוד כניסה, עיר ורחוב הם שדות חובה'
+            });
+        }
+
+        // Insert new entry code
+        const { data, error } = await supabase
+            .from('entry_codes')
+            .insert([{
+                entry_code: entry_code.trim(),
+                city: city.trim(),
+                street: street.trim(),
+                location_details: location_details?.trim() || null,
+                notes: notes?.trim() || null,
+                created_by: req.user.user_id
+            }])
+            .select()
+            .single();
+
+        if (error) {
+            // Check for duplicate
+            if (error.code === '23505') {
+                return res.status(409).json({
+                    success: false,
+                    message: 'קוד כניסה זה כבר קיים עבור מיקום זה'
+                });
+            }
+            
+            console.error('Error creating entry code:', error);
+            return res.status(400).json({
+                success: false,
+                message: 'שגיאה ביצירת קוד כניסה',
+                error: error.message
+            });
+        }
+
+        console.log(`🔑 Admin ${req.user.username} created entry code: ${entry_code} for ${city}, ${street}`);
+
+        res.json({
+            success: true,
+            message: 'קוד הכניסה נוסף בהצלחה',
+            data: data
+        });
+    } catch (error) {
+        console.error('Server error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'שגיאת שרת פנימית',
+            error: error.message
+        });
+    }
+});
+
+// Update entry code (Admin only)
+app.put('/api/admin/entry-codes/:id', authenticateToken, async (req, res) => {
+    try {
+        // Check if user is admin
+        if (!req.user || !req.user.is_admin) {
+            return res.status(403).json({
+                success: false,
+                message: 'גישה נדחתה - נדרשות הרשאות מנהל'
+            });
+        }
+
+        const { id } = req.params;
+        const { entry_code, city, street, location_details, notes } = req.body;
+
+        // Validation
+        if (!entry_code || !city || !street) {
+            return res.status(400).json({
+                success: false,
+                message: 'קוד כניסה, עיר ורחוב הם שדות חובה'
+            });
+        }
+
+        // Update entry code
+        const { data, error } = await supabase
+            .from('entry_codes')
+            .update({
+                entry_code: entry_code.trim(),
+                city: city.trim(),
+                street: street.trim(),
+                location_details: location_details?.trim() || null,
+                notes: notes?.trim() || null,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) {
+            // Check for duplicate
+            if (error.code === '23505') {
+                return res.status(409).json({
+                    success: false,
+                    message: 'קוד כניסה זה כבר קיים עבור מיקום זה'
+                });
+            }
+            
+            console.error('Error updating entry code:', error);
+            return res.status(400).json({
+                success: false,
+                message: 'שגיאה בעדכון קוד כניסה',
+                error: error.message
+            });
+        }
+
+        if (!data) {
+            return res.status(404).json({
+                success: false,
+                message: 'קוד כניסה לא נמצא'
+            });
+        }
+
+        console.log(`🔑 Admin ${req.user.username} updated entry code: ${id}`);
+
+        res.json({
+            success: true,
+            message: 'קוד הכניסה עודכן בהצלחה',
+            data: data
+        });
+    } catch (error) {
+        console.error('Server error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'שגיאת שרת פנימית',
+            error: error.message
+        });
+    }
+});
+
+// Delete entry code (Admin only)
+app.delete('/api/admin/entry-codes/:id', authenticateToken, async (req, res) => {
+    try {
+        // Check if user is admin
+        if (!req.user || !req.user.is_admin) {
+            return res.status(403).json({
+                success: false,
+                message: 'גישה נדחתה - נדרשות הרשאות מנהל'
+            });
+        }
+
+        const { id } = req.params;
+
+        // Delete entry code
+        const { error } = await supabase
+            .from('entry_codes')
+            .delete()
+            .eq('id', id);
+
+        if (error) {
+            console.error('Error deleting entry code:', error);
+            return res.status(400).json({
+                success: false,
+                message: 'שגיאה במחיקת קוד כניסה',
+                error: error.message
+            });
+        }
+
+        console.log(`🔑 Admin ${req.user.username} deleted entry code: ${id}`);
+
+        res.json({
+            success: true,
+            message: 'קוד הכניסה נמחק בהצלחה'
         });
     } catch (error) {
         console.error('Server error:', error);

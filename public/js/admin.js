@@ -83,6 +83,10 @@ class AdminPanel {
             this.showCodesSection();
         });
 
+        document.getElementById('manageEntryCodesBtn')?.addEventListener('click', () => {
+            this.showEntryCodesSection();
+        });
+
         document.getElementById('manageApiKeysBtn')?.addEventListener('click', () => {
             this.showApiKeysSection();
         });
@@ -604,6 +608,13 @@ class AdminPanel {
         }, 3000);
     }
 
+    escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
     // ===== CODES MANAGEMENT =====
 
     bindCodesEvents() {
@@ -869,6 +880,245 @@ class AdminPanel {
         } catch (error) {
             console.error('Error deleting code:', error);
             this.showToast('שגיאה במחיקת הקוד', 'error');
+        }
+    }
+
+    // ============================================
+    // ENTRY CODES MANAGEMENT
+    // ============================================
+
+    async showEntryCodesSection() {
+        const section = document.getElementById('entryCodesSection');
+        section.style.display = 'block';
+        section.scrollIntoView({ behavior: 'smooth' });
+        
+        await this.loadEntryCodesForAdmin();
+        this.bindEntryCodesEvents();
+    }
+
+    bindEntryCodesEvents() {
+        // Add entry code button
+        const addBtn = document.getElementById('addEntryCodeBtn');
+        if (addBtn && !addBtn.hasListener) {
+            addBtn.hasListener = true;
+            addBtn.addEventListener('click', () => {
+                this.showEntryCodeForm();
+            });
+        }
+
+        // Close section button
+        const closeBtn = document.getElementById('closeEntryCodesBtn');
+        if (closeBtn && !closeBtn.hasListener) {
+            closeBtn.hasListener = true;
+            closeBtn.addEventListener('click', () => {
+                document.getElementById('entryCodesSection').style.display = 'none';
+            });
+        }
+
+        // Cancel form button
+        const cancelBtn = document.getElementById('cancelFormBtn');
+        if (cancelBtn && !cancelBtn.hasListener) {
+            cancelBtn.hasListener = true;
+            cancelBtn.addEventListener('click', () => {
+                this.hideEntryCodeForm();
+            });
+        }
+
+        // Form submit
+        const form = document.getElementById('entryCodeForm');
+        if (form && !form.hasListener) {
+            form.hasListener = true;
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await this.handleEntryCodeSubmit();
+            });
+        }
+    }
+
+    showEntryCodeForm(entryCode = null) {
+        const formContainer = document.getElementById('entryCodeFormContainer');
+        const form = document.getElementById('entryCodeForm');
+        const formTitle = document.getElementById('formTitle');
+        
+        if (entryCode) {
+            // Edit mode
+            formTitle.textContent = 'עריכת קוד כניסה';
+            document.getElementById('entryCodeId').value = entryCode.id;
+            document.getElementById('entryCodeInput').value = entryCode.entry_code;
+            document.getElementById('cityInput').value = entryCode.city;
+            document.getElementById('streetInput').value = entryCode.street;
+            document.getElementById('locationDetailsInput').value = entryCode.location_details || '';
+            document.getElementById('notesInput').value = entryCode.notes || '';
+        } else {
+            // Add mode
+            formTitle.textContent = 'הוספת קוד כניסה חדש';
+            form.reset();
+            document.getElementById('entryCodeId').value = '';
+        }
+        
+        formContainer.style.display = 'block';
+        formContainer.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    hideEntryCodeForm() {
+        document.getElementById('entryCodeFormContainer').style.display = 'none';
+        document.getElementById('entryCodeForm').reset();
+    }
+
+    async loadEntryCodesForAdmin() {
+        try {
+            const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+            const response = await fetch('/api/entry-codes', {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) throw new Error('Failed to fetch entry codes');
+
+            const result = await response.json();
+            // Filter only manual codes for admin management
+            const manualCodes = (result.data || []).filter(code => code.source === 'manual');
+            this.displayEntryCodesTable(manualCodes);
+        } catch (error) {
+            console.error('Error loading entry codes:', error);
+            this.showToast('שגיאה בטעינת קודי כניסה', 'error');
+        }
+    }
+
+    displayEntryCodesTable(codes) {
+        const tbody = document.getElementById('entryCodesTableBody');
+        
+        if (!codes || codes.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: 2rem;">
+                        <p>אין קודי כניסה ידניים במערכת</p>
+                        <p style="font-size: 0.9rem; color: #666; margin-top: 0.5rem;">
+                            קודי כניסה שנוספו בקריאות יופיעו בדף קודי הכניסה אך לא כאן
+                        </p>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        tbody.innerHTML = codes.map(code => `
+            <tr>
+                <td><strong>${this.escapeHtml(code.entry_code)}</strong></td>
+                <td>${this.escapeHtml(code.city)}</td>
+                <td>${this.escapeHtml(code.street)}</td>
+                <td>${this.escapeHtml(code.location_details || '-')}</td>
+                <td>${this.escapeHtml(code.notes || '-')}</td>
+                <td>
+                    <button class="edit-btn" data-id="${code.id}">✏️</button>
+                    <button class="delete-btn" data-id="${code.id}">🗑️</button>
+                </td>
+            </tr>
+        `).join('');
+        
+        // Add event delegation for edit and delete buttons
+        tbody.querySelectorAll('.edit-btn').forEach(btn => {
+            btn.onclick = () => this.editEntryCode(btn.getAttribute('data-id'));
+        });
+        
+        tbody.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.onclick = () => this.deleteEntryCode(btn.getAttribute('data-id'));
+        });
+    }
+
+    async handleEntryCodeSubmit() {
+        try {
+            const id = document.getElementById('entryCodeId').value;
+            const entryCodeData = {
+                entry_code: document.getElementById('entryCodeInput').value.trim(),
+                city: document.getElementById('cityInput').value.trim(),
+                street: document.getElementById('streetInput').value.trim(),
+                location_details: document.getElementById('locationDetailsInput').value.trim() || null,
+                notes: document.getElementById('notesInput').value.trim() || null
+            };
+
+            const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+            const url = id ? `/api/admin/entry-codes/${id}` : '/api/admin/entry-codes';
+            const method = id ? 'PUT' : 'POST';
+
+            const response = await fetch(url, {
+                method: method,
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(entryCodeData)
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.message || 'שגיאה בשמירת קוד כניסה');
+            }
+
+            this.showToast(result.message || 'קוד הכניסה נשמר בהצלחה', 'success');
+            this.hideEntryCodeForm();
+            await this.loadEntryCodesForAdmin();
+        } catch (error) {
+            console.error('Error saving entry code:', error);
+            this.showToast(error.message || 'שגיאה בשמירת קוד כניסה', 'error');
+        }
+    }
+
+    async editEntryCode(id) {
+        try {
+            const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+            const response = await fetch('/api/entry-codes', {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) throw new Error('Failed to fetch entry codes');
+
+            const result = await response.json();
+            const entryCode = result.data.find(code => code.id === id);
+
+            if (entryCode) {
+                this.showEntryCodeForm(entryCode);
+            } else {
+                this.showToast('קוד כניסה לא נמצא', 'error');
+            }
+        } catch (error) {
+            console.error('Error loading entry code:', error);
+            this.showToast('שגיאה בטעינת קוד כניסה', 'error');
+        }
+    }
+
+    async deleteEntryCode(id) {
+        if (!confirm('האם אתה בטוח שברצונך למחוק קוד כניסה זה?')) {
+            return;
+        }
+
+        try {
+            const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+            const response = await fetch(`/api/admin/entry-codes/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.message || 'שגיאה במחיקת קוד כניסה');
+            }
+
+            this.showToast(result.message || 'קוד הכניסה נמחק בהצלחה', 'success');
+            await this.loadEntryCodesForAdmin();
+        } catch (error) {
+            console.error('Error deleting entry code:', error);
+            this.showToast(error.message || 'שגיאה במחיקת קוד כניסה', 'error');
         }
     }
 
