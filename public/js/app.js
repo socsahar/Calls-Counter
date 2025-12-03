@@ -428,6 +428,56 @@ class CallCounter {
             });
         }
 
+        // Vehicle Selection Modal handlers
+        const vehicleBadge = document.querySelector('.motorcycle-badge.clickable');
+        const mobileVehicleBadge = document.querySelector('.mobile-motorcycle-badge.clickable');
+        
+        if (vehicleBadge) {
+            vehicleBadge.addEventListener('click', () => {
+                this.openVehicleSelectionModal();
+            });
+        }
+        
+        if (mobileVehicleBadge) {
+            mobileVehicleBadge.addEventListener('click', () => {
+                this.openVehicleSelectionModal();
+            });
+        }
+
+        const vehicleModalClose = document.getElementById('vehicleModalClose');
+        const vehicleModalCancel = document.getElementById('vehicleModalCancel');
+        const vehicleModal = document.getElementById('vehicleSelectionModal');
+        
+        if (vehicleModalClose) {
+            vehicleModalClose.addEventListener('click', () => {
+                vehicleModal.classList.add('hidden');
+            });
+        }
+        if (vehicleModalCancel) {
+            vehicleModalCancel.addEventListener('click', () => {
+                vehicleModal.classList.add('hidden');
+            });
+        }
+        
+        // Close modal when clicking overlay
+        if (vehicleModal) {
+            vehicleModal.addEventListener('click', (e) => {
+                if (e.target.classList.contains('modal-overlay')) {
+                    vehicleModal.classList.add('hidden');
+                }
+            });
+        }
+
+        const vehicleSelectionForm = document.getElementById('vehicleSelectionForm');
+        if (vehicleSelectionForm) {
+            vehicleSelectionForm.addEventListener('submit', this.handleVehicleSelection.bind(this));
+        }
+
+        const releaseVehicleBtn = document.getElementById('releaseVehicleBtn');
+        if (releaseVehicleBtn) {
+            releaseVehicleBtn.addEventListener('click', this.handleReleaseVehicle.bind(this));
+        }
+
         // Edit modal close buttons
         const editModalClose = document.getElementById('editModalClose');
         const editModalCancel = document.getElementById('editModalCancel');
@@ -1144,6 +1194,230 @@ class CallCounter {
         
         if (vehicleNumber) vehicleNumber.value = this.currentVehicle.number;
         if (vehicleType) vehicleType.value = this.currentVehicle.type;
+    }
+
+    // Open vehicle selection modal
+    async openVehicleSelectionModal() {
+        console.log('🚗 Opening vehicle selection modal');
+        
+        // Clear previous messages
+        const errorDiv = document.getElementById('vehicleSelectionError');
+        const successDiv = document.getElementById('vehicleSelectionSuccess');
+        if (errorDiv) errorDiv.style.display = 'none';
+        if (successDiv) successDiv.style.display = 'none';
+        
+        // Load current vehicle info
+        try {
+            const response = await fetch('/api/vehicle/current', {
+                headers: this.getAuthHeaders()
+            });
+            
+            if (response.ok) {
+                const result = await response.json();
+                const modalCurrentVehicle = document.getElementById('modalCurrentVehicle');
+                const releaseBtn = document.getElementById('releaseVehicleBtn');
+                const vehicleInput = document.getElementById('vehicleNumberInput');
+                
+                if (result.success && result.data) {
+                    const vehicleTypeNames = {
+                        motorcycle: 'אופנוע',
+                        picanto: 'פיקנטו',
+                        ambulance: 'אמבולנס',
+                        personal_standby: 'כונן אישי'
+                    };
+                    
+                    const vehicleEmojis = {
+                        motorcycle: '🏍️',
+                        picanto: '🚗',
+                        ambulance: '🚑',
+                        personal_standby: '👨‍⚕️'
+                    };
+                    
+                    const emoji = vehicleEmojis[result.data.vehicle_type] || '🚑';
+                    const name = vehicleTypeNames[result.data.vehicle_type] || result.data.vehicle_type;
+                    
+                    if (modalCurrentVehicle) {
+                        modalCurrentVehicle.innerHTML = `${emoji} ${result.data.vehicle_number} - ${name}`;
+                    }
+                    if (releaseBtn) {
+                        releaseBtn.style.display = 'inline-block';
+                    }
+                    if (vehicleInput) {
+                        vehicleInput.value = result.data.vehicle_number;
+                    }
+                } else {
+                    if (modalCurrentVehicle) {
+                        modalCurrentVehicle.textContent = 'לא נבחר רכב';
+                    }
+                    if (releaseBtn) {
+                        releaseBtn.style.display = 'none';
+                    }
+                    if (vehicleInput) {
+                        vehicleInput.value = '';
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('🚗 Error loading current vehicle:', error);
+        }
+        
+        // Show modal
+        const modal = document.getElementById('vehicleSelectionModal');
+        if (modal) {
+            modal.classList.remove('hidden');
+        }
+    }
+
+    // Handle vehicle selection form submission
+    async handleVehicleSelection(e) {
+        e.preventDefault();
+        console.log('🚗 Submitting vehicle selection');
+        
+        const vehicleInput = document.getElementById('vehicleNumberInput');
+        const vehicleNumber = vehicleInput ? vehicleInput.value.trim() : '';
+        
+        if (!vehicleNumber) {
+            this.showVehicleError('נא להזין מספר רכב');
+            return;
+        }
+        
+        // Auto-detect vehicle type
+        const vehicleType = this.detectVehicleType(vehicleNumber);
+        console.log('🚗 Auto-detected vehicle type:', vehicleType, 'for number:', vehicleNumber);
+        
+        // Clear previous messages
+        this.hideVehicleMessages();
+        
+        try {
+            const response = await fetch('/api/vehicle/current', {
+                method: 'POST',
+                headers: this.getAuthHeaders(),
+                body: JSON.stringify({ 
+                    vehicle_number: vehicleNumber,
+                    vehicle_type: vehicleType
+                })
+            });
+            
+            const result = await response.json();
+            console.log('🚗 Vehicle selection result:', result);
+            
+            if (response.ok && result.success) {
+                // Success!
+                this.showVehicleSuccess(result.message || 'הרכב נבחר בהצלחה!');
+                
+                // Update current vehicle
+                this.currentVehicle = {
+                    number: result.data.vehicle_number,
+                    type: result.data.vehicle_type
+                };
+                
+                // Update display
+                this.updateVehicleDisplay();
+                
+                // Reload data with new vehicle filter
+                await this.loadStats();
+                await this.loadCalls();
+                
+                // Close modal after 1.5 seconds
+                setTimeout(() => {
+                    const modal = document.getElementById('vehicleSelectionModal');
+                    if (modal) {
+                        modal.classList.add('hidden');
+                    }
+                }, 1500);
+            } else if (response.status === 409) {
+                // Vehicle is occupied by another user
+                this.showVehicleError(result.message || 'רכב זה כבר בשימוש על ידי משתמש אחר');
+            } else {
+                this.showVehicleError(result.message || 'שגיאה בבחירת רכב');
+            }
+        } catch (error) {
+            console.error('🚗 Error selecting vehicle:', error);
+            this.showVehicleError('שגיאה בתקשורת עם השרת');
+        }
+    }
+
+    // Handle vehicle release
+    async handleReleaseVehicle() {
+        if (!confirm('האם אתה בטוח שברצונך לשחרר את הרכב?')) {
+            return;
+        }
+        
+        console.log('🚗 Releasing vehicle');
+        this.hideVehicleMessages();
+        
+        try {
+            const response = await fetch('/api/vehicle/current', {
+                method: 'DELETE',
+                headers: this.getAuthHeaders()
+            });
+            
+            const result = await response.json();
+            console.log('🚗 Vehicle release result:', result);
+            
+            if (response.ok && result.success) {
+                this.showVehicleSuccess(result.message || 'הרכב שוחרר בהצלחה');
+                
+                // Reset to user's MDA code
+                this.currentVehicle = {
+                    number: this.getUserVehicleNumber(),
+                    type: this.getUserVehicleType()
+                };
+                
+                // Update display
+                this.updateVehicleDisplay();
+                
+                // Reload data
+                await this.loadStats();
+                await this.loadCalls();
+                
+                // Update modal display
+                const modalCurrentVehicle = document.getElementById('modalCurrentVehicle');
+                const releaseBtn = document.getElementById('releaseVehicleBtn');
+                const vehicleInput = document.getElementById('vehicleNumberInput');
+                
+                if (modalCurrentVehicle) {
+                    modalCurrentVehicle.textContent = 'לא נבחר רכב';
+                }
+                if (releaseBtn) {
+                    releaseBtn.style.display = 'none';
+                }
+                if (vehicleInput) {
+                    vehicleInput.value = '';
+                }
+            } else {
+                this.showVehicleError(result.message || 'שגיאה בשחרור רכב');
+            }
+        } catch (error) {
+            console.error('🚗 Error releasing vehicle:', error);
+            this.showVehicleError('שגיאה בתקשורת עם השרת');
+        }
+    }
+
+    // Show vehicle selection error
+    showVehicleError(message) {
+        const errorDiv = document.getElementById('vehicleSelectionError');
+        if (errorDiv) {
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'flex';
+        }
+    }
+
+    // Show vehicle selection success
+    showVehicleSuccess(message) {
+        const successDiv = document.getElementById('vehicleSelectionSuccess');
+        if (successDiv) {
+            successDiv.textContent = message;
+            successDiv.style.display = 'flex';
+        }
+    }
+
+    // Hide vehicle messages
+    hideVehicleMessages() {
+        const errorDiv = document.getElementById('vehicleSelectionError');
+        const successDiv = document.getElementById('vehicleSelectionSuccess');
+        if (errorDiv) errorDiv.style.display = 'none';
+        if (successDiv) successDiv.style.display = 'none';
     }
 
     // Load alert and medical codes for dropdowns

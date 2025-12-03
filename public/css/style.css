@@ -752,6 +752,45 @@ body::before {
     padding-bottom: var(--space-3);
 }
 
+.vehicle-filter-info {
+    background: linear-gradient(135deg, rgba(230, 57, 70, 0.08) 0%, rgba(255, 107, 107, 0.08) 100%);
+    border: 2px solid rgba(230, 57, 70, 0.2);
+    border-radius: var(--radius-lg);
+    padding: var(--space-3) var(--space-4);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    animation: slideDown 0.3s ease-out;
+}
+
+.vehicle-filter-info .info-icon {
+    font-size: var(--font-size-xl);
+    flex-shrink: 0;
+}
+
+.vehicle-filter-info .info-text {
+    color: var(--neutral-700);
+    font-size: var(--font-size-sm);
+    line-height: 1.5;
+}
+
+.vehicle-filter-info .info-text strong {
+    color: var(--mda-red-primary);
+    font-weight: 700;
+    font-size: var(--font-size-base);
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 .search-container {
     position: relative;
     width: 100%;
@@ -1387,6 +1426,148 @@ body::before {
 .btn-secondary:hover {
     background: var(--neutral-200);
     transform: translateY(-1px);
+}
+
+.btn-warning {
+    background: linear-gradient(135deg, var(--warning) 0%, #F97316 100%);
+    color: white;
+    border: none;
+    border-radius: var(--radius-full);
+    padding: var(--space-3) var(--space-6);
+    font-size: var(--font-size-base);
+    font-weight: 700;
+    cursor: pointer;
+    transition: all var(--transition-base);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-warning:hover {
+    background: linear-gradient(135deg, #F97316 0%, var(--warning) 100%);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+/* Vehicle Selection Modal Specific Styles */
+.vehicle-selection-info {
+    background: var(--neutral-50);
+    border: 2px dashed var(--neutral-300);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+    margin-bottom: var(--space-6);
+}
+
+.vehicle-selection-info .info-text {
+    color: var(--neutral-700);
+    font-size: var(--font-size-sm);
+    margin-bottom: var(--space-2);
+    line-height: 1.6;
+}
+
+.vehicle-selection-info .warning-text {
+    color: var(--warning);
+    font-size: var(--font-size-sm);
+    font-weight: 700;
+    margin: 0;
+}
+
+.current-vehicle-display {
+    background: linear-gradient(135deg, rgba(230, 57, 70, 0.05) 0%, rgba(255, 107, 107, 0.05) 100%);
+    border: 2px solid rgba(230, 57, 70, 0.1);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+    margin: var(--space-4) 0;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.current-vehicle-display .display-label {
+    color: var(--neutral-600);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+}
+
+.current-vehicle-display .display-value {
+    color: var(--mda-red-primary);
+    font-size: var(--font-size-lg);
+    font-weight: 800;
+    flex: 1;
+}
+
+.form-hint {
+    display: block;
+    color: var(--neutral-500);
+    font-size: var(--font-size-xs);
+    margin-top: var(--space-2);
+    font-style: italic;
+}
+
+.error-message {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(220, 38, 38, 0.1) 100%);
+    border: 2px solid var(--error);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+    margin-top: var(--space-4);
+    color: var(--error);
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.error-message::before {
+    content: "⚠️";
+    font-size: var(--font-size-lg);
+}
+
+.success-message {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.1) 100%);
+    border: 2px solid var(--success);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+    margin-top: var(--space-4);
+    color: var(--success);
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.success-message::before {
+    content: "✓";
+    font-size: var(--font-size-lg);
+    font-weight: 800;
+}
+
+/* Clickable Vehicle Badges */
+.motorcycle-badge.clickable,
+.mobile-motorcycle-badge.clickable {
+    cursor: pointer;
+    transition: all var(--transition-base);
+    position: relative;
+}
+
+.motorcycle-badge.clickable:hover,
+.mobile-motorcycle-badge.clickable:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: var(--shadow-lg);
+}
+
+.motorcycle-badge.clickable:active,
+.mobile-motorcycle-badge.clickable:active {
+    transform: translateY(0) scale(0.98);
+}
+
+.motorcycle-badge.clickable::after,
+.mobile-motorcycle-badge.clickable::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+    pointer-events: none;
 }
 
 /* ===== CONTEXT MENU ===== */

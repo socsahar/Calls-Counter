@@ -58,10 +58,11 @@
                     <span class="settings-icon">⚙️</span>
                     ניהול מערכת
                 </button>
-                <div class="motorcycle-badge">
+                <div class="motorcycle-badge clickable" id="vehicleBadge" title="לחץ לבחירת רכב">
                     <span class="badge-label">רכב</span>
                     <span class="badge-number" id="currentVehicle">-</span>
                     <span class="badge-type" id="currentVehicleType">טוען...</span>
+                    <span class="badge-change-icon">⚙️</span>
                 </div>
             </div>
         </div>
@@ -76,10 +77,11 @@
             </div>
             <div class="mobile-menu-content">
                 <div class="mobile-menu-user">
-                    <div class="mobile-motorcycle-badge" id="mobileBadge">
+                    <div class="mobile-motorcycle-badge clickable" id="mobileBadge" title="לחץ לבחירת רכב">
                         <span class="mobile-badge-label">רכב</span>
                         <span class="mobile-badge-number" id="mobileCurrentVehicle">-</span>
                         <span class="mobile-badge-type" id="mobileCurrentVehicleType">טוען...</span>
+                        <span class="badge-change-icon">⚙️</span>
                     </div>
                 </div>
                 <nav class="mobile-menu-nav">
@@ -158,6 +160,10 @@
             <div class="calls-container">
                 <div class="calls-header">
                     <h2 class="section-title" id="historicalTitle">בחר תקופה להצגת קריאות</h2>
+                    <div class="vehicle-filter-info" id="vehicleFilterInfo" style="display: none;">
+                        <span class="info-icon">🚗</span>
+                        <span class="info-text">מוצגות קריאות עבור רכב: <strong id="filteredVehicleNumber">-</strong> (<span id="filteredVehicleType">-</span>)</span>
+                    </div>
                     <!-- Live Search Filter -->
                     <div class="search-container" id="searchContainer" style="display: none;">
                         <input 
@@ -414,5 +420,51 @@
             }
         }
     </script>
+
+    <!-- Vehicle Selection Modal -->
+    <div id="vehicleSelectionModal" class="modal hidden">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">בחירת רכב</h3>
+                <button class="modal-close" id="vehicleModalClose">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="vehicle-selection-info">
+                    <p class="info-text">הזן את מספר הרכב שברצונך לעקוב אחריו. כל הנתונים יסוננו לפי הרכב שתבחר.</p>
+                    <p class="warning-text">⚠️ רכב יכול להיות בשימוש משתמש אחד בלבד בו-זמנית</p>
+                </div>
+                
+                <form id="vehicleSelectionForm">
+                    <div class="form-group">
+                        <label for="vehicleNumberInput" class="form-label">מספר רכב</label>
+                        <input 
+                            type="text" 
+                            id="vehicleNumberInput" 
+                            class="form-input" 
+                            placeholder="הזן מספר רכב (לדוגמה: 5248)"
+                            required
+                            autocomplete="off"
+                        >
+                        <small class="form-hint">הסוג יזוהה אוטומטית לפי המספר</small>
+                    </div>
+
+                    <div class="current-vehicle-display" id="currentVehicleDisplay">
+                        <div class="display-label">רכב נוכחי:</div>
+                        <div class="display-value" id="modalCurrentVehicle">טוען...</div>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary" id="vehicleModalCancel">ביטול</button>
+                        <button type="button" class="btn-warning" id="releaseVehicleBtn" style="display: none;">שחרר רכב</button>
+                        <button type="submit" class="btn-primary">בחר רכב</button>
+                    </div>
+                </form>
+
+                <div id="vehicleSelectionError" class="error-message" style="display: none;"></div>
+                <div id="vehicleSelectionSuccess" class="success-message" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

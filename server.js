@@ -599,6 +599,28 @@ app.get('/api/calls', authenticateToken, async (req, res) => {
             });
         }
         
+        // Get user's selected vehicle to filter by
+        let userVehicleNumber = null;
+        try {
+            const { data: vehicleData } = await supabase
+                .rpc('get_user_vehicle', {
+                    p_user_id: req.user.user_id
+                });
+            
+            if (vehicleData && vehicleData.length > 0) {
+                userVehicleNumber = vehicleData[0].vehicle_number;
+                console.log('📞 Filtering by user selected vehicle:', userVehicleNumber);
+            }
+        } catch (vehicleError) {
+            console.log('📞 Could not fetch user vehicle, showing all calls');
+        }
+        
+        // Apply vehicle filter if user has selected a vehicle
+        // Note: user_id filter already applied above, so this shows only user's calls on this vehicle
+        if (userVehicleNumber && !vehicle_number) {
+            query = query.eq('vehicle_number', userVehicleNumber);
+        }
+        
         // Apply filters only if provided
         if (date) {
             query = query.gte('call_date', targetDate)
@@ -629,7 +651,8 @@ app.get('/api/calls', authenticateToken, async (req, res) => {
         res.json({ 
             success: true, 
             data: data || [],
-            count: data ? data.length : 0
+            count: data ? data.length : 0,
+            filtered_by_vehicle: userVehicleNumber
         });
     } catch (error) {
         console.error('Server error:', error);
@@ -680,9 +703,25 @@ app.get('/api/calls/historical', authenticateToken, async (req, res) => {
             });
         }
 
+        // Get user's selected vehicle to filter by
+        let userVehicleNumber = null;
+        try {
+            const { data: vehicleData } = await supabase
+                .rpc('get_user_vehicle', {
+                    p_user_id: req.user.user_id
+                });
+            
+            if (vehicleData && vehicleData.length > 0) {
+                userVehicleNumber = vehicleData[0].vehicle_number;
+                console.log('📅 Filtering historical calls by vehicle:', userVehicleNumber);
+            }
+        } catch (vehicleError) {
+            console.log('📅 Could not fetch user vehicle, showing all calls');
+        }
+
         // Get calls data using call_date field for consistency - FILTERED BY USER
         // JOIN with alert_codes and medical_codes to get the actual code values
-        const { data: calls, error: callsError } = await supabase
+        let query = supabase
             .from('calls')
             .select(`
                 *,
@@ -691,8 +730,17 @@ app.get('/api/calls/historical', authenticateToken, async (req, res) => {
             `)
             .eq('user_id', req.user.user_id)  // CRITICAL: Only user's own data
             .gte('call_date', startDateStr)
-            .lt('call_date', endDateStr)
-            .order('call_date', { ascending: false });
+            .lt('call_date', endDateStr);
+
+        // Apply vehicle filter if user has selected a vehicle
+        // Note: This shows only THIS USER's calls on this vehicle, not all users' calls
+        if (userVehicleNumber) {
+            query = query.eq('vehicle_number', userVehicleNumber);
+        }
+
+        query = query.order('call_date', { ascending: false });
+
+        const { data: calls, error: callsError } = await query;
 
         if (callsError) {
             console.error('Supabase error:', callsError);
@@ -1417,30 +1465,38 @@ app.delete('/api/admin/entry-codes/:id', authenticateToken, async (req, res) => 
 // Get current vehicle settings
 app.get('/api/vehicle/current', authenticateToken, async (req, res) => {
     try {
-        // Get user's MDA code and auto-detect vehicle type
-        const userMdaCode = req.user ? req.user.mdaCode : '5248';
-        const detectedVehicleType = detectVehicleType(userMdaCode);
-
-        // Try to get user-specific vehicle settings first
+        console.log('🚗 Getting current vehicle for user:', req.user.user_id);
+        
+        // Try to get user-specific vehicle settings using the database function
         const { data, error } = await supabase
-            .from('user_vehicle_settings')
-            .select('vehicle_number, vehicle_type')
-            .eq('user_id', req.user.user_id)
-            .single();
+            .rpc('get_user_vehicle', {
+                p_user_id: req.user.user_id
+            });
+
+        if (error) {
+            console.error('Error fetching user vehicle:', error);
+        }
 
         let currentVehicle;
-        if (data && !error) {
-            // User has custom vehicle settings
+        if (data && data.length > 0 && data[0].vehicle_number) {
+            // User has selected a vehicle
             currentVehicle = {
-                vehicle_number: data.vehicle_number,
-                vehicle_type: data.vehicle_type
+                vehicle_number: data[0].vehicle_number,
+                vehicle_type: data[0].vehicle_type,
+                vehicle_id: data[0].vehicle_id
             };
+            console.log('🚗 User has selected vehicle:', currentVehicle);
         } else {
-            // Use user's MDA code as default vehicle
+            // No vehicle selected yet - use user's MDA code as default suggestion
+            const userMdaCode = req.user.mdaCode || req.user.mda_code || '5248';
+            const detectedVehicleType = detectVehicleType(userMdaCode);
             currentVehicle = {
                 vehicle_number: userMdaCode,
-                vehicle_type: detectedVehicleType
+                vehicle_type: detectedVehicleType,
+                vehicle_id: null,
+                is_suggestion: true // Flag to indicate this is just a suggestion
             };
+            console.log('🚗 No vehicle selected, suggesting MDA code:', currentVehicle);
         }
 
         res.json({
@@ -1469,19 +1525,15 @@ app.post('/api/vehicle/current', authenticateToken, async (req, res) => {
             });
         }
 
-        // Update or insert user-specific vehicle settings
+        console.log('🚗 Setting vehicle for user:', req.user.user_id, 'Vehicle:', vehicle_number);
+
+        // Use the database function to set vehicle (with uniqueness check)
         const { data, error } = await supabase
-            .from('user_vehicle_settings')
-            .upsert({
-                user_id: req.user.user_id,
-                vehicle_number: vehicle_number,
-                vehicle_type: vehicle_type,
-                updated_at: new Date().toISOString()
-            }, {
-                onConflict: 'user_id'
-            })
-            .select()
-            .single();
+            .rpc('set_user_vehicle', {
+                p_user_id: req.user.user_id,
+                p_vehicle_number: vehicle_number,
+                p_vehicle_type: vehicle_type
+            });
 
         if (error) {
             console.error('Supabase error:', error);
@@ -1492,9 +1544,21 @@ app.post('/api/vehicle/current', authenticateToken, async (req, res) => {
             });
         }
 
+        // Check if the function returned an error
+        if (data && data.success === false) {
+            console.log('🚗 Vehicle already in use:', data);
+            return res.status(409).json({
+                success: false,
+                message: data.message || 'רכב זה כבר בשימוש',
+                error_code: data.error_code || 'VEHICLE_IN_USE'
+            });
+        }
+
+        console.log('🚗 Vehicle set successfully:', data);
+
         res.json({
             success: true,
-            message: 'הגדרות הרכב עודכנו בהצלחה',
+            message: 'הרכב נבחר בהצלחה',
             data: { vehicle_number, vehicle_type }
         });
     } catch (error) {
@@ -1502,6 +1566,62 @@ app.post('/api/vehicle/current', authenticateToken, async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'שגיאת שרת פנימית',
+            error: error.message
+        });
+    }
+});
+
+// Get list of available vehicles
+app.get('/api/vehicles/available', authenticateToken, async (req, res) => {
+    try {
+        console.log('🚗 Getting available vehicles');
+        
+        const { data, error } = await supabase
+            .rpc('get_available_vehicles');
+
+        if (error) {
+            console.error('Error fetching available vehicles:', error);
+            throw error;
+        }
+
+        res.json({
+            success: true,
+            data: data || []
+        });
+    } catch (error) {
+        console.error('Server error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'שגיאה בטעינת רשימת הרכבים',
+            error: error.message
+        });
+    }
+});
+
+// Release user's vehicle (user or admin)
+app.delete('/api/vehicle/current', authenticateToken, async (req, res) => {
+    try {
+        console.log('🚗 Releasing vehicle for user:', req.user.user_id);
+        
+        const { data, error } = await supabase
+            .rpc('release_user_vehicle', {
+                p_user_id: req.user.user_id
+            });
+
+        if (error) {
+            console.error('Error releasing vehicle:', error);
+            throw error;
+        }
+
+        res.json({
+            success: true,
+            message: 'הרכב שוחרר בהצלחה'
+        });
+    } catch (error) {
+        console.error('Server error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'שגיאה בשחרור הרכב',
             error: error.message
         });
     }
@@ -1539,13 +1659,36 @@ app.get('/api/stats', authenticateToken, async (req, res) => {
         console.log('📊 Israel time:', now.toISOString());
         console.log('📊 Today in Israel:', today);
         
-        // Get calls from today based on call_date field - FILTERED BY USER
+        // Get user's selected vehicle to filter by
+        let userVehicleNumber = null;
+        try {
+            const { data: vehicleData } = await supabase
+                .rpc('get_user_vehicle', {
+                    p_user_id: req.user.user_id
+                });
+            
+            if (vehicleData && vehicleData.length > 0) {
+                userVehicleNumber = vehicleData[0].vehicle_number;
+                console.log('📊 Filtering stats by vehicle:', userVehicleNumber);
+            }
+        } catch (vehicleError) {
+            console.log('📊 Could not fetch user vehicle, showing all stats');
+        }
+        
+        // Get calls from today based on call_date field - FILTERED BY USER AND VEHICLE
         // Day starts at 00:00 and ends at 23:59 Israel time
-        const { data: todayCalls, error: dateError } = await supabase
+        // Note: This shows only THIS USER's calls on the vehicle, not all users' calls
+        let todayQuery = supabase
             .from('calls')
             .select('*')
             .eq('user_id', req.user.user_id)  // CRITICAL: Only user's own data
             .eq('call_date', today);
+        
+        if (userVehicleNumber) {
+            todayQuery = todayQuery.eq('vehicle_number', userVehicleNumber);
+        }
+        
+        const { data: todayCalls, error: dateError } = await todayQuery;
         
         console.log(`📊 Today's calls found: ${todayCalls ? todayCalls.length : 0}`);
         
@@ -1581,12 +1724,19 @@ app.get('/api/stats', authenticateToken, async (req, res) => {
         console.log(`📊 Week range (Sun-Sat): ${weekStartStr} to ${weekEndStr} (exclusive)`);
 
         // Get weekly stats
-        const { data: weeklyCalls, error: weeklyError } = await supabase
+        // Note: This shows only THIS USER's calls on the vehicle, not all users' calls
+        let weeklyQuery = supabase
             .from('calls')
             .select('id, duration_minutes')
             .eq('user_id', req.user.user_id)  // CRITICAL: Only user's own data
             .gte('call_date', weekStartStr)
             .lt('call_date', weekEndStr);
+        
+        if (userVehicleNumber) {
+            weeklyQuery = weeklyQuery.eq('vehicle_number', userVehicleNumber);
+        }
+        
+        const { data: weeklyCalls, error: weeklyError } = await weeklyQuery;
 
         console.log(`📊 Weekly calls found: ${weeklyCalls ? weeklyCalls.length : 0}`);
 
@@ -1606,12 +1756,19 @@ app.get('/api/stats', authenticateToken, async (req, res) => {
         console.log(`📊 Month range: ${monthStartStr} to ${monthEndStr} (exclusive)`);
 
         // Get monthly stats
-        const { data: monthlyCalls, error: monthlyError } = await supabase
+        // Note: This shows only THIS USER's calls on the vehicle, not all users' calls
+        let monthlyQuery = supabase
             .from('calls')
             .select('id, duration_minutes')
             .eq('user_id', req.user.user_id)  // CRITICAL: Only user's own data
             .gte('call_date', monthStartStr)
             .lt('call_date', monthEndStr);
+        
+        if (userVehicleNumber) {
+            monthlyQuery = monthlyQuery.eq('vehicle_number', userVehicleNumber);
+        }
+        
+        const { data: monthlyCalls, error: monthlyError } = await monthlyQuery;
 
         console.log(`📊 Monthly calls found: ${monthlyCalls ? monthlyCalls.length : 0}`);
 
