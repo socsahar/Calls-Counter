@@ -1995,7 +1995,7 @@ app.get('/api/admin/dashboard', authenticateToken, requireAdmin, async (req, res
         console.log('🔑 Admin dashboard accessed by:', req.user.username);
         
         // Get total users count
-        const { data: users, error: usersError } = await supabase
+        const { data: users, error: usersError} = await supabase
             .from('users')
             .select('id, username, mda_code, created_at, is_admin')
             .order('created_at', { ascending: false });
@@ -2006,7 +2006,7 @@ app.get('/api/admin/dashboard', authenticateToken, requireAdmin, async (req, res
         const { data: allCalls, error: callsError } = await supabase
             .from('calls')
             .select('*')
-            .order('created_at', { ascending: false });
+            .order('created_at', { ascending: false});
         
         if (callsError) throw callsError;
         
@@ -2049,6 +2049,26 @@ app.get('/api/admin/dashboard', authenticateToken, requireAdmin, async (req, res
                   (u.mda_code.toString().startsWith('1') || u.mda_code.toString().startsWith('2')))).length
         };
         
+        // Vehicle call stats based on vehicle_number in calls
+        const vehicleCallStats = {
+            motorcycleCalls: allCalls.filter(call => {
+                const vn = call.vehicle_number?.toString();
+                return vn && vn.length === 4 && vn.startsWith('5');
+            }).length,
+            picantoCalls: allCalls.filter(call => {
+                const vn = call.vehicle_number?.toString();
+                return vn && vn.length === 4 && vn.startsWith('6');
+            }).length,
+            personalStandbyCalls: allCalls.filter(call => {
+                const vn = call.vehicle_number?.toString();
+                return vn && vn.length === 5 && (vn.startsWith('1') || vn.startsWith('2'));
+            }).length,
+            ambulanceCalls: allCalls.filter(call => {
+                const vn = call.vehicle_number?.toString();
+                return vn && !((vn.length === 4 && vn.startsWith('5')) || (vn.length === 4 && vn.startsWith('6')) || (vn.length === 5 && (vn.startsWith('1') || vn.startsWith('2'))));
+            }).length
+        };
+        
         res.json({
             success: true,
             data: {
@@ -2061,7 +2081,8 @@ app.get('/api/admin/dashboard', authenticateToken, requireAdmin, async (req, res
                 aranCalls,
                 natbagCalls,
                 recentCalls,
-                vehicleStats, vehicleCallStats: { motorcycleCalls: allCalls.filter(call => call.vehicle_number && call.vehicle_number.toString().startsWith('5')).length, picantoCalls: allCalls.filter(call => call.vehicle_number && call.vehicle_number.toString().startsWith('6')).length, personalStandbyCalls: allCalls.filter(call => call.vehicle_number && call.vehicle_number.toString().length === 5 && (call.vehicle_number.toString().startsWith('1') || call.vehicle_number.toString().startsWith('2'))).length, ambulanceCalls: allCalls.filter(call => call.vehicle_number && !call.vehicle_number.toString().startsWith('5') && !call.vehicle_number.toString().startsWith('6') && !(call.vehicle_number.toString().length === 5 && (call.vehicle_number.toString().startsWith('1') || call.vehicle_number.toString().startsWith('2')))).length },
+                vehicleStats,
+                vehicleCallStats,
                 users: users.slice(0, 10), // Top 10 users for preview
                 recentCallsData: allCalls.slice(0, 20) // 20 most recent calls
             }

@@ -179,7 +179,7 @@ class CallCounter {
     detectVehicleType(mdaCode) {
         console.log('🚗 Detecting vehicle type for code:', mdaCode);
         
-        if (!mdaCode || typeof mdaCode !== 'string') {
+        if (!mdaCode) {
             console.log('🚗 Invalid MDA code, defaulting to ambulance');
             return 'ambulance';
         }
@@ -1336,11 +1336,13 @@ class CallCounter {
         if (!list) return;
         
         list.innerHTML = availableVehicles.map(vehicle => {
-            const icon = this.getVehicleIcon(vehicle.type);
-            const typeName = this.getVehicleTypeName(vehicle.type);
+            // Re-detect type to ensure accuracy (in case detection logic was updated)
+            const correctType = this.detectVehicleType(vehicle.number);
+            const icon = this.getVehicleIcon(correctType);
+            const typeName = this.getVehicleTypeName(correctType);
             
             return `
-                <div class="recent-vehicle-item" data-vehicle-number="${vehicle.number}" data-vehicle-type="${vehicle.type}">
+                <div class="recent-vehicle-item" data-vehicle-number="${vehicle.number}" data-vehicle-type="${correctType}">
                     <div class="recent-vehicle-info">
                         <div class="recent-vehicle-number">${vehicle.number}</div>
                         <div class="recent-vehicle-type">${typeName}</div>

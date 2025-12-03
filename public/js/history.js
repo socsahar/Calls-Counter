@@ -53,36 +53,37 @@ class HistoryViewer {
     }
 
     detectVehicleType(code) {
-        if (!code) return 'motorcycle';
+        if (!code) return 'ambulance';
         
-        const codeStr = String(code);
-        const codeNum = parseInt(codeStr);
+        const codeStr = String(code).trim();
         const len = codeStr.length;
         const firstDigit = codeStr[0];
-        const firstTwo = codeStr.substring(0, 2);
         
-        // Motorcycle codes (5xxx)
-        if (len === 4 && firstDigit === '5') {
-            return 'motorcycle';
-        }
-        
-        // Picanto codes (4 digits starting with 6, 7, 8, 9)
-        if (len === 4 && ['6', '7', '8', '9'].includes(firstDigit)) {
-            return 'picanto';
-        }
-        
-        // Ambulance codes (3 digits)
-        if (len === 3) {
-            return 'ambulance';
-        }
-        
-        // Personal standby (9 digits)
-        if (len === 9) {
+        // Personal standby detection - 5-digit codes starting with 1 or 2
+        if (len === 5 && (firstDigit === '1' || firstDigit === '2')) {
             return 'personal_standby';
         }
         
-        // Default to motorcycle
-        return 'motorcycle';
+        // 4-digit codes
+        if (len === 4) {
+            if (firstDigit === '5') {
+                return 'motorcycle';
+            }
+            if (firstDigit === '6') {
+                return 'picanto';
+            }
+            if (['1', '2', '3', '4', '7', '8', '9'].includes(firstDigit)) {
+                return 'ambulance';
+            }
+        }
+        
+        // 2 or 3 digit codes starting with 1,2,3,4,7,8,9 are ambulances
+        if ((len === 2 || len === 3) && ['1', '2', '3', '4', '7', '8', '9'].includes(firstDigit)) {
+            return 'ambulance';
+        }
+        
+        // Default to ambulance
+        return 'ambulance';
     }
 
     // Helper method to get authentication headers
@@ -277,11 +278,13 @@ class HistoryViewer {
         if (!list) return;
         
         list.innerHTML = availableVehicles.map(vehicle => {
-            const icon = this.getVehicleIcon(vehicle.type);
-            const typeName = this.getVehicleTypeName(vehicle.type);
+            // Re-detect type to ensure accuracy (in case detection logic was updated)
+            const correctType = this.detectVehicleType(vehicle.number);
+            const icon = this.getVehicleIcon(correctType);
+            const typeName = this.getVehicleTypeName(correctType);
             
             return `
-                <div class="recent-vehicle-item" data-vehicle-number="${vehicle.number}" data-vehicle-type="${vehicle.type}">
+                <div class="recent-vehicle-item" data-vehicle-number="${vehicle.number}" data-vehicle-type="${correctType}">
                     <div class="recent-vehicle-info">
                         <div class="recent-vehicle-number">${vehicle.number}</div>
                         <div class="recent-vehicle-type">${typeName}</div>
