@@ -377,11 +377,13 @@ class AdminPanel {
             this.setLoading(true);
             
             const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
-            const response = await fetch('/api/admin/users', {
+            // Add cache-busting parameter to force fresh data
+            const response = await fetch(`/api/admin/users?_=${Date.now()}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
-                }
+                },
+                cache: 'no-store'
             });
 
             if (!response.ok) throw new Error('Failed to fetch users');
@@ -444,10 +446,10 @@ class AdminPanel {
                         <div class="user-join-date">📅 הצטרף: ${joinDate}</div>
                     </div>
                     <div class="user-actions">
-                        <button class="toggle-admin-btn" onclick="adminPanel.toggleUserAdmin('${user.id}', ${!user.is_admin})">
+                        <button class="toggle-admin-btn" data-user-id="${user.id}" data-is-admin="${user.is_admin}">
                             ${user.is_admin ? 'הסר הרשאות מנהל' : 'הפוך למנהל'}
                         </button>
-                        <button class="delete-user-btn" onclick="adminPanel.deleteUser('${user.id}', '${user.username}')">
+                        <button class="delete-user-btn" data-user-id="${user.id}" data-username="${user.username}">
                             מחק משתמש
                         </button>
                     </div>
@@ -456,6 +458,23 @@ class AdminPanel {
         }).join('');
 
         usersContainer.innerHTML = usersHtml;
+        
+        // Attach event listeners after rendering
+        usersContainer.querySelectorAll('.toggle-admin-btn').forEach(btn => {
+            btn.onclick = () => {
+                const userId = btn.getAttribute('data-user-id');
+                const isAdmin = btn.getAttribute('data-is-admin') === 'true';
+                this.toggleUserAdmin(userId, !isAdmin);
+            };
+        });
+        
+        usersContainer.querySelectorAll('.delete-user-btn').forEach(btn => {
+            btn.onclick = () => {
+                const userId = btn.getAttribute('data-user-id');
+                const username = btn.getAttribute('data-username');
+                this.deleteUser(userId, username);
+            };
+        });
     }
 
     async toggleUserAdmin(userId, makeAdmin) {
@@ -490,6 +509,7 @@ class AdminPanel {
         }
 
         try {
+            console.log(`🗑️ Deleting user: ${userId} (${username})`);
             const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
             const response = await fetch(`/api/admin/users/${userId}`, {
                 method: 'DELETE',
@@ -499,14 +519,30 @@ class AdminPanel {
                 }
             });
 
-            if (!response.ok) throw new Error('Failed to delete user');
+            console.log(`🗑️ Delete response status: ${response.status}`);
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error('❌ Delete failed:', errorData);
+                throw new Error(errorData.message || 'Failed to delete user');
+            }
             
             const data = await response.json();
+            console.log('✅ Delete successful:', data);
             this.showToast(data.message, 'success');
             
+            // Hide the section first to force a complete refresh
+            document.getElementById('usersSection').style.display = 'none';
+            
             // Refresh dashboard and users list
-            this.loadDashboard();
-            this.showUsersSection();
+            await this.loadDashboard();
+            
+            // Force a fresh fetch by calling showUsersSection after a small delay
+            setTimeout(async () => {
+                await this.showUsersSection();
+                console.log('✅ Users list refreshed');
+            }, 100);
+
 
         } catch (error) {
             console.error('Error deleting user:', error);

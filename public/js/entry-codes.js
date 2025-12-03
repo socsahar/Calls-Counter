@@ -252,13 +252,13 @@ class EntryCodesManager {
 
         tbody.innerHTML = this.filteredCodes.map(entry => `
             <tr>
-                <td class="entry-code-cell">
+                <td class="entry-code-cell" data-label="קוד כניסה">
                     <strong>${this.escapeHtml(entry.entry_code)}</strong>
                 </td>
-                <td>${this.escapeHtml(entry.city)}</td>
-                <td>${this.escapeHtml(entry.street)}</td>
-                <td class="location-details-cell">${this.escapeHtml(entry.location_details || '-')}</td>
-                <td>
+                <td data-label="עיר">${this.escapeHtml(entry.city)}</td>
+                <td data-label="רחוב">${this.escapeHtml(entry.street)}</td>
+                <td class="location-details-cell" data-label="פרטים נוספים">${this.escapeHtml(entry.location_details || '-')}</td>
+                <td data-label="פעולות">
                     <button class="copy-btn" onclick="entryCodesManager.copyToClipboard('${this.escapeHtml(entry.entry_code)}')">
                         📋 העתק
                     </button>

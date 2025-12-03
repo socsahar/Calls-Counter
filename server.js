@@ -1925,7 +1925,7 @@ app.get('/api/admin/users', authenticateToken, requireAdmin, async (req, res) =>
     try {
         const { data: users, error } = await supabase
             .from('users')
-            .select('id, username, mda_code, created_at, is_admin')
+            .select('id, username, full_name, mda_code, created_at, is_admin')
             .order('created_at', { ascending: false });
         
         if (error) throw error;
@@ -2011,23 +2011,35 @@ app.delete('/api/admin/users/:userId', authenticateToken, requireAdmin, async (r
     try {
         const { userId } = req.params;
         
+        console.log(`🗑️ Attempting to delete user: ${userId}`);
+        
         // First delete user's calls
-        const { error: callsError } = await supabase
+        const { data: deletedCalls, error: callsError } = await supabase
             .from('calls')
             .delete()
-            .eq('user_id', userId);
+            .eq('user_id', userId)
+            .select();
         
-        if (callsError) throw callsError;
+        if (callsError) {
+            console.error('❌ Error deleting user calls:', callsError);
+            throw callsError;
+        }
+        
+        console.log(`✅ Deleted ${deletedCalls?.length || 0} calls for user ${userId}`);
         
         // Then delete the user
-        const { error: userError } = await supabase
+        const { data: deletedUser, error: userError } = await supabase
             .from('users')
             .delete()
-            .eq('id', userId);
+            .eq('id', userId)
+            .select();
         
-        if (userError) throw userError;
+        if (userError) {
+            console.error('❌ Error deleting user:', userError);
+            throw userError;
+        }
         
-        console.log(`🗑️ Admin deleted user: ${userId}`);
+        console.log(`✅ Deleted user:`, deletedUser);
         
         res.json({
             success: true,
@@ -2038,7 +2050,8 @@ app.delete('/api/admin/users/:userId', authenticateToken, requireAdmin, async (r
         console.error('❌ Delete user error:', error);
         res.status(500).json({
             success: false,
-            message: 'שגיאה במחיקת המשתמש'
+            message: 'שגיאה במחיקת המשתמש',
+            error: error.message
         });
     }
 });
@@ -2934,128 +2947,6 @@ app.get('/api/admin/dashboard', authenticateToken, requireAdmin, async (req, res
 });
 
 // Get all users (admin only)
-app.get('/api/admin/users', authenticateToken, requireAdmin, async (req, res) => {
-    try {
-        const { data: users, error } = await supabase
-            .from('users')
-            .select('id, username, mda_code, created_at, is_admin')
-            .order('created_at', { ascending: false });
-        
-        if (error) throw error;
-        
-        res.json({
-            success: true,
-            users
-        });
-        
-    } catch (error) {
-        console.error('❌ Get users error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'שגיאה בטעינת רשימת המשתמשים'
-        });
-    }
-});
-
-// Get all calls (admin only)
-app.get('/api/admin/calls', authenticateToken, requireAdmin, async (req, res) => {
-    try {
-        const { limit = 50, offset = 0 } = req.query;
-        
-        const { data: calls, error } = await supabase
-            .from('calls')
-            .select(`
-                *,
-                users!inner(username, mda_code)
-            `)
-            .order('created_at', { ascending: false })
-            .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
-        
-        if (error) throw error;
-        
-        res.json({
-            success: true,
-            calls
-        });
-        
-    } catch (error) {
-        console.error('❌ Get all calls error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'שגיאה בטעינת כל הקריאות'
-        });
-    }
-});
-
-// Update user admin status
-app.patch('/api/admin/users/:userId/admin', authenticateToken, requireAdmin, async (req, res) => {
-    try {
-        const { userId } = req.params;
-        const { isAdmin } = req.body;
-        
-        const { data, error } = await supabase
-            .from('users')
-            .update({ is_admin: isAdmin })
-            .eq('id', userId)
-            .select()
-            .single();
-        
-        if (error) throw error;
-        
-        console.log(`🔑 Admin status updated for user ${userId}: ${isAdmin}`);
-        
-        res.json({
-            success: true,
-            message: `סטטוס מנהל עודכן בהצלחה`,
-            user: data
-        });
-        
-    } catch (error) {
-        console.error('❌ Update admin status error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'שגיאה בעדכון סטטוס מנהל'
-        });
-    }
-});
-
-// Delete user (admin only)
-app.delete('/api/admin/users/:userId', authenticateToken, requireAdmin, async (req, res) => {
-    try {
-        const { userId } = req.params;
-        
-        // First delete user's calls
-        const { error: callsError } = await supabase
-            .from('calls')
-            .delete()
-            .eq('user_id', userId);
-        
-        if (callsError) throw callsError;
-        
-        // Then delete the user
-        const { error: userError } = await supabase
-            .from('users')
-            .delete()
-            .eq('id', userId);
-        
-        if (userError) throw userError;
-        
-        console.log(`🗑️ Admin deleted user: ${userId}`);
-        
-        res.json({
-            success: true,
-            message: 'משתמש נמחק בהצלחה'
-        });
-        
-    } catch (error) {
-        console.error('❌ Delete user error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'שגיאה במחיקת המשתמש'
-        });
-    }
-});
-
 app.listen(PORT, () => {
     console.log(`🏍️  MDA CallCounter Server running on port ${PORT}`);
     console.log(`🚑  Motorcycle: ${process.env.MOTORCYCLE_NUMBER || '5248'}`);
