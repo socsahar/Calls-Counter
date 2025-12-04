@@ -36,11 +36,41 @@ exports.handler = async (event) => {
                 };
             }
 
-            const { data: users, error } = await supabase
+            // Try to find user by email, full_name, or mda_code
+            let users = null;
+            let error = null;
+
+            // First try email
+            const emailResult = await supabase
                 .from('users')
                 .select('*')
                 .eq('email', email.toLowerCase())
                 .limit(1);
+            
+            if (emailResult.data && emailResult.data.length > 0) {
+                users = emailResult.data;
+            } else {
+                // Try by full_name
+                const nameResult = await supabase
+                    .from('users')
+                    .select('*')
+                    .eq('full_name', email)
+                    .limit(1);
+                
+                if (nameResult.data && nameResult.data.length > 0) {
+                    users = nameResult.data;
+                } else {
+                    // Try by mda_code
+                    const mdaResult = await supabase
+                        .from('users')
+                        .select('*')
+                        .eq('mda_code', email)
+                        .limit(1);
+                    
+                    users = mdaResult.data;
+                    error = mdaResult.error;
+                }
+            }
 
             if (error || !users || users.length === 0) {
                 return {
