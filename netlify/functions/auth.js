@@ -23,7 +23,10 @@ exports.handler = async (event) => {
     try {
         // POST /api/auth/login
         if (event.httpMethod === 'POST' && isLogin) {
-            const { email, password, rememberMe } = JSON.parse(event.body);
+            const body = JSON.parse(event.body);
+            const email = body.email || body.username; // Support both email and username fields
+            const password = body.password;
+            const rememberMe = body.rememberMe;
 
             if (!email || !password) {
                 return {
