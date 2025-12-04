@@ -23,7 +23,7 @@ exports.handler = async (event) => {
         };
     }
 
-    const userId = authResult.user.id;
+    const userId = authResult.user.user_id;
     const path = event.path.replace('/.netlify/functions/calls', '');
 
     try {

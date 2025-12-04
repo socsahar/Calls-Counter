@@ -1,6 +1,7 @@
 const { supabase } = require('./shared/supabase');
-const { generateToken } = require('./shared/auth');
+const { generateToken, JWT_SECRET } = require('./shared/auth');
 const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
 
 exports.handler = async (event) => {
     const headers = {
@@ -112,21 +113,32 @@ exports.handler = async (event) => {
             
             console.log('✅ Login successful');
 
-            const token = generateToken(user);
+            // Generate JWT token with Render-compatible structure
+            const token = jwt.sign(
+                {
+                    userId: user.user_id,
+                    username: user.username,
+                    mdaCode: user.mda_code,
+                    fullName: user.full_name,
+                    isAdmin: user.is_admin || false
+                },
+                JWT_SECRET,
+                { expiresIn: '7d' }
+            );
 
             return {
                 statusCode: 200,
                 headers,
                 body: JSON.stringify({
                     success: true,
-                    message: 'התחברת בהצלחה!',
+                    message: 'התחברת בהצלחה',
                     token,
                     user: {
-                        id: user.id,
-                        email: user.email,
-                        full_name: user.full_name,
-                        mda_code: user.mda_code,
-                        role: user.role
+                        id: user.user_id,
+                        fullName: user.full_name,
+                        username: user.username,
+                        mdaCode: user.mda_code,
+                        isAdmin: user.is_admin || false
                     }
                 })
             };
@@ -134,33 +146,43 @@ exports.handler = async (event) => {
 
         // POST /api/auth/register
         if (event.httpMethod === 'POST' && isRegister) {
-            const { email, password, fullName, mdaCode } = JSON.parse(event.body);
+            const { email, password, fullName, username, mdaCode, phone } = JSON.parse(event.body);
 
-            if (!email || !password || !fullName || !mdaCode) {
+            if (!fullName || !username || !password || !mdaCode) {
                 return {
                     statusCode: 400,
                     headers,
-                    body: JSON.stringify({ success: false, message: 'נא למלא את כל השדות' })
+                    body: JSON.stringify({ success: false, message: 'נא למלא את כל השדות החובה' })
                 };
             }
 
-            const { data: existingUsers } = await supabase
+            if (password.length < 6) {
+                return {
+                    statusCode: 400,
+                    headers,
+                    body: JSON.stringify({ success: false, message: 'סיסמה חייבת להיות באורך של 6 תווים לפחות' })
+                };
+            }
+
+            // Check for existing username
+            const { data: existingUsername } = await supabase
                 .from('users')
-                .select('id')
-                .eq('email', email.toLowerCase())
+                .select('user_id')
+                .eq('username', username)
                 .limit(1);
 
-            if (existingUsers && existingUsers.length > 0) {
+            if (existingUsername && existingUsername.length > 0) {
                 return {
                     statusCode: 409,
                     headers,
-                    body: JSON.stringify({ success: false, message: 'משתמש עם אימייל זה כבר קיים' })
+                    body: JSON.stringify({ success: false, message: 'שם משתמש זה כבר קיים' })
                 };
             }
 
+            // Check for existing MDA code
             const { data: existingMdaCodes } = await supabase
                 .from('users')
-                .select('id')
+                .select('user_id')
                 .eq('mda_code', mdaCode)
                 .limit(1);
 
@@ -177,16 +199,19 @@ exports.handler = async (event) => {
             const { data: newUser, error } = await supabase
                 .from('users')
                 .insert([{
-                    email: email.toLowerCase(),
+                    username: username,
+                    email: email ? email.toLowerCase() : null,
+                    phone: phone || null,
                     password_hash: hashedPassword,
                     full_name: fullName,
                     mda_code: mdaCode,
-                    role: 'user'
+                    is_admin: false
                 }])
                 .select()
                 .single();
 
             if (error) {
+                console.error('Registration error:', error);
                 return {
                     statusCode: 500,
                     headers,
@@ -194,7 +219,17 @@ exports.handler = async (event) => {
                 };
             }
 
-            const token = generateToken(newUser);
+            const token = jwt.sign(
+                {
+                    userId: newUser.user_id,
+                    username: newUser.username,
+                    mdaCode: newUser.mda_code,
+                    fullName: newUser.full_name,
+                    isAdmin: false
+                },
+                JWT_SECRET,
+                { expiresIn: '7d' }
+            );
 
             return {
                 statusCode: 201,
@@ -204,11 +239,11 @@ exports.handler = async (event) => {
                     message: 'נרשמת בהצלחה!',
                     token,
                     user: {
-                        id: newUser.id,
-                        email: newUser.email,
-                        full_name: newUser.full_name,
-                        mda_code: newUser.mda_code,
-                        role: newUser.role
+                        id: newUser.user_id,
+                        username: newUser.username,
+                        fullName: newUser.full_name,
+                        mdaCode: newUser.mda_code,
+                        isAdmin: false
                     }
                 })
             };
@@ -229,14 +264,23 @@ exports.handler = async (event) => {
 
             const { data: user } = await supabase
                 .from('users')
-                .select('id, email, full_name, mda_code, role')
-                .eq('id', authResult.user.id)
+                .select('user_id, email, username, full_name, mda_code, is_admin')
+                .eq('user_id', authResult.user.user_id)
                 .single();
 
             return {
                 statusCode: 200,
                 headers,
-                body: JSON.stringify({ success: true, user })
+                body: JSON.stringify({ 
+                    success: true, 
+                    user: {
+                        id: user.user_id,
+                        fullName: user.full_name,
+                        username: user.username,
+                        mdaCode: user.mda_code,
+                        isAdmin: user.is_admin
+                    }
+                })
             };
         }
 

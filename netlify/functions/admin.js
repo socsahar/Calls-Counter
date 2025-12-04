@@ -23,7 +23,7 @@ exports.handler = async (event) => {
     }
 
     // Check if user is admin
-    if (authResult.user.role !== 'admin') {
+    if (!authResult.user.is_admin) {
         return {
             statusCode: 403,
             headers,

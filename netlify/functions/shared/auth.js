@@ -11,7 +11,15 @@ function authenticateToken(headers) {
     }
 
     try {
-        const user = jwt.verify(token, JWT_SECRET);
+        const decoded = jwt.verify(token, JWT_SECRET);
+        // Return user object with Render-compatible structure
+        const user = {
+            user_id: decoded.userId,
+            username: decoded.username,
+            mda_code: decoded.mdaCode,
+            full_name: decoded.fullName,
+            is_admin: decoded.isAdmin || false
+        };
         return { user };
     } catch (error) {
         console.error('Token verification failed:', error.message);
@@ -22,11 +30,11 @@ function authenticateToken(headers) {
 function generateToken(user) {
     return jwt.sign(
         { 
-            id: user.id, 
-            email: user.email,
-            full_name: user.full_name,
-            mda_code: user.mda_code,
-            role: user.role
+            userId: user.user_id,
+            username: user.username,
+            mdaCode: user.mda_code,
+            fullName: user.full_name,
+            isAdmin: user.is_admin || false
         },
         JWT_SECRET,
         { expiresIn: '7d' }
