@@ -97,12 +97,18 @@ exports.handler = async (event) => {
             }
 
             const user = users[0];
-            console.log('✅ User found:', user.email, user.full_name, user.mda_code);
+            console.log('✅ User found:', user.email, user.full_name, user.username, user.mda_code);
             
-            const hashedPassword = crypto.createHash('sha256').update(password).digest('hex');
-            console.log('🔐 Password check - Input hash:', hashedPassword.substring(0, 10), 'Stored hash:', user.password_hash?.substring(0, 10));
+            // Use Supabase RPC to authenticate (uses bcrypt)
+            const { data: authData, error: authError } = await supabase
+                .rpc('authenticate_user', {
+                    p_username: user.username,
+                    p_password: password
+                });
 
-            if (hashedPassword !== user.password_hash) {
+            console.log('🔐 Auth RPC result:', authData ? 'success' : 'failed', authError ? authError.message : '');
+
+            if (authError || !authData || authData.length === 0) {
                 console.log('❌ Password mismatch');
                 return {
                     statusCode: 401,
@@ -194,28 +200,39 @@ exports.handler = async (event) => {
                 };
             }
 
-            const hashedPassword = crypto.createHash('sha256').update(password).digest('hex');
+            // Use RPC function to create user with proper bcrypt hashing
+            const { data: newUserId, error: createError } = await supabase
+                .rpc('create_user', {
+                    p_full_name: fullName,
+                    p_username: username,
+                    p_password: password,
+                    p_mda_code: mdaCode,
+                    p_phone: phone || null,
+                    p_email: email ? email.toLowerCase() : null
+                });
 
-            const { data: newUser, error } = await supabase
-                .from('users')
-                .insert([{
-                    username: username,
-                    email: email ? email.toLowerCase() : null,
-                    phone: phone || null,
-                    password_hash: hashedPassword,
-                    full_name: fullName,
-                    mda_code: mdaCode,
-                    is_admin: false
-                }])
-                .select()
-                .single();
-
-            if (error) {
-                console.error('Registration error:', error);
+            if (createError) {
+                console.error('Registration error:', createError);
                 return {
                     statusCode: 500,
                     headers,
                     body: JSON.stringify({ success: false, message: 'שגיאה ביצירת משתמש' })
+                };
+            }
+
+            // Fetch the created user
+            const { data: newUser, error: fetchError } = await supabase
+                .from('users')
+                .select('*')
+                .eq('user_id', newUserId)
+                .single();
+
+            if (fetchError || !newUser) {
+                console.error('Fetch user error:', fetchError);
+                return {
+                    statusCode: 500,
+                    headers,
+                    body: JSON.stringify({ success: false, message: 'שגיאה בטעינת פרטי משתמש' })
                 };
             }
 
