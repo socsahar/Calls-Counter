@@ -15,11 +15,12 @@ exports.handler = async (event) => {
         return { statusCode: 200, headers, body: '' };
     }
 
-    // Parse the endpoint from path
-    const path = event.path;
-    const isLogin = path.includes('/login');
-    const isRegister = path.includes('/register');
-    const isVerify = path.includes('/verify');
+    // Parse the endpoint from path - handle both direct and proxied paths
+    const path = event.path.replace('/.netlify/functions/auth', '');
+    console.log('🔐 Auth function called - Path:', event.path, 'Parsed:', path);
+    const isLogin = path.includes('/login') || path === '/login';
+    const isRegister = path.includes('/register') || path === '/register';
+    const isVerify = path.includes('/verify') || path === '/verify' || path.includes('/validate') || path === '/validate';
     
     try {
         // POST /api/auth/login

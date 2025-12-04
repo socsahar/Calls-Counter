@@ -24,7 +24,8 @@ exports.handler = async (event) => {
     }
 
     const userId = authResult.user.user_id;
-    const path = event.path.replace('/.netlify/functions/vehicle', '');
+    const path = event.path.replace('/.netlify/functions/vehicle', '').replace('/api/vehicle', '');
+    console.log('🚗 Vehicle function - Path:', event.path, 'Parsed:', path);
 
     try {
         // GET /api/vehicle/current - Get current vehicle

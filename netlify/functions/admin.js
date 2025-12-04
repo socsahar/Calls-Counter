@@ -31,7 +31,8 @@ exports.handler = async (event) => {
         };
     }
 
-    const path = event.path.replace('/.netlify/functions/admin', '');
+    const path = event.path.replace('/.netlify/functions/admin', '').replace('/api/admin', '');
+    console.log('🔧 Admin function - Path:', event.path, 'Parsed:', path);
 
     try {
         // GET /api/admin/dashboard

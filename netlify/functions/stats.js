@@ -23,7 +23,8 @@ exports.handler = async (event) => {
     }
 
     const userId = authResult.user.user_id;
-    const path = event.path.replace('/.netlify/functions/stats', '');
+    const path = event.path.replace('/.netlify/functions/stats', '').replace('/api/stats', '');
+    console.log('📊 Stats function - Path:', event.path, 'Parsed:', path);
     const queryParams = event.queryStringParameters || {};
     const vehicleNumber = queryParams.vehicle_number;
 

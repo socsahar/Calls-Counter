@@ -8,7 +8,8 @@ const supabase = createClient(
 
 exports.handler = async (event, context) => {
     try {
-        const path = event.path;
+        const path = event.path.replace('/.netlify/functions/entry-codes', '').replace('/api/entry-codes', '');
+        console.log('🔑 Entry-codes function - Path:', event.path, 'Parsed:', path);
         const method = event.httpMethod;
 
         console.log(`🔑 Entry Codes Function - ${method} ${path}`);

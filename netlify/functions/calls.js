@@ -24,7 +24,8 @@ exports.handler = async (event) => {
     }
 
     const userId = authResult.user.user_id;
-    const path = event.path.replace('/.netlify/functions/calls', '');
+    const path = event.path.replace('/.netlify/functions/calls', '').replace('/api/calls', '');
+    console.log('📞 Calls function - Path:', event.path, 'Parsed:', path);
 
     try {
         // GET /api/calls - Get today's calls

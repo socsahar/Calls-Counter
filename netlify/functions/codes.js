@@ -22,7 +22,8 @@ exports.handler = async (event) => {
         };
     }
 
-    const path = event.path.replace('/.netlify/functions/codes', '');
+    const path = event.path.replace('/.netlify/functions/codes', '').replace('/api/codes', '');
+    console.log('📋 Codes function - Path:', event.path, 'Parsed:', path);
 
     try {
         // GET /api/codes/alert
