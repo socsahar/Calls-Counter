@@ -73,23 +73,33 @@ exports.handler = async (event) => {
             }
 
             if (error || !users || users.length === 0) {
+                console.log('❌ User not found. Searched for:', email);
                 return {
                     statusCode: 401,
                     headers,
-                    body: JSON.stringify({ success: false, message: 'אימייל או סיסמה שגויים' })
+                    body: JSON.stringify({ 
+                        success: false, 
+                        message: 'משתמש לא נמצא. נסה עם מייל, שם מלא או קוד MDA' 
+                    })
                 };
             }
 
             const user = users[0];
+            console.log('✅ User found:', user.email, user.full_name, user.mda_code);
+            
             const hashedPassword = crypto.createHash('sha256').update(password).digest('hex');
+            console.log('🔐 Password check - Input hash:', hashedPassword.substring(0, 10), 'Stored hash:', user.password_hash?.substring(0, 10));
 
             if (hashedPassword !== user.password_hash) {
+                console.log('❌ Password mismatch');
                 return {
                     statusCode: 401,
                     headers,
-                    body: JSON.stringify({ success: false, message: 'אימייל או סיסמה שגויים' })
+                    body: JSON.stringify({ success: false, message: 'סיסמה שגויה' })
                 };
             }
+            
+            console.log('✅ Login successful');
 
             const token = generateToken(user);
 
