@@ -36,39 +36,50 @@ exports.handler = async (event) => {
                 };
             }
 
-            // Try to find user by email, full_name, or mda_code
+            // Try to find user by username, email, full_name, or mda_code
             let users = null;
             let error = null;
 
-            // First try email
-            const emailResult = await supabase
+            // First try username (primary login field)
+            const usernameResult = await supabase
                 .from('users')
                 .select('*')
-                .eq('email', email.toLowerCase())
+                .eq('username', email)
                 .limit(1);
             
-            if (emailResult.data && emailResult.data.length > 0) {
-                users = emailResult.data;
+            if (usernameResult.data && usernameResult.data.length > 0) {
+                users = usernameResult.data;
             } else {
-                // Try by full_name
-                const nameResult = await supabase
+                // Try email
+                const emailResult = await supabase
                     .from('users')
                     .select('*')
-                    .eq('full_name', email)
+                    .eq('email', email.toLowerCase())
                     .limit(1);
                 
-                if (nameResult.data && nameResult.data.length > 0) {
-                    users = nameResult.data;
+                if (emailResult.data && emailResult.data.length > 0) {
+                    users = emailResult.data;
                 } else {
-                    // Try by mda_code
-                    const mdaResult = await supabase
+                    // Try by full_name
+                    const nameResult = await supabase
                         .from('users')
                         .select('*')
-                        .eq('mda_code', email)
+                        .eq('full_name', email)
                         .limit(1);
                     
-                    users = mdaResult.data;
-                    error = mdaResult.error;
+                    if (nameResult.data && nameResult.data.length > 0) {
+                        users = nameResult.data;
+                    } else {
+                        // Try by mda_code
+                        const mdaResult = await supabase
+                            .from('users')
+                            .select('*')
+                            .eq('mda_code', email)
+                            .limit(1);
+                        
+                        users = mdaResult.data;
+                        error = mdaResult.error;
+                    }
                 }
             }
 
