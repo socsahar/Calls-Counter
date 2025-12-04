@@ -7,6 +7,16 @@
   NODE_VERSION = "18"
 
 [[redirects]]
+  from = "/api/entry-codes"
+  to = "/.netlify/functions/entry-codes"
+  status = 200
+
+[[redirects]]
+  from = "/api/entry-codes/*"
+  to = "/.netlify/functions/entry-codes/:splat"
+  status = 200
+
+[[redirects]]
   from = "/api/auth/validate"
   to = "/.netlify/functions/auth/validate"
   status = 200
@@ -14,6 +24,11 @@
 [[redirects]]
   from = "/api/auth/*"
   to = "/.netlify/functions/auth/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/api/calls/historical"
+  to = "/.netlify/functions/calls/historical"
   status = 200
 
 [[redirects]]
@@ -59,6 +74,36 @@
 [[redirects]]
   from = "/api/codes/*"
   to = "/.netlify/functions/codes/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/api/admin/dashboard"
+  to = "/.netlify/functions/admin/dashboard"
+  status = 200
+
+[[redirects]]
+  from = "/api/admin/users"
+  to = "/.netlify/functions/admin/users"
+  status = 200
+
+[[redirects]]
+  from = "/api/admin/calls"
+  to = "/.netlify/functions/admin/calls"
+  status = 200
+
+[[redirects]]
+  from = "/api/admin/codes/alert"
+  to = "/.netlify/functions/admin/codes/alert"
+  status = 200
+
+[[redirects]]
+  from = "/api/admin/codes/medical"
+  to = "/.netlify/functions/admin/codes/medical"
+  status = 200
+
+[[redirects]]
+  from = "/api/admin/api-keys"
+  to = "/.netlify/functions/admin/api-keys"
   status = 200
 
 [[redirects]]

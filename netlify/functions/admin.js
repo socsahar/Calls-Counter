@@ -45,7 +45,7 @@ exports.handler = async (event) => {
             // Get all users
             const { data: users } = await supabase
                 .from('users')
-                .select('id, full_name, mda_code, email, role, created_at');
+                .select('user_id, full_name, mda_code, email, username, is_admin, created_at');
 
             // Get today's calls
             const { data: todayCalls } = await supabase
@@ -134,7 +134,7 @@ exports.handler = async (event) => {
         if (event.httpMethod === 'GET' && path === '/users') {
             const { data: users, error } = await supabase
                 .from('users')
-                .select('id, email, full_name, mda_code, role, created_at')
+                .select('user_id, email, full_name, mda_code, username, is_admin, created_at')
                 .order('created_at', { ascending: false });
 
             if (error) {
@@ -152,14 +152,189 @@ exports.handler = async (event) => {
             };
         }
 
+        // GET /api/admin/calls
+        if (event.httpMethod === 'GET' && path === '/calls') {
+            const queryParams = event.queryStringParameters || {};
+            const limit = parseInt(queryParams.limit) || 50;
+            const offset = parseInt(queryParams.offset) || 0;
+            
+            const { data: calls, error } = await supabase
+                .from('calls')
+                .select(`
+                    *,
+                    users!inner(username, mda_code)
+                `)
+                .order('created_at', { ascending: false })
+                .range(offset, offset + limit - 1);
+            
+            if (error) {
+                return {
+                    statusCode: 500,
+                    headers,
+                    body: JSON.stringify({ success: false, message: 'שגיאה בטעינת כל הקריאות' })
+                };
+            }
+            
+            return {
+                statusCode: 200,
+                headers,
+                body: JSON.stringify({ success: true, calls: calls || [] })
+            };
+        }
+
+        // GET /api/admin/codes/alert
+        if (event.httpMethod === 'GET' && path === '/codes/alert') {
+            const { data: codes, error } = await supabase
+                .from('alert_codes')
+                .select('*')
+                .order('code', { ascending: true });
+            
+            if (error) {
+                return {
+                    statusCode: 500,
+                    headers,
+                    body: JSON.stringify({ success: false, message: 'שגיאה בטעינת קודי הזנקה' })
+                };
+            }
+            
+            return {
+                statusCode: 200,
+                headers,
+                body: JSON.stringify({ success: true, data: codes || [] })
+            };
+        }
+
+        // GET /api/admin/codes/medical
+        if (event.httpMethod === 'GET' && path === '/codes/medical') {
+            const { data: codes, error } = await supabase
+                .from('medical_codes')
+                .select('*')
+                .order('code', { ascending: true });
+            
+            if (error) {
+                return {
+                    statusCode: 500,
+                    headers,
+                    body: JSON.stringify({ success: false, message: 'שגיאה בטעינת קודים רפואיים' })
+                };
+            }
+            
+            return {
+                statusCode: 200,
+                headers,
+                body: JSON.stringify({ success: true, data: codes || [] })
+            };
+        }
+
+        // GET /api/admin/api-keys
+        if (event.httpMethod === 'GET' && path === '/api-keys') {
+            const { data, error } = await supabase
+                .from('api_keys')
+                .select('id, key_name, permissions, is_active, last_used_at, created_at, updated_at')
+                .eq('user_id', authResult.user.user_id)
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                console.error('Error fetching API keys:', error);
+                return {
+                    statusCode: 500,
+                    headers,
+                    body: JSON.stringify({ success: false, message: 'שגיאה בטעינת מפתחות API' })
+                };
+            }
+
+            return {
+                statusCode: 200,
+                headers,
+                body: JSON.stringify({ success: true, api_keys: data || [] })
+            };
+        }
+
+        // POST /api/admin/codes/alert
+        if (event.httpMethod === 'POST' && path === '/codes/alert') {
+            const { code } = JSON.parse(event.body);
+            
+            if (!code) {
+                return {
+                    statusCode: 400,
+                    headers,
+                    body: JSON.stringify({ success: false, message: 'שם הקוד הוא שדה חובה' })
+                };
+            }
+            
+            const { data, error } = await supabase
+                .from('alert_codes')
+                .insert([{ code }])
+                .select()
+                .single();
+            
+            if (error) {
+                return {
+                    statusCode: 500,
+                    headers,
+                    body: JSON.stringify({ success: false, message: 'שגיאה ביצירת קוד הזנקה' })
+                };
+            }
+            
+            return {
+                statusCode: 201,
+                headers,
+                body: JSON.stringify({ success: true, message: 'קוד הזנקה נוצר בהצלחה', data })
+            };
+        }
+
+        // POST /api/admin/codes/medical
+        if (event.httpMethod === 'POST' && path === '/codes/medical') {
+            const { code } = JSON.parse(event.body);
+            
+            if (!code) {
+                return {
+                    statusCode: 400,
+                    headers,
+                    body: JSON.stringify({ success: false, message: 'שם הקוד הוא שדה חובה' })
+                };
+            }
+            
+            const { data, error } = await supabase
+                .from('medical_codes')
+                .insert([{ code }])
+                .select()
+                .single();
+            
+            if (error) {
+                return {
+                    statusCode: 500,
+                    headers,
+                    body: JSON.stringify({ success: false, message: 'שגיאה ביצירת קוד רפואי' })
+                };
+            }
+            
+            return {
+                statusCode: 201,
+                headers,
+                body: JSON.stringify({ success: true, message: 'קוד רפואי נוצר בהצלחה', data })
+            };
+        }
+
         // DELETE /api/admin/users/:id
         if (event.httpMethod === 'DELETE' && path.startsWith('/users/')) {
             const userIdToDelete = path.replace('/users/', '');
 
+            // First delete user's calls
+            const { error: callsError } = await supabase
+                .from('calls')
+                .delete()
+                .eq('user_id', userIdToDelete);
+            
+            if (callsError) {
+                console.error('Error deleting user calls:', callsError);
+            }
+
+            // Then delete the user
             const { error } = await supabase
                 .from('users')
                 .delete()
-                .eq('id', userIdToDelete);
+                .eq('user_id', userIdToDelete);
 
             if (error) {
                 return {
@@ -173,6 +348,54 @@ exports.handler = async (event) => {
                 statusCode: 200,
                 headers,
                 body: JSON.stringify({ success: true, message: 'משתמש נמחק בהצלחה' })
+            };
+        }
+
+        // DELETE /api/admin/codes/alert/:id
+        if (event.httpMethod === 'DELETE' && path.startsWith('/codes/alert/')) {
+            const codeId = path.replace('/codes/alert/', '');
+
+            const { error } = await supabase
+                .from('alert_codes')
+                .delete()
+                .eq('id', codeId);
+
+            if (error) {
+                return {
+                    statusCode: 500,
+                    headers,
+                    body: JSON.stringify({ success: false, message: 'שגיאה במחיקת קוד הזנקה' })
+                };
+            }
+
+            return {
+                statusCode: 200,
+                headers,
+                body: JSON.stringify({ success: true, message: 'קוד הזנקה נמחק בהצלחה' })
+            };
+        }
+
+        // DELETE /api/admin/codes/medical/:id
+        if (event.httpMethod === 'DELETE' && path.startsWith('/codes/medical/')) {
+            const codeId = path.replace('/codes/medical/', '');
+
+            const { error } = await supabase
+                .from('medical_codes')
+                .delete()
+                .eq('id', codeId);
+
+            if (error) {
+                return {
+                    statusCode: 500,
+                    headers,
+                    body: JSON.stringify({ success: false, message: 'שגיאה במחיקת קוד רפואי' })
+                };
+            }
+
+            return {
+                statusCode: 200,
+                headers,
+                body: JSON.stringify({ success: true, message: 'קוד רפואי נמחק בהצלחה' })
             };
         }
 
