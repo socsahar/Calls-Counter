@@ -7,6 +7,11 @@
   NODE_VERSION = "18"
 
 [[redirects]]
+  from = "/api/auth/validate"
+  to = "/.netlify/functions/auth/validate"
+  status = 200
+
+[[redirects]]
   from = "/api/auth/*"
   to = "/.netlify/functions/auth/:splat"
   status = 200
@@ -22,13 +27,33 @@
   status = 200
 
 [[redirects]]
+  from = "/api/vehicle/current"
+  to = "/.netlify/functions/vehicle/current"
+  status = 200
+
+[[redirects]]
   from = "/api/vehicle/*"
   to = "/.netlify/functions/vehicle/:splat"
   status = 200
 
 [[redirects]]
+  from = "/api/stats"
+  to = "/.netlify/functions/stats"
+  status = 200
+
+[[redirects]]
   from = "/api/stats/*"
   to = "/.netlify/functions/stats/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/api/codes/alert"
+  to = "/.netlify/functions/codes/alert"
+  status = 200
+
+[[redirects]]
+  from = "/api/codes/medical"
+  to = "/.netlify/functions/codes/medical"
   status = 200
 
 [[redirects]]
