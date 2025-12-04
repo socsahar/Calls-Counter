@@ -14,11 +14,15 @@ exports.handler = async (event) => {
         return { statusCode: 200, headers, body: '' };
     }
 
-    const path = event.path.replace('/.netlify/functions/auth', '');
+    // Parse the endpoint from path
+    const path = event.path;
+    const isLogin = path.includes('/login');
+    const isRegister = path.includes('/register');
+    const isVerify = path.includes('/verify');
     
     try {
         // POST /api/auth/login
-        if (event.httpMethod === 'POST' && path === '/login') {
+        if (event.httpMethod === 'POST' && isLogin) {
             const { email, password, rememberMe } = JSON.parse(event.body);
 
             if (!email || !password) {
@@ -75,7 +79,7 @@ exports.handler = async (event) => {
         }
 
         // POST /api/auth/register
-        if (event.httpMethod === 'POST' && path === '/register') {
+        if (event.httpMethod === 'POST' && isRegister) {
             const { email, password, fullName, mdaCode } = JSON.parse(event.body);
 
             if (!email || !password || !fullName || !mdaCode) {
@@ -157,7 +161,7 @@ exports.handler = async (event) => {
         }
 
         // GET /api/auth/verify
-        if (event.httpMethod === 'GET' && path === '/verify') {
+        if (event.httpMethod === 'GET' && isVerify) {
             const { authenticateToken } = require('./shared/auth');
             const authResult = authenticateToken(event.headers);
 

@@ -7,8 +7,43 @@
   NODE_VERSION = "18"
 
 [[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/:splat"
+  from = "/api/auth/*"
+  to = "/.netlify/functions/auth/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/api/calls/*"
+  to = "/.netlify/functions/calls/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/api/calls"
+  to = "/.netlify/functions/calls"
+  status = 200
+
+[[redirects]]
+  from = "/api/vehicle/*"
+  to = "/.netlify/functions/vehicle/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/api/stats/*"
+  to = "/.netlify/functions/stats/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/api/codes/*"
+  to = "/.netlify/functions/codes/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/api/admin/*"
+  to = "/.netlify/functions/admin/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/api/settings/*"
+  to = "/.netlify/functions/settings/:splat"
   status = 200
 
 [[headers]]
