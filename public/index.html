@@ -685,5 +685,100 @@
             }
         });
     </script>
+
+    <!-- Custom Confirmation Modal -->
+    <div id="customConfirmModal" class="modal hidden" style="z-index: 99999;">
+        <div class="modal-overlay"></div>
+        <div class="modal-content" style="max-width: 450px;">
+            <div class="modal-header">
+                <h3 class="modal-title" id="confirmModalTitle">אישור פעולה</h3>
+            </div>
+            <div class="modal-body">
+                <p id="confirmModalMessage" style="font-size: 16px; line-height: 1.6; color: #333; text-align: center; padding: 20px 0;"></p>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn-secondary" id="confirmModalCancel">ביטול</button>
+                <button type="button" class="btn-primary" id="confirmModalOk">אישור</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Alert Modal -->
+    <div id="customAlertModal" class="modal hidden" style="z-index: 99999;">
+        <div class="modal-overlay"></div>
+        <div class="modal-content" style="max-width: 450px;">
+            <div class="modal-header">
+                <h3 class="modal-title" id="alertModalTitle">הודעה</h3>
+            </div>
+            <div class="modal-body">
+                <p id="alertModalMessage" style="font-size: 16px; line-height: 1.6; color: #333; text-align: center; padding: 20px 0;"></p>
+            </div>
+            <div class="modal-actions" style="justify-content: center;">
+                <button type="button" class="btn-primary" id="alertModalOk">אישור</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Custom confirm function
+        window.customConfirm = function(message, title = 'אישור פעולה') {
+            return new Promise((resolve) => {
+                const modal = document.getElementById('customConfirmModal');
+                const titleEl = document.getElementById('confirmModalTitle');
+                const messageEl = document.getElementById('confirmModalMessage');
+                const okBtn = document.getElementById('confirmModalOk');
+                const cancelBtn = document.getElementById('confirmModalCancel');
+                
+                titleEl.textContent = title;
+                messageEl.textContent = message;
+                modal.classList.remove('hidden');
+                
+                const handleOk = () => {
+                    modal.classList.add('hidden');
+                    okBtn.removeEventListener('click', handleOk);
+                    cancelBtn.removeEventListener('click', handleCancel);
+                    resolve(true);
+                };
+                
+                const handleCancel = () => {
+                    modal.classList.add('hidden');
+                    okBtn.removeEventListener('click', handleOk);
+                    cancelBtn.removeEventListener('click', handleCancel);
+                    resolve(false);
+                };
+                
+                okBtn.addEventListener('click', handleOk);
+                cancelBtn.addEventListener('click', handleCancel);
+                
+                // Close on overlay click
+                modal.querySelector('.modal-overlay').addEventListener('click', handleCancel, { once: true });
+            });
+        };
+        
+        // Custom alert function
+        window.customAlert = function(message, title = 'הודעה') {
+            return new Promise((resolve) => {
+                const modal = document.getElementById('customAlertModal');
+                const titleEl = document.getElementById('alertModalTitle');
+                const messageEl = document.getElementById('alertModalMessage');
+                const okBtn = document.getElementById('alertModalOk');
+                
+                titleEl.textContent = title;
+                messageEl.textContent = message;
+                modal.classList.remove('hidden');
+                
+                const handleOk = () => {
+                    modal.classList.add('hidden');
+                    okBtn.removeEventListener('click', handleOk);
+                    resolve();
+                };
+                
+                okBtn.addEventListener('click', handleOk);
+                
+                // Close on overlay click
+                modal.querySelector('.modal-overlay').addEventListener('click', handleOk, { once: true });
+            });
+        };
+    </script>
 </body>
 </html>

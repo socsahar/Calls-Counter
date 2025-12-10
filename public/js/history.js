@@ -451,7 +451,7 @@ class HistoryViewer {
 
     // Handle vehicle release
     async handleReleaseVehicle() {
-        if (!confirm('האם אתה בטוח שברצונך לשחרר את הרכב?')) {
+        if (!await customConfirm('האם אתה בטוח שברצונך לשחרר את הרכב?', 'שחרור רכב')) {
             return;
         }
         
@@ -743,8 +743,8 @@ class HistoryViewer {
 
         const mobileLogoutBtn = document.getElementById('mobileLogoutBtn');
         if (mobileLogoutBtn) {
-            mobileLogoutBtn.addEventListener('click', () => {
-                if (confirm('האם אתה בטוח שברצונך להתנתק?')) {
+            mobileLogoutBtn.addEventListener('click', async () => {
+                if (await customConfirm('האם אתה בטוח שברצונך להתנתק?', 'התנתקות')) {
                     this.logout();
                 }
             });
@@ -811,6 +811,14 @@ class HistoryViewer {
         if (loadHistoricalBtn) {
             loadHistoricalBtn.addEventListener('click', () => {
                 this.loadHistoricalCalls();
+            });
+        }
+
+        // Export to PDF button
+        const exportPDFBtn = document.getElementById('exportToPDF');
+        if (exportPDFBtn) {
+            exportPDFBtn.addEventListener('click', () => {
+                this.exportToPDF();
             });
         }
 
@@ -1004,6 +1012,12 @@ class HistoryViewer {
             if (searchContainer) {
                 searchContainer.style.display = this.allCalls.length > 0 ? 'block' : 'none';
                 console.log('🔍 Search container display set to:', searchContainer.style.display);
+            }
+            
+            // Show/hide export PDF button
+            const exportPDFBtn = document.getElementById('exportToPDF');
+            if (exportPDFBtn) {
+                exportPDFBtn.style.display = this.allCalls.length > 0 ? 'block' : 'none';
             }
             
         } catch (error) {
@@ -1697,6 +1711,176 @@ class HistoryViewer {
         if (editMedicalCodeSelect) {
             editMedicalCodeSelect.innerHTML = '<option value="">בחר קוד רפואי</option>' + options;
         }
+    }
+
+    // Export to PDF functionality using browser print
+    async exportToPDF() {
+        const year = document.getElementById('historyYear').value;
+        const month = document.getElementById('historyMonth').value;
+        
+        if (!this.allCalls || this.allCalls.length === 0) {
+            this.showToast('אין נתונים לייצוא', 'error');
+            return;
+        }
+
+        try {
+
+            // Month names in Hebrew
+            const monthNames = {
+                1: 'ינואר', 2: 'פברואר', 3: 'מרץ', 4: 'אפריל',
+                5: 'מאי', 6: 'יוני', 7: 'יולי', 8: 'אוגוסט',
+                9: 'ספטמבר', 10: 'אוקטובר', 11: 'נובמבר', 12: 'דצמבר'
+            };
+
+            const periodText = month ? `${monthNames[parseInt(month)]} ${year}` : `שנת ${year}`;
+            const vehicleText = `רכב ${this.currentVehicle.number}`;
+            
+            // Calculate statistics
+            const stats = this.calculateStats(this.allCalls);
+            
+            // Create calls rows HTML
+            const callsRows = this.allCalls.map((call, index) => {
+                const callDate = new Date(call.call_date || call.created_at);
+                const formattedDate = callDate.toLocaleDateString('he-IL', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: '2-digit'
+                });
+                
+                const startTime = call.start_time ? call.start_time.substring(0, 5) : '-';
+                const endTime = call.end_time ? call.end_time.substring(0, 5) : '-';
+                const duration = call.duration_minutes ? `${call.duration_minutes} דק'` : '-';
+                
+                const location = this.formatLocation(call);
+                const alertCode = call.alert_code || '-';
+                const medicalCode = call.medical_code || '-';
+
+                return `
+                    <tr style="${index % 2 === 0 ? 'background: #f9fafb;' : ''}">
+                        <td style="padding: 6px; border: 1px solid #ddd; text-align: center; font-weight: 600;">${index + 1}</td>
+                        <td style="padding: 6px; border: 1px solid #ddd;">${call.call_type || '-'}</td>
+                        <td style="padding: 6px; border: 1px solid #ddd;">${formattedDate}</td>
+                        <td style="padding: 6px; border: 1px solid #ddd;">${startTime}</td>
+                        <td style="padding: 6px; border: 1px solid #ddd;">${endTime}</td>
+                        <td style="padding: 6px; border: 1px solid #ddd;">${duration}</td>
+                        <td style="padding: 6px; border: 1px solid #ddd; font-size: 10px;">${location}</td>
+                        <td style="padding: 6px; border: 1px solid #ddd;">${alertCode}</td>
+                        <td style="padding: 6px; border: 1px solid #ddd;">${medicalCode}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            // Create print window
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>דוח קריאות - ${periodText}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Rubik', Arial, sans-serif; direction: rtl; padding: 20px; background: white; color: #000; }
+        .header { text-align: center; background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); color: white; padding: 30px; border-radius: 12px; margin-bottom: 30px; }
+        .header h1 { font-size: 32px; margin-bottom: 10px; }
+        .header h2 { font-size: 24px; font-weight: 500; }
+        .header h3 { font-size: 18px; font-weight: 400; margin-top: 10px; }
+        .section { margin-bottom: 30px; page-break-inside: avoid; }
+        .section-title { color: #dc2626; border-bottom: 3px solid #dc2626; padding-bottom: 10px; margin-bottom: 20px; font-size: 24px; font-weight: 700; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th, td { padding: 10px; border: 1px solid #ddd; text-align: right; }
+        th { background: #dc2626; color: white; font-weight: 700; }
+        .stats-table td { font-size: 16px; }
+        .stats-table td:first-child { font-weight: 700; width: 60%; }
+        .stats-table td:last-child { text-align: center; font-weight: 600; }
+        .stats-table tr:nth-child(odd) { background: #f3f4f6; }
+        .stats-table tr:first-child td:last-child { font-size: 20px; color: #dc2626; font-weight: 700; }
+        .calls-table { font-size: 11px; }
+        .calls-table th { text-align: center; padding: 8px; }
+        .calls-table td { padding: 6px; }
+        .footer { text-align: center; color: #666; font-size: 12px; margin-top: 30px; padding-top: 20px; border-top: 2px solid #ddd; }
+        @media print { body { padding: 10px; } .section { page-break-inside: avoid; } }
+        @page { size: A3 landscape; margin: 15mm; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div style="font-size: 40px; margin-bottom: 10px;">🏍️</div>
+        <h1>דוח קריאות - מד״א</h1>
+        <h2>${periodText}</h2>
+        <h3>${vehicleText}</h3>
+    </div>
+    <div class="section">
+        <h2 class="section-title">סיכום סטטיסטי</h2>
+        <table class="stats-table">
+            <tr><td>סה״כ קריאות:</td><td>${stats.totalCalls}</td></tr>
+            <tr><td>קריאות דחופות:</td><td>${stats.urgentCalls}</td></tr>
+            <tr><td>קריאות אט״ן:</td><td>${stats.atanCalls}</td></tr>
+            <tr><td>קריאות ארן:</td><td>${stats.aranCalls}</td></tr>
+            <tr><td>קריאות נתב״ג:</td><td>${stats.netbagCalls || 0}</td></tr>
+            <tr><td>סה״כ שעות:</td><td>${this.formatHoursAndMinutes(stats.totalHours)}</td></tr>
+        </table>
+    </div>
+    <div class="section">
+        <h2 class="section-title">פירוט קריאות</h2>
+        <table class="calls-table">
+            <thead><tr><th>#</th><th>סוג</th><th>תאריך</th><th>התחלה</th><th>סיום</th><th>משך</th><th>מיקום</th><th>קוד הזנקה</th><th>קוד רפואי</th></tr></thead>
+            <tbody>${callsRows}</tbody>
+        </table>
+    </div>
+    <div class="footer">
+        <p>נוצר ב: ${new Date().toLocaleDateString('he-IL')} ${new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}</p>
+    </div>
+    <script>window.onload = function() { setTimeout(function() { window.print(); }, 500); };</script>
+</body>
+</html>
+            `);
+            printWindow.document.close();
+            
+            this.showToast('חלון ההדפסה נפתח - שמור כ-PDF', 'success');
+
+        } catch (error) {
+            console.error('Error generating PDF:', error);
+            this.showToast('שגיאה ביצירת קובץ PDF', 'error');
+        }
+    }
+
+    // Helper function to format location
+    formatLocation(call) {
+        const parts = [];
+        if (call.city) parts.push(call.city);
+        if (call.street) parts.push(call.street);
+        if (call.location) parts.push(call.location);
+        return parts.length > 0 ? parts.join(', ') : '-';
+    }
+
+    // Helper function to calculate statistics
+    calculateStats(calls) {
+        const stats = {
+            totalCalls: calls.length,
+            urgentCalls: 0,
+            atanCalls: 0,
+            aranCalls: 0,
+            netbagCalls: 0,
+            totalHours: 0
+        };
+
+        calls.forEach(call => {
+            // Count by type
+            const callType = call.call_type || '';
+            if (callType === 'דחוף') stats.urgentCalls++;
+            else if (callType === 'אט"ן' || callType === 'אט״ן' || callType === 'אטן') stats.atanCalls++;
+            else if (callType === 'ארן') stats.aranCalls++;
+            else if (callType === 'נתבג' || callType === 'נתב״ג') stats.netbagCalls++;
+
+            // Sum total hours
+            if (call.duration_minutes) {
+                stats.totalHours += call.duration_minutes / 60;
+            }
+        });
+
+        return stats;
     }
 
     logout() {

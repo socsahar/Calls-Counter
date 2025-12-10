@@ -421,8 +421,8 @@ class CallCounter {
         // Logout button
         const logoutBtn = document.getElementById('logoutBtn');
         if (logoutBtn) {
-            logoutBtn.addEventListener('click', () => {
-                if (confirm('האם אתה בטוח שברצונך להתנתק?')) {
+            logoutBtn.addEventListener('click', async () => {
+                if (await customConfirm('האם אתה בטוח שברצונך להתנתק?', 'התנתקות')) {
                     this.logout();
                 }
             });
@@ -717,9 +717,9 @@ class CallCounter {
         if (menu) menu.remove();
     }
 
-    deleteCallDirect(callId) {
+    async deleteCallDirect(callId) {
         console.log('Delete call:', callId);
-        if (confirm('האם אתה בטוח שברצונך למחוק קריאה זו?')) {
+        if (await customConfirm('האם אתה בטוח שברצונך למחוק קריאה זו?', 'מחיקת קריאה')) {
             this.deleteCall(callId);
         }
         // Remove menu
@@ -943,7 +943,7 @@ class CallCounter {
                 console.error('📞 Server error details:', result.error);
                 
                 // Show detailed error to user for debugging
-                alert(`Error ${response.status}: ${result.message || 'Unknown error'}\n\nDetails: ${JSON.stringify(result, null, 2)}`);
+                await customAlert(`שגיאה ${response.status}: ${result.message || 'שגיאה לא ידועה'}`, 'שגיאה');
                 
                 throw new Error(result.message || 'שגיאה ברישום הקריאה');
             }
@@ -1508,7 +1508,7 @@ class CallCounter {
 
     // Handle vehicle release
     async handleReleaseVehicle() {
-        if (!confirm('האם אתה בטוח שברצונך לשחרר את הרכב?')) {
+        if (!await customConfirm('האם אתה בטוח שברצונך לשחרר את הרכב?', 'שחרור רכב')) {
             return;
         }
         
@@ -1668,6 +1668,7 @@ class CallCounter {
                 allowClear: true,
                 dir: 'rtl',
                 minimumResultsForSearch: 0, // Always show search box
+                dropdownParent: $('#editCallModal'), // Attach dropdown to modal
                 language: {
                     noResults: function() {
                         return 'לא נמצאו תוצאות';
@@ -1725,6 +1726,7 @@ class CallCounter {
                 allowClear: true,
                 dir: 'rtl',
                 minimumResultsForSearch: 0, // Always show search box
+                dropdownParent: $('#editCallModal'), // Attach dropdown to modal
                 language: {
                     noResults: function() {
                         return 'לא נמצאו תוצאות';
@@ -2013,7 +2015,7 @@ class CallCounter {
                 this.openEditModal(call);
                 break;
             case 'delete':
-                if (confirm('האם אתה בטוח שברצונך למחוק קריאה זו?')) {
+                if (await customConfirm('האם אתה בטוח שברצונך למחוק קריאה זו?', 'מחיקת קריאה')) {
                     await this.deleteCall(callId);
                 }
                 break;
@@ -2041,13 +2043,58 @@ class CallCounter {
         // Set entry code
         document.getElementById('editEntryCode').value = call.entry_code || '';
         
-        // Set code dropdowns
-        document.getElementById('editAlertCode').value = call.alert_code_id || '';
-        document.getElementById('editMedicalCode').value = call.medical_code_id || '';
+        // Set code dropdowns - set values before reinitializing Select2
+        const editAlertCode = document.getElementById('editAlertCode');
+        const editMedicalCode = document.getElementById('editMedicalCode');
+        
+        if (editAlertCode) editAlertCode.value = call.alert_code_id || '';
+        if (editMedicalCode) editMedicalCode.value = call.medical_code_id || '';
         
         document.getElementById('editDescription').value = call.description || '';
         
+        // Show modal first
         document.getElementById('editModal').classList.remove('hidden');
+        
+        // Reinitialize Select2 after modal is visible to ensure DOM is ready
+        setTimeout(() => {
+            // Destroy and reinitialize alert code Select2
+            if (editAlertCode && $(editAlertCode).data('select2')) {
+                $(editAlertCode).select2('destroy');
+            }
+            if (editAlertCode) {
+                $(editAlertCode).select2({
+                    placeholder: 'חפש או בחר קוד הזנקה',
+                    allowClear: true,
+                    dir: 'rtl',
+                    minimumResultsForSearch: 0,
+                    dropdownParent: $('#editModal'),
+                    language: {
+                        noResults: function() { return 'לא נמצאו תוצאות'; },
+                        searching: function() { return 'מחפש...'; }
+                    }
+                });
+                $(editAlertCode).val(call.alert_code_id || '').trigger('change');
+            }
+            
+            // Destroy and reinitialize medical code Select2
+            if (editMedicalCode && $(editMedicalCode).data('select2')) {
+                $(editMedicalCode).select2('destroy');
+            }
+            if (editMedicalCode) {
+                $(editMedicalCode).select2({
+                    placeholder: 'חפש או בחר קוד רפואי',
+                    allowClear: true,
+                    dir: 'rtl',
+                    minimumResultsForSearch: 0,
+                    dropdownParent: $('#editModal'),
+                    language: {
+                        noResults: function() { return 'לא נמצאו תוצאות'; },
+                        searching: function() { return 'מחפש...'; }
+                    }
+                });
+                $(editMedicalCode).val(call.medical_code_id || '').trigger('change');
+            }
+        }, 100);
     }
 
     async handleEditSubmit(event) {
@@ -2309,8 +2356,8 @@ class CallCounter {
         }
         
         if (mobileLogoutBtn) {
-            mobileLogoutBtn.addEventListener('click', () => {
-                if (confirm('האם אתה בטוח שברצונך להתנתק?')) {
+            mobileLogoutBtn.addEventListener('click', async () => {
+                if (await customConfirm('האם אתה בטוח שברצונך להתנתק?', 'התנתקות')) {
                     this.logout();
                 }
             });

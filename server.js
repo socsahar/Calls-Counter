@@ -62,9 +62,9 @@ app.use(helmet({
             defaultSrc: ["'self'"],
             styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdn.jsdelivr.net"],
             fontSrc: ["'self'", "https://fonts.gstatic.com"],
-            scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://code.jquery.com", "https://cdn.jsdelivr.net"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://code.jquery.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
             imgSrc: ["'self'", "data:", "https:"],
-            connectSrc: ["'self'", "https://*.supabase.co", "https://fonts.googleapis.com", "https://fonts.gstatic.com"]
+            connectSrc: ["'self'", "https://*.supabase.co", "https://fonts.googleapis.com", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"]
         }
     }
 }));
@@ -616,7 +616,7 @@ app.get('/api/calls', authenticateToken, async (req, res) => {
         }
         
         // Apply vehicle filter if user has selected a vehicle
-        // Note: user_id filter already applied above, so this shows only user's calls on this vehicle
+        // This shows only calls created with the currently selected vehicle
         if (userVehicleNumber && !vehicle_number) {
             query = query.eq('vehicle_number', userVehicleNumber);
         }
@@ -733,13 +733,13 @@ app.get('/api/calls/historical', authenticateToken, async (req, res) => {
             .lt('call_date', endDateStr);
 
         // Apply vehicle filter if user has selected a vehicle
-        // Note: This shows only THIS USER's calls on this vehicle, not all users' calls
+        // This shows only calls created with the currently selected vehicle
         if (userVehicleNumber) {
             query = query.eq('vehicle_number', userVehicleNumber);
         }
 
         query = query.order('call_date', { ascending: false });
-
+        query = query.order('call_date', { ascending: false });
         const { data: calls, error: callsError } = await query;
 
         if (callsError) {
@@ -888,17 +888,33 @@ app.post('/api/calls', authenticateToken, async (req, res) => {
             });
         }
 
-        // Get user's MDA code and auto-detect vehicle type
-        console.log('📞 Server: Getting user MDA code...');
-        console.log('📞 Server: req.user object:', JSON.stringify(req.user, null, 2));
-        const userMdaCode = req.user && req.user.mda_code ? req.user.mda_code : null;
+        // Get user's currently selected vehicle (not their profile MDA code)
+        console.log('📞 Server: Getting user currently selected vehicle...');
+        let currentVehicleNumber = null;
+        let currentVehicleType = null;
         
-        console.log('📞 Server: Using MDA code:', userMdaCode);
-        console.log('📞 Server: MDA code type:', typeof userMdaCode);
-        console.log('📞 Server: MDA code is null?', userMdaCode === null);
-        console.log('📞 Server: MDA code is undefined?', userMdaCode === undefined);
+        try {
+            const { data: vehicleData } = await supabase
+                .rpc('get_user_vehicle', {
+                    p_user_id: req.user.user_id
+                });
+            
+            if (vehicleData && vehicleData.length > 0) {
+                currentVehicleNumber = vehicleData[0].vehicle_number;
+                currentVehicleType = vehicleData[0].vehicle_type;
+                console.log('📞 Server: Using selected vehicle:', currentVehicleNumber, 'type:', currentVehicleType);
+            }
+        } catch (vehicleError) {
+            console.log('📞 Server: Could not fetch selected vehicle, will use profile MDA code');
+        }
         
-        const detectedVehicleType = detectVehicleType(userMdaCode);
+        // Use selected vehicle if available, otherwise fall back to user's MDA code
+        const userMdaCode = currentVehicleNumber || (req.user && req.user.mda_code ? req.user.mda_code : null);
+        
+        console.log('📞 Server: Using vehicle number:', userMdaCode);
+        console.log('📞 Server: Vehicle number type:', typeof userMdaCode);
+        
+        const detectedVehicleType = currentVehicleType || detectVehicleType(userMdaCode);
         const vehicleEmoji = getVehicleEmoji(detectedVehicleType);
         const vehicleHebrewName = getVehicleHebrewName(detectedVehicleType);
         console.log('📞 Server: Detected vehicle type:', detectedVehicleType, 'emoji:', vehicleEmoji, 'hebrew:', vehicleHebrewName);
