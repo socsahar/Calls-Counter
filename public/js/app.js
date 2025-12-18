@@ -565,6 +565,18 @@ class CallCounter {
         });
     }
 
+    // Helper function to get date string in Israel timezone
+    getIsraelDateString() {
+        const now = new Date();
+        const israelDateParts = now.toLocaleDateString('en-CA', {
+            timeZone: 'Asia/Jerusalem',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        }); // Returns YYYY-MM-DD format
+        return israelDateParts;
+    }
+
     setCurrentTime() {
         const now = new Date();
         const timeString = now.toTimeString().slice(0, 5);
@@ -578,7 +590,7 @@ class CallCounter {
     setCurrentDateTime() {
         const now = new Date();
         const timeString = now.toTimeString().slice(0, 5);
-        const dateString = now.toISOString().split('T')[0];
+        const dateString = this.getIsraelDateString();
         
         const startTimeInput = document.getElementById('startTime');
         const dateInput = document.getElementById('callDate');
@@ -597,7 +609,7 @@ class CallCounter {
     
     updateDateIfNeeded() {
         const now = new Date();
-        const currentDateString = now.toISOString().split('T')[0];
+        const currentDateString = this.getIsraelDateString();
         const dateInput = document.getElementById('callDate');
         
         // Only update if the date has changed and the field hasn't been manually modified
@@ -615,12 +627,17 @@ class CallCounter {
     }
     
     setupMidnightDateUpdate() {
+        // Get current time in Israel
         const now = new Date();
-        const tomorrow = new Date(now);
+        const israelTime = new Date(now.toLocaleString('en-US', {timeZone: 'Asia/Jerusalem'}));
+        
+        // Calculate next midnight in Israel timezone
+        const tomorrow = new Date(israelTime);
         tomorrow.setDate(tomorrow.getDate() + 1);
         tomorrow.setHours(0, 0, 0, 0);
         
-        const msUntilMidnight = tomorrow - now;
+        // Calculate time difference correctly
+        const msUntilMidnight = tomorrow - israelTime;
         
         // Set timeout to update at midnight
         setTimeout(() => {
@@ -997,7 +1014,7 @@ class CallCounter {
         try {
             console.log('📞 Loading calls...');
             // Load only today's calls for the "Latest Calls" section
-            const today = new Date().toISOString().split('T')[0];
+            const today = this.getIsraelDateString();
             const response = await fetch(`/api/calls?date=${today}`, {
                 headers: this.getAuthHeaders()
             });

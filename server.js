@@ -1661,16 +1661,21 @@ app.get('/api/stats', authenticateToken, async (req, res) => {
             });
         }
         
-        // Helper function to get Israel time (Asia/Jerusalem timezone)
-        const getIsraelTime = () => {
-            // Convert current time to Israel timezone
-            const israelTime = new Date().toLocaleString("en-US", {timeZone: "Asia/Jerusalem"});
-            return new Date(israelTime);
+        // Helper function to get Israel time date string (Asia/Jerusalem timezone)
+        const getIsraelDateString = () => {
+            // Get current date in Israel timezone
+            const now = new Date();
+            const israelDateParts = now.toLocaleDateString('en-CA', {
+                timeZone: 'Asia/Jerusalem',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            }); // Returns YYYY-MM-DD format
+            return israelDateParts;
         };
         
         // Get current date in Israel timezone
-        const now = getIsraelTime();
-        const today = now.toISOString().split('T')[0]; // YYYY-MM-DD format in Israel
+        const today = getIsraelDateString();
         
         console.log('📊 Israel time:', now.toISOString());
         console.log('📊 Today in Israel:', today);
