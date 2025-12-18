@@ -1675,6 +1675,7 @@ app.get('/api/stats', authenticateToken, async (req, res) => {
         };
         
         // Get current date in Israel timezone
+        const now = new Date();
         const today = getIsraelDateString();
         
         console.log('📊 Israel time:', now.toISOString());
