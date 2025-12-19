@@ -41,13 +41,14 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 function normalizeCallType(callType) {
     const callTypeMap = {
         'urgent': 'דחוף',
-        'atan': 'אט"ן', 
+        'atan': 'אטן', 
         'aran': 'ארן',
         'natbag': 'נתבג',
-        // Already Hebrew - return as is
+        // Already Hebrew - normalize to standard format
         'דחוף': 'דחוף',
-        'אט"ן': 'אט"ן',
-        'אט״ן': 'אט"ן', // Handle different quote marks
+        'אטן': 'אטן',
+        'אט"ן': 'אטן', // Old format with quotes
+        'אט״ן': 'אטן', // Old format with different quotes
         'ארן': 'ארן',
         'נתבג': 'נתבג'
     };
@@ -867,6 +868,7 @@ app.post('/api/calls', authenticateToken, async (req, res) => {
             call_date,
             start_time,
             end_time,
+            arrival_time,
             location,
             city,
             street,
@@ -994,6 +996,7 @@ app.post('/api/calls', authenticateToken, async (req, res) => {
             call_date,
             start_time,
             end_time: end_time || null,
+            arrival_time: arrival_time || null,
             location,
             city: city || null,
             street: street || null,
@@ -1045,7 +1048,7 @@ app.post('/api/calls', authenticateToken, async (req, res) => {
 app.put('/api/calls/:id', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
-        const { call_type, call_date, start_time, end_time, location, description, alert_code_id, medical_code_id, meter_visa_number, entry_code } = req.body;
+        const { call_type, call_date, start_time, end_time, arrival_time, location, description, alert_code_id, medical_code_id, meter_visa_number, entry_code } = req.body;
 
         // CRITICAL: First check if the call belongs to the authenticated user
         const { data: currentCall } = await supabase
@@ -1076,6 +1079,7 @@ app.put('/api/calls/:id', authenticateToken, async (req, res) => {
         if (call_type !== undefined) updateData.call_type = normalizeCallType(call_type);
         if (call_date !== undefined) updateData.call_date = call_date;
         if (start_time !== undefined) updateData.start_time = start_time;
+        if (arrival_time !== undefined) updateData.arrival_time = arrival_time;
         if (end_time !== undefined) {
             updateData.end_time = end_time;
             // Update status based on end_time
@@ -1805,6 +1809,46 @@ app.get('/api/stats', authenticateToken, async (req, res) => {
             return Math.round((totalMinutes / 60) * 100) / 100; // Round to 2 decimal places
         };
 
+        // Helper function to calculate average arrival time in minutes
+        const calculateAverageArrivalTime = (calls) => {
+            if (!calls || calls.length === 0) return null;
+            
+            // Filter calls that have both start_time and arrival_time
+            const callsWithArrivalTime = calls.filter(call => call.start_time && call.arrival_time);
+            
+            if (callsWithArrivalTime.length === 0) return null;
+            
+            // Calculate arrival time in minutes for each call
+            const arrivalTimes = callsWithArrivalTime.map(call => {
+                const [startHour, startMin] = call.start_time.split(':').map(Number);
+                const [arrivalHour, arrivalMin] = call.arrival_time.split(':').map(Number);
+                
+                const startMinutes = startHour * 60 + startMin;
+                let arrivalMinutes = arrivalHour * 60 + arrivalMin;
+                
+                // Handle midnight crossover
+                if (arrivalMinutes < startMinutes) {
+                    arrivalMinutes += 24 * 60; // Add 24 hours
+                }
+                
+                return arrivalMinutes - startMinutes;
+            });
+            
+            // Calculate average
+            const totalMinutes = arrivalTimes.reduce((sum, time) => sum + time, 0);
+            const avgMinutes = Math.round(totalMinutes / arrivalTimes.length);
+            
+            // Format as MM:SS or HH:MM:SS
+            const hours = Math.floor(avgMinutes / 60);
+            const minutes = avgMinutes % 60;
+            
+            if (hours === 0) {
+                return `${minutes}m`;
+            } else {
+                return `${hours}h ${minutes}m`;
+            }
+        };
+
         // Calculate today's stats
         const todayStats = {
             total_calls: todayCalls ? todayCalls.length : 0,
@@ -1822,10 +1866,14 @@ app.get('/api/stats', authenticateToken, async (req, res) => {
             total_hours: calculateHours(monthlyCalls)
         };
 
+        // Calculate average arrival time from all calls (today, week, or month - using month for more data)
+        const averageArrivalTime = calculateAverageArrivalTime(monthlyCalls);
+
         console.log(`📊 Stats Summary (Israel Time):`);
         console.log(`   Today (${today}): ${todayStats.total_calls} calls, ${todayStats.total_hours}h`);
         console.log(`   Week (${weekStartStr} to ${weekEndStr}): ${weeklyStats.total_calls} calls, ${weeklyStats.total_hours}h`);
         console.log(`   Month (${monthStartStr} to ${monthEndStr}): ${monthlyStats.total_calls} calls, ${monthlyStats.total_hours}h`);
+        console.log(`   Average Arrival Time: ${averageArrivalTime || 'N/A'}`);
 
         res.json({
             success: true,
@@ -1835,6 +1883,7 @@ app.get('/api/stats', authenticateToken, async (req, res) => {
                 monthlyCalls: monthlyStats.total_calls,
                 weeklyHours: weeklyStats.total_hours,
                 monthlyHours: monthlyStats.total_hours,
+                averageArrivalTime: averageArrivalTime,
                 currentDate: today,
                 debug: {
                     israelTime: now.toISOString(),

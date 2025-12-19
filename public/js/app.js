@@ -863,6 +863,7 @@ class CallCounter {
             call_date: document.getElementById('callDate').value,
             start_time: document.getElementById('startTime').value,
             end_time: document.getElementById('endTime').value || null,
+            arrival_time: document.getElementById('arrivalTime').value || null,
             location: fullLocation,
             city: city,
             street: street,
@@ -1068,12 +1069,14 @@ class CallCounter {
         const monthlyCallsEl = document.getElementById('monthlyCalls');
         const weeklyHoursEl = document.getElementById('weeklyHours');
         const monthlyHoursEl = document.getElementById('monthlyHours');
+        const averageArrivalTimeEl = document.getElementById('averageArrivalTime');
 
         if (totalCallsEl) totalCallsEl.textContent = this.stats.totalCalls || 0;
         if (weeklyCallsEl) weeklyCallsEl.textContent = this.stats.weeklyCalls || 0;
         if (monthlyCallsEl) monthlyCallsEl.textContent = this.stats.monthlyCalls || 0;
         if (weeklyHoursEl) weeklyHoursEl.textContent = this.formatHoursAndMinutes(this.stats.weeklyHours);
         if (monthlyHoursEl) monthlyHoursEl.textContent = this.formatHoursAndMinutes(this.stats.monthlyHours);
+        if (averageArrivalTimeEl) averageArrivalTimeEl.textContent = this.stats.averageArrivalTime || '-';
     }
 
     updateCallsDisplay() {
@@ -2041,18 +2044,40 @@ class CallCounter {
     }
 
     openEditModal(call) {
+        console.log('Opening edit modal for call:', call);
+        console.log('Call type value:', call.call_type);
+        
         document.getElementById('editCallId').value = call.id;
-        document.getElementById('editCallType').value = call.call_type;
+        
+        // Normalize call type to handle different quote marks and old formats
+        let normalizedCallType = call.call_type;
+        if (normalizedCallType) {
+            // Convert old formats with quotes to new format without quotes
+            if (normalizedCallType === 'אט"ן' || normalizedCallType === 'אט״ן') {
+                normalizedCallType = 'אטן';
+            }
+        }
+        
         document.getElementById('editCallDate').value = call.call_date;
         document.getElementById('editStartTime').value = call.start_time;
         document.getElementById('editEndTime').value = call.end_time || '';
+        document.getElementById('editArrivalTime').value = call.arrival_time || '';
         
-        // Split location into city, street, and details
-        // Expected format: "City, Street, Details" or "City, Street"
-        const locationParts = (call.location || '').split(',').map(s => s.trim());
-        document.getElementById('editCity').value = locationParts[0] || '';
-        document.getElementById('editStreet').value = locationParts[1] || '';
-        document.getElementById('editLocation').value = locationParts.slice(2).join(', ') || '';
+        // Use separate city and street fields if available, otherwise try to parse from location
+        if (call.city && call.street) {
+            document.getElementById('editCity').value = call.city;
+            document.getElementById('editStreet').value = call.street;
+            // Location field contains additional details (building number, entrance, floor, etc.)
+            // Parse from full location by removing city and street
+            const locationParts = (call.location || '').split(',').map(s => s.trim());
+            document.getElementById('editLocation').value = locationParts.slice(2).join(', ') || '';
+        } else {
+            // Fallback: Parse from location string for older records
+            const locationParts = (call.location || '').split(',').map(s => s.trim());
+            document.getElementById('editCity').value = locationParts[0] || '';
+            document.getElementById('editStreet').value = locationParts[1] || '';
+            document.getElementById('editLocation').value = locationParts.slice(2).join(', ') || '';
+        }
         
         // Set meter/visa number
         document.getElementById('editMeterVisaNumber').value = call.meter_visa_number || '';
@@ -2072,8 +2097,17 @@ class CallCounter {
         // Show modal first
         document.getElementById('editModal').classList.remove('hidden');
         
-        // Reinitialize Select2 after modal is visible to ensure DOM is ready
+        // Set all dynamic values after modal is visible to ensure DOM is ready
         setTimeout(() => {
+            // Set call type
+            const editCallTypeSelect = document.getElementById('editCallType');
+            if (editCallTypeSelect) {
+                editCallTypeSelect.value = normalizedCallType;
+                console.log('Set call type to:', normalizedCallType);
+                console.log('Select element value after setting:', editCallTypeSelect.value);
+                console.log('Available options:', Array.from(editCallTypeSelect.options).map(o => o.value));
+            }
+            
             // Destroy and reinitialize alert code Select2
             if (editAlertCode && $(editAlertCode).data('select2')) {
                 $(editAlertCode).select2('destroy');
@@ -2141,6 +2175,7 @@ class CallCounter {
             call_date: document.getElementById('editCallDate').value,
             start_time: document.getElementById('editStartTime').value,
             end_time: document.getElementById('editEndTime').value || null,
+            arrival_time: document.getElementById('editArrivalTime').value || null,
             location: fullLocation,
             city: city,
             street: street,

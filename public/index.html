@@ -179,6 +179,13 @@
                         <div class="stat-label">שעות חודשיות</div>
                     </div>
                 </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🚗</div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="averageArrivalTime">-</div>
+                        <div class="stat-label">זמן הגעה ממוצע</div>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -193,7 +200,7 @@
                         <select id="callType" class="form-input" required>
                             <option value="">בחר סוג קריאה</option>
                             <option value="דחוף">דחוף</option>
-                            <option value="אט״ן">אט״ן</option>
+                            <option value="אטן">אטן</option>
                             <option value="ארן">ארן</option>
                             <option value="נתבג">נתבג</option>
                         </select>
@@ -212,13 +219,18 @@
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="startTime" class="form-label">שעת התחלה</label>
+                            <label for="startTime" class="form-label">יציאה</label>
                             <input type="time" id="startTime" class="form-input" required>
                         </div>
                         <div class="form-group">
-                            <label for="endTime" class="form-label">שעת סיום</label>
-                            <input type="time" id="endTime" class="form-input">
+                            <label for="arrivalTime" class="form-label">הגעה (אופציונלי)</label>
+                            <input type="time" id="arrivalTime" class="form-input" placeholder="זמן הגעה למקום הקריאה">
                         </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="endTime" class="form-label">סיום (אופציונלי)</label>
+                        <input type="time" id="endTime" class="form-input">
                     </div>
 
                     <div class="form-row">
@@ -387,8 +399,9 @@
                     <div class="form-group">
                         <label for="editCallType" class="form-label">סוג הקריאה</label>
                         <select id="editCallType" class="form-input" required>
+                            <option value="">בחר סוג קריאה</option>
                             <option value="דחוף">דחוף</option>
-                            <option value="אט״ן">אט״ן</option>
+                            <option value="אטן">אטן</option>
                             <option value="ארן">ארן</option>
                             <option value="נתבג">נתבג</option>
                         </select>
@@ -407,13 +420,18 @@
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="editStartTime" class="form-label">שעת התחלה</label>
+                            <label for="editStartTime" class="form-label">יציאה</label>
                             <input type="time" id="editStartTime" class="form-input" required>
                         </div>
                         <div class="form-group">
-                            <label for="editEndTime" class="form-label">שעת סיום</label>
-                            <input type="time" id="editEndTime" class="form-input">
+                            <label for="editArrivalTime" class="form-label">הגעה (אופציונלי)</label>
+                            <input type="time" id="editArrivalTime" class="form-input" placeholder="זמן הגעה למקום הקריאה">
                         </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editEndTime" class="form-label">סיום (אופציונלי)</label>
+                        <input type="time" id="editEndTime" class="form-input">
                     </div>
 
                     <div class="form-row">
