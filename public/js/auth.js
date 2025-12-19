@@ -2,7 +2,6 @@
 class AuthManager {
     constructor() {
         this.isLoading = false;
-        console.log('🔐 AuthManager constructor called');
         
         // Delay initialization to ensure DOM is ready
         setTimeout(() => {
@@ -12,10 +11,8 @@ class AuthManager {
 
     init() {
         try {
-            console.log('🔐 AuthManager init started');
             this.bindEvents();
             this.setLoading(false);
-            console.log('🔐 AuthManager init completed');
         } catch (error) {
             console.error('🔐 AuthManager init error:', error);
         }
@@ -25,13 +22,10 @@ class AuthManager {
         // Detect which page we're on
         const isLoginPage = window.location.pathname.includes('login.html') || document.getElementById('loginForm');
         const isRegisterPage = window.location.pathname.includes('register.html') || document.getElementById('registerForm');
-        
-        console.log('🔐 Page detection - Login:', isLoginPage, 'Register:', isRegisterPage);
 
         // Login form
         const loginForm = document.getElementById('loginForm');
         if (loginForm) {
-            console.log('🔐 Found login form, binding events...');
             loginForm.addEventListener('submit', this.handleLogin.bind(this));
         } else if (isLoginPage) {
             console.error('🔐 Login form not found on login page!');
@@ -40,11 +34,9 @@ class AuthManager {
         // Register form (only bind if register elements exist or we're on register page)
         const registerForm = document.getElementById('registerForm');
         if (registerForm) {
-            console.log('📱 Found register form, binding events...');
             
             // Primary form submit handler
             registerForm.addEventListener('submit', (event) => {
-                console.log('📱 Register form submitted');
                 event.preventDefault();
                 event.stopPropagation();
                 this.handleRegister(event);
@@ -53,9 +45,7 @@ class AuthManager {
             // Backup button click handler (for mobile compatibility)
             const registerBtn = document.getElementById('registerBtn');
             if (registerBtn) {
-                console.log('📱 Found register button, adding click handler...');
                 registerBtn.addEventListener('click', (event) => {
-                    console.log('📱 Register button clicked');
                     // Prevent default and directly call registration handler
                     event.preventDefault();
                     event.stopPropagation();
@@ -153,10 +143,7 @@ class AuthManager {
                 event.preventDefault();
             }
             
-            console.log('📱 Starting registration process...');
-            
             if (this.isLoading) {
-                console.log('📱 Already loading, ignoring duplicate submission');
                 return;
             }
             
@@ -171,14 +158,6 @@ class AuthManager {
             const passwordField = document.getElementById('password');
             const confirmPasswordField = document.getElementById('confirmPassword');
             const mdaCodeField = document.getElementById('mdaCode');
-            
-            console.log('📱 Form fields found:', {
-                fullName: !!fullNameField,
-                username: !!usernameField,
-                password: !!passwordField,
-                confirmPassword: !!confirmPasswordField,
-                mdaCode: !!mdaCodeField
-            });
             
             if (!fullNameField || !usernameField || !passwordField || !confirmPasswordField || !mdaCodeField) {
                 console.error('📱 Missing required form fields');
@@ -204,15 +183,11 @@ class AuthManager {
                 formData.email = emailField.value.trim();
             }
 
-            console.log('📱 Form data collected:', { ...formData, password: '***', confirmPassword: '***' });
-
             if (!this.validateRegisterForm(formData)) {
-                console.log('📱 Form validation failed');
                 return;
             }
 
             this.setLoading(true);
-            console.log('📱 Sending registration request...');
             
             const response = await fetch('/api/auth/register', {
                 method: 'POST',
@@ -221,10 +196,7 @@ class AuthManager {
                 },
                 body: JSON.stringify(formData)
             });
-
-            console.log('📱 Response status:', response.status);
             const result = await response.json();
-            console.log('📱 Response data:', result);
 
             if (!response.ok) {
                 throw new Error(result.message || 'שגיאה בהרשמה');
@@ -470,7 +442,6 @@ class AuthManager {
 
 // Initialize auth manager when DOM is loaded
 function initializeAuthManager() {
-    console.log('🔐 Initializing Auth system...');
     
     // Ensure DOM is fully loaded
     if (document.readyState === 'loading') {

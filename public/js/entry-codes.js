@@ -44,8 +44,6 @@ class EntryCodesManager {
             this.setLoading(false);
             this.bindEvents();
             await this.loadEntryCodes();
-            
-            console.log('🔑 Entry Codes Manager - Initialized successfully');
         } catch (error) {
             console.error('❌ Initialization error:', error);
             this.showToast('שגיאה באתחול המערכת', 'error');
@@ -199,7 +197,6 @@ class EntryCodesManager {
     async loadEntryCodes() {
         try {
             this.setLoading(true);
-            console.log('🔑 Loading entry codes...');
 
             const response = await fetch('/api/entry-codes', {
                 headers: this.getAuthHeaders()
@@ -218,7 +215,6 @@ class EntryCodesManager {
             if (result.success) {
                 this.entryCodes = result.data || [];
                 this.filteredCodes = [...this.entryCodes];
-                console.log(`🔑 Loaded ${this.entryCodes.length} entry codes`);
                 this.renderEntryCodes();
             } else {
                 throw new Error(result.message || 'שגיאה בטעינת קודי הכניסה');
@@ -244,8 +240,6 @@ class EntryCodesManager {
             
             return matchCity && matchStreet && matchCode;
         });
-
-        console.log(`🔍 Filtered: ${this.filteredCodes.length} of ${this.entryCodes.length} entries`);
         this.renderEntryCodes();
     }
 
@@ -420,3 +414,4 @@ let entryCodesManager;
 document.addEventListener('DOMContentLoaded', () => {
     entryCodesManager = new EntryCodesManager();
 });
+

@@ -5,12 +5,9 @@ function checkAuthentication() {
     const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
     
     if (!token) {
-        console.log('🔐 No auth token found, redirecting to login');
         window.location.href = '/login.html';
         return false;
     }
-
-    console.log('🔐 Auth token found, proceeding with initialization');
     
     // Do async validation in background without blocking initialization
     fetch('/api/auth/validate', {
@@ -42,7 +39,6 @@ function checkAuthentication() {
             } else {
                 sessionStorage.setItem('userData', JSON.stringify(data.user));
             }
-            console.log('🔐 Authentication validated for user:', data.user.fullName);
             
             // Refresh data if CallCounter is initialized
             if (window.callCounter) {
@@ -143,17 +139,12 @@ class CallCounter {
         try {
             // Try both localStorage and sessionStorage
             const userData = localStorage.getItem('userData') || sessionStorage.getItem('userData');
-            console.log('📱 Getting user vehicle number, userData:', userData);
             
             if (userData) {
                 const user = JSON.parse(userData);
-                console.log('📱 Parsed user data:', user);
                 const mdaCode = user.mdaCode || user.mda_code;
-                console.log('📱 User MDA code:', mdaCode);
                 return mdaCode || '5248'; // Fallback to 5248 if no MDA code
             }
-            
-            console.log('📱 No user data found, using fallback 5248');
             return '5248'; // Default fallback
         } catch (error) {
             console.error('📱 Error getting user vehicle number:', error);
@@ -165,9 +156,7 @@ class CallCounter {
     getUserVehicleType() {
         try {
             const mdaCode = this.getUserVehicleNumber();
-            console.log('📱 Detecting vehicle type for MDA code:', mdaCode);
             const vehicleType = this.detectVehicleType(mdaCode);
-            console.log('📱 Detected vehicle type:', vehicleType);
             return vehicleType;
         } catch (error) {
             console.error('📱 Error detecting vehicle type:', error);
@@ -177,76 +166,58 @@ class CallCounter {
 
     // Vehicle type detection function (same logic as server)
     detectVehicleType(mdaCode) {
-        console.log('🚗 Detecting vehicle type for code:', mdaCode);
-        
-        if (!mdaCode) {
-            console.log('🚗 Invalid MDA code, defaulting to ambulance');
-            return 'ambulance';
-        }
+        if (!mdaCode || mdaCode.length < 2) return 'ambulance';
         
         const codeStr = mdaCode.toString().trim();
-        const codeNum = parseInt(codeStr, 10);
         const firstDigit = codeStr.charAt(0);
         const firstTwoDigits = codeStr.substring(0, 2);
         
-        console.log(`🔍 DETAILED: code="${codeStr}", len=${codeStr.length}, firstDigit="${firstDigit}", firstTwo="${firstTwoDigits}", num=${codeNum}`);
-        if (codeStr.length < 2) {
-            console.log('🚗 Code too short, defaulting to ambulance');
-            return 'ambulance';
-        }
-        
-        console.log('🚗 Code analysis - length:', codeStr.length, 'first digit:', firstDigit, 'first two:', firstTwoDigits);
-        
         // Personal standby detection - 5-digit codes starting with 1 or 2
         if (codeStr.length === 5 && (firstDigit === '1' || firstDigit === '2')) {
-            console.log('🚗 Detected: personal_standby (5-digit 1xxxx or 2xxxx)');
             return 'personal_standby';
         }
         
         // 4-digit codes
         if (codeStr.length === 4) {
-            if (firstDigit === '5') {
-                console.log('🚗 Detected: motorcycle');
-                return 'motorcycle';
-            }
-            if (firstDigit === '6') {
-                console.log('🚗 Detected: picanto');
-                return 'picanto';
-            }
-            if (['1', '2', '3', '4', '7', '8', '9'].includes(firstDigit)) {
-                console.log('🚗 Detected: ambulance (4-digit)');
-                return 'ambulance';
-            }
+            if (firstDigit === '5') return 'motorcycle';
+            if (firstDigit === '6') return 'picanto';
+            if (['1', '2', '3', '4', '7', '8', '9'].includes(firstDigit)) return 'ambulance';
         }
         
         // 2 or 3 digit codes starting with 1,2,3,4,7,8,9 are ambulances
         if ((codeStr.length === 2 || codeStr.length === 3) && 
             ['1', '2', '3', '4', '7', '8', '9'].includes(firstDigit)) {
-            console.log('🚗 Detected: ambulance (2-3 digit)');
             return 'ambulance';
         }
         
-        console.log('🚗 No specific detection, defaulting to ambulance');
         return 'ambulance'; // default
     }
 
-    // Get vehicle emoji based on vehicle type text
-    getVehicleEmojiFromType(vehicleTypeText) {
-        if (!vehicleTypeText) return '🚑';
-        
-        const text = vehicleTypeText.toLowerCase();
+    getVehicleEmoji(vehicleType) {
+        switch(vehicleType) {
+            case 'motorcycle': return '🏍️';
+            case 'picanto': return '🚗';
+            case 'ambulance': return '🚑';
+            case 'personal_standby': return '👨‍⚕️';
+            default: return '🚑';
+        }
+    }
+
+    getVehicleEmojiFromText(text) {
+        if (!text) return '🚑';
+        const lowerText = text.toLowerCase();
         
         // Check for Hebrew names
-        if (text.includes('אופנוע')) return '🏍️';
-        if (text.includes('פיקנטו')) return '🚗';
-        if (text.includes('אמבולנס')) return '🚑';
-        if (text.includes('כונן אישי')) return '👨‍⚕️';
+        if (lowerText.includes('אופנוע')) return '🏍️';
+        if (lowerText.includes('פיקנטו')) return '🚗';
+        if (lowerText.includes('אמבולנס')) return '🚑';
+        if (lowerText.includes('כונן אישי')) return '👨‍⚕️';
         
         // Check for English names
-        if (text.includes('motorcycle')) return '🏍️';
-        if (text.includes('picanto')) return '🚗';
-        if (text.includes('ambulance')) return '🚑';
-        if (text.includes('personal_standby')) return '👨‍⚕️';
+        if (lowerText.includes('motorcycle')) return '🏍️';
+        if (lowerText.includes('picanto')) return '🚗';
+        if (lowerText.includes('ambulance')) return '🚑';
+        if (lowerText.includes('personal_standby')) return '👨‍⚕️';
         
         // Default to ambulance
         return '🚑';
@@ -255,66 +226,46 @@ class CallCounter {
     // Initialize user info display
     initUserInfo() {
         const userData = localStorage.getItem('userData') || sessionStorage.getItem('userData');
-        console.log('👤 User data from storage:', userData);
         if (userData) {
-            const user = JSON.parse(userData);
-            console.log('👤 Parsed user:', user);
-            // Check both isAdmin and is_admin for compatibility
-            const isAdmin = user.isAdmin || user.is_admin;
-            console.log('👤 Is admin?', isAdmin);
-            this.currentUser = user;
-            const userNameEl = document.getElementById('userName');
-            const userCodeEl = document.getElementById('userCode');
-            
-            if (userNameEl) userNameEl.textContent = user.fullName || user.full_name;
-            if (userCodeEl) userCodeEl.textContent = user.mdaCode || user.mda_code;
-            
-            // Show admin buttons if user is admin (both desktop and mobile)
-            if (isAdmin) {
-                const adminBtn = document.getElementById('adminBtn');
-                const mobileAdminBtn = document.getElementById('mobileAdminBtn');
+            try {
+                const user = JSON.parse(userData);
+                // Check both isAdmin and is_admin for compatibility
+                const isAdmin = user.isAdmin || user.is_admin;
+                this.currentUser = user;
+                const userNameEl = document.getElementById('userName');
+                const userCodeEl = document.getElementById('userCode');
                 
-                console.log('✅ User is admin - showing admin buttons');
-                console.log('📱 Window width:', window.innerWidth);
-                console.log('📱 Window height:', window.innerHeight);
+                if (userNameEl) userNameEl.textContent = user.fullName || user.full_name;
+                if (userCodeEl) userCodeEl.textContent = user.mdaCode || user.mda_code;
                 
-                if (adminBtn) {
-                    console.log('🔍 Before: adminBtn.style.display =', adminBtn.style.display);
-                    console.log('🔍 Before: computed display =', window.getComputedStyle(adminBtn).display);
-                    adminBtn.style.display = 'flex';
-                    adminBtn.style.visibility = 'visible';
-                    console.log('🔍 After: adminBtn.style.display =', adminBtn.style.display);
-                    console.log('🔍 After: computed display =', window.getComputedStyle(adminBtn).display);
-                    console.log('✅ Desktop admin button shown');
+                // Show admin buttons if user is admin (both desktop and mobile)
+                if (isAdmin) {
+                    const adminBtn = document.getElementById('adminBtn');
+                    const mobileAdminBtn = document.getElementById('mobileAdminBtn');
+                    
+                    if (adminBtn) {
+                        adminBtn.style.display = 'flex';
+                    }
+                    if (mobileAdminBtn) {
+                        mobileAdminBtn.style.display = 'flex';
+                    }
                 }
-                if (mobileAdminBtn) {
-                    mobileAdminBtn.style.display = 'flex';
-                    mobileAdminBtn.style.visibility = 'visible';
-                    console.log('✅ Mobile admin button shown');
-                }
-            } else {
-                console.log('❌ User is not admin');
+            } catch (e) {
+                console.error('Failed to parse user data:', e);
             }
-        } else {
-            console.log('❌ No user data found in storage');
         }
     }
 
     async init() {
         try {
-            // Ensure loading overlay is hidden at start
-            this.setLoading(false);
-            
             // Initialize user info first
             this.initUserInfo();
             
             // Update vehicle info based on user's MDA code - do this after user info is loaded
-            console.log('🏍️ Initializing vehicle settings...');
             this.currentVehicle = {
                 number: this.getUserVehicleNumber(),
                 type: this.getUserVehicleType()
             };
-            console.log('🏍️ Initial vehicle settings:', this.currentVehicle);
             
             // Update vehicle display immediately with detected info
             this.updateVehicleDisplay();
@@ -325,7 +276,6 @@ class CallCounter {
             
             // Wait a moment for authentication to complete, then load data
             setTimeout(async () => {
-                console.log('🏍️ Loading vehicle settings and data...');
                 await this.loadVehicleSettings();
                 this.updateVehicleDisplay();
                 await this.loadCodes(); // Load alert and medical codes
@@ -545,19 +495,16 @@ class CallCounter {
             if (e.target.classList.contains('call-menu-btn') || 
                 e.target.classList.contains('menu-dots') ||
                 e.target.closest('.call-menu-btn')) {
-                
-                console.log('Menu button clicked!');
                 e.preventDefault();
                 e.stopPropagation();
                 
                 // Get the button element
                 const button = e.target.closest('.call-menu-btn') || e.target;
                 const callId = button.dataset.callId;
-                console.log('Call ID:', callId);
                 
                 if (callId) {
                     // Create and show menu immediately
-                    this.createAndShowMenu(e, callId);
+                    this.createContextMenu(e, callId);
                 } else {
                     console.error('No call ID found');
                 }
@@ -614,12 +561,10 @@ class CallCounter {
         
         // Only update if the date has changed and the field hasn't been manually modified
         if (dateInput && this.lastSetDate && currentDateString !== this.lastSetDate) {
-            console.log('📅 Date changed from', this.lastSetDate, 'to', currentDateString);
             
             // Only auto-update if the field still has yesterday's date (user hasn't changed it)
             if (dateInput.value === this.lastSetDate) {
                 dateInput.value = currentDateString;
-                console.log('📅 Auto-updated date field to:', currentDateString);
             }
             
             this.lastSetDate = currentDateString;
@@ -641,7 +586,6 @@ class CallCounter {
         
         // Set timeout to update at midnight
         setTimeout(() => {
-            console.log('🌙 Midnight reached - updating date');
             this.updateDateIfNeeded();
             
             // Set up next midnight update (24 hours from now)
@@ -649,14 +593,11 @@ class CallCounter {
                 this.updateDateIfNeeded();
             }, 24 * 60 * 60 * 1000); // Every 24 hours
         }, msUntilMidnight);
-        
-        console.log('📅 Midnight date update scheduled in', Math.round(msUntilMidnight / 1000 / 60), 'minutes');
     }
 
-    createAndShowMenu(event, callId) {
-        console.log('Creating menu for call ID:', callId);
-        
-        // Remove any existing menu
+    // Create context menu for calls
+    createContextMenu(event, callId) {
+        // Remove existing menu if any
         const existingMenu = document.getElementById('quickContextMenu');
         if (existingMenu) {
             existingMenu.remove();
@@ -671,8 +612,8 @@ class CallCounter {
         editOption.innerHTML = '✏️ עריכה';
         editOption.style.cssText = 'padding: 8px; cursor: pointer; border-bottom: 1px solid #eee;';
         editOption.addEventListener('click', () => {
-            console.log('Edit clicked for call:', callId);
             this.editCall(callId);
+            menu.remove();
         });
         
         // Create delete option
@@ -680,8 +621,8 @@ class CallCounter {
         deleteOption.innerHTML = '🗑️ מחיקה';
         deleteOption.style.cssText = 'padding: 8px; cursor: pointer; color: red;';
         deleteOption.addEventListener('click', () => {
-            console.log('Delete clicked for call:', callId);
             this.deleteCallDirect(callId);
+            menu.remove();
         });
         
         // Add options to menu
@@ -709,9 +650,6 @@ class CallCounter {
         // Add to body
         document.body.appendChild(menu);
         
-        console.log('Menu created and added to body:', menu);
-        console.log('Menu position:', x, y);
-        
         // Hide menu when clicking elsewhere
         setTimeout(() => {
             document.addEventListener('click', function hideMenu(e) {
@@ -724,7 +662,6 @@ class CallCounter {
     }
 
     editCall(callId) {
-        console.log('Edit call:', callId);
         const call = this.calls.find(c => c.id == callId);
         if (call) {
             this.openEditModal(call);
@@ -735,7 +672,6 @@ class CallCounter {
     }
 
     async deleteCallDirect(callId) {
-        console.log('Delete call:', callId);
         if (await customConfirm('האם אתה בטוח שברצונך למחוק קריאה זו?', 'מחיקת קריאה')) {
             this.deleteCall(callId);
         }
@@ -745,14 +681,12 @@ class CallCounter {
     }
 
     showContextMenu(event, callId) {
-        console.log('showContextMenu called with callId:', callId);
         event.preventDefault();
         
         let contextMenu = document.getElementById('contextMenu');
         
         // Create context menu if it doesn't exist
         if (!contextMenu) {
-            console.log('Creating context menu element');
             contextMenu = document.createElement('div');
             contextMenu.id = 'contextMenu';
             contextMenu.className = 'context-menu hidden';
@@ -779,13 +713,9 @@ class CallCounter {
             });
         }
         
-        console.log('Context menu element:', contextMenu);
-        
         // Position and show the menu
         const x = event.clientX || event.pageX;
         const y = (event.clientY || event.pageY) + window.scrollY;
-        
-        console.log('Positioning at:', x, y);
         
         // Reset all styles
         contextMenu.style.cssText = '';
@@ -807,9 +737,6 @@ class CallCounter {
         contextMenu.style.minWidth = '120px';
         
         contextMenu.dataset.callId = callId;
-        
-        console.log('Context menu should be visible now');
-        console.log('Final context menu style:', contextMenu.style.cssText);
     }
 
     hideContextMenu() {
@@ -931,38 +858,32 @@ class CallCounter {
                 this.showError('משך הנסיעה לא יכול להיות יותר מ-12 שעות');
                 return false;
             }
-            
-            console.log(`⏰ Call duration: ${durationMinutes} minutes (${data.start_time} to ${data.end_time})`);
         }
-        
+
         return true;
     }
 
-    async submitCall(callData) {
+    async handleSubmit(e) {
+        e.preventDefault();
+        
+        const data = this.getFormData();
+        
+        if (!this.validateFormData(data)) {
+            return;
+        }
+        
         try {
             this.setLoading(true);
-            
-            console.log('📞 Submitting call with data:', callData);
-            console.log('📞 Auth headers:', this.getAuthHeaders());
             
             const response = await fetch('/api/calls', {
                 method: 'POST',
                 headers: this.getAuthHeaders(),
-                body: JSON.stringify(callData)
+                body: JSON.stringify(data)
             });
-
-            console.log('📞 Response status:', response.status);
+            
             const result = await response.json();
-            console.log('📞 Response result:', result);
-
+            
             if (!response.ok) {
-                console.error('📞 Call submission failed:', result);
-                console.error('📞 Server error message:', result.message);
-                console.error('📞 Server error details:', result.error);
-                
-                // Show detailed error to user for debugging
-                await customAlert(`שגיאה ${response.status}: ${result.message || 'שגיאה לא ידועה'}`, 'שגיאה');
-                
                 throw new Error(result.message || 'שגיאה ברישום הקריאה');
             }
 
@@ -981,16 +902,12 @@ class CallCounter {
 
     async loadStats() {
         try {
-            console.log('📊 Loading stats...');
             const response = await fetch('/api/stats', {
                 headers: this.getAuthHeaders()
             });
             
-            console.log('📊 Stats response status:', response.status);
-            
             if (!response.ok) {
                 if (response.status === 401) {
-                    console.log('📊 Authentication failed, redirecting to login');
                     window.location.href = '/login.html';
                     return;
                 }
@@ -998,8 +915,6 @@ class CallCounter {
             }
             
             const result = await response.json();
-            console.log('📊 Stats result:', result);
-            console.log('📊 Average Arrival Time from server:', result.data?.averageArrivalTime);
 
             if (result.success) {
                 this.stats = result.data;
@@ -1014,18 +929,14 @@ class CallCounter {
 
     async loadCalls() {
         try {
-            console.log('📞 Loading calls...');
             // Load only today's calls for the "Latest Calls" section
             const today = this.getIsraelDateString();
             const response = await fetch(`/api/calls?date=${today}`, {
                 headers: this.getAuthHeaders()
             });
             
-            console.log('📞 Calls response status:', response.status);
-            
             if (!response.ok) {
                 if (response.status === 401) {
-                    console.log('📞 Authentication failed, redirecting to login');
                     window.location.href = '/login.html';
                     return;
                 }
@@ -1033,12 +944,10 @@ class CallCounter {
             }
             
             const result = await response.json();
-            console.log('📞 Calls result:', result);
 
             if (result.success) {
                 this.calls = result.data;
                 this.filteredCalls = [...this.calls];
-                console.log('📞 Loaded', this.calls.length, 'calls');
                 this.updateCallsDisplay();
             } else {
                 console.error('📞 Error in calls result:', result.message);
@@ -1072,9 +981,6 @@ class CallCounter {
         const monthlyHoursEl = document.getElementById('monthlyHours');
         const averageArrivalTimeEl = document.getElementById('averageArrivalTime');
 
-        console.log('📊 Updating stats display with:', this.stats);
-        console.log('📊 Average Arrival Time value:', this.stats.averageArrivalTime);
-
         if (totalCallsEl) totalCallsEl.textContent = this.stats.totalCalls || 0;
         if (weeklyCallsEl) weeklyCallsEl.textContent = this.stats.weeklyCalls || 0;
         if (monthlyCallsEl) monthlyCallsEl.textContent = this.stats.monthlyCalls || 0;
@@ -1083,7 +989,6 @@ class CallCounter {
         if (averageArrivalTimeEl) {
             const displayValue = this.stats.averageArrivalTime || '-';
             averageArrivalTimeEl.textContent = displayValue;
-            console.log('📊 Set average arrival time display to:', displayValue);
         }
     }
 
@@ -1158,7 +1063,7 @@ class CallCounter {
                 </div>
                 <div class="call-date">📅 ${callDate}</div>
                 <div class="call-location">📍 ${call.location}</div>
-                <div class="call-vehicle">${this.getVehicleEmojiFromType(vehicleType)} ${vehicleType} ${call.vehicle_number}</div>
+                <div class="call-vehicle">${this.getVehicleEmoji(vehicleType)} ${vehicleType} ${call.vehicle_number}</div>
                 ${this.getCodeDisplayHTML(call)}
                 ${call.description ? `<div class="call-description">💬 ${call.description}</div>` : ''}
                 <div class="call-footer">
@@ -1194,16 +1099,12 @@ class CallCounter {
     // Vehicle Management Methods
     async loadVehicleSettings() {
         try {
-            console.log('🚗 Loading vehicle settings with headers:', this.getAuthHeaders());
             const response = await fetch('/api/vehicle/current', {
                 headers: this.getAuthHeaders()
             });
             
-            console.log('🚗 Vehicle settings response status:', response.status);
-            
             if (!response.ok) {
                 if (response.status === 401) {
-                    console.log('🚗 Vehicle settings: Authentication failed');
                     // Don't redirect here, just use fallback
                 } else {
                     console.error('🚗 Vehicle settings API error:', response.status);
@@ -1212,14 +1113,12 @@ class CallCounter {
             }
             
             const result = await response.json();
-            console.log('🚗 Vehicle settings result:', result);
 
             if (result.success && result.data) {
                 this.currentVehicle = {
                     number: result.data.vehicle_number,
                     type: result.data.vehicle_type
                 };
-                console.log('🚗 Updated vehicle from API:', this.currentVehicle);
             }
         } catch (error) {
             console.error('🚗 Error loading vehicle settings, using fallback:', error);
@@ -1228,7 +1127,6 @@ class CallCounter {
                 number: this.getUserVehicleNumber(),
                 type: this.getUserVehicleType()
             };
-            console.log('🚗 Using fallback vehicle:', this.currentVehicle);
         }
         
         this.updateVehicleDisplay();
@@ -1243,7 +1141,6 @@ class CallCounter {
 
     // Open vehicle selection modal
     async openVehicleSelectionModal() {
-        console.log('🚗 Opening vehicle selection modal');
         
         // Clear previous messages
         const errorDiv = document.getElementById('vehicleSelectionError');
@@ -1392,7 +1289,6 @@ class CallCounter {
 
     // Select a vehicle from recent history
     async selectRecentVehicle(vehicleNumber, vehicleType) {
-        console.log('🚗 Selecting recent vehicle:', vehicleNumber, vehicleType);
         
         // Clear previous messages
         this.hideVehicleMessages();
@@ -1408,7 +1304,6 @@ class CallCounter {
             });
             
             const result = await response.json();
-            console.log('🚗 Vehicle selection result:', result);
             
             if (response.ok && result.success) {
                 this.showVehicleSuccess(result.message || 'הרכב נבחר בהצלחה!');
@@ -1465,7 +1360,6 @@ class CallCounter {
     // Handle vehicle selection form submission
     async handleVehicleSelection(e) {
         e.preventDefault();
-        console.log('🚗 Submitting vehicle selection');
         
         const vehicleInput = document.getElementById('vehicleNumberInput');
         const vehicleNumber = vehicleInput ? vehicleInput.value.trim() : '';
@@ -1477,7 +1371,6 @@ class CallCounter {
         
         // Auto-detect vehicle type
         const vehicleType = this.detectVehicleType(vehicleNumber);
-        console.log('🚗 Auto-detected vehicle type:', vehicleType, 'for number:', vehicleNumber);
         
         // Clear previous messages
         this.hideVehicleMessages();
@@ -1493,7 +1386,6 @@ class CallCounter {
             });
             
             const result = await response.json();
-            console.log('🚗 Vehicle selection result:', result);
             
             if (response.ok && result.success) {
                 // Success!
@@ -1539,8 +1431,6 @@ class CallCounter {
         if (!await customConfirm('האם אתה בטוח שברצונך לשחרר את הרכב?', 'שחרור רכב')) {
             return;
         }
-        
-        console.log('🚗 Releasing vehicle');
         this.hideVehicleMessages();
         
         try {
@@ -1550,7 +1440,6 @@ class CallCounter {
             });
             
             const result = await response.json();
-            console.log('🚗 Vehicle release result:', result);
             
             if (response.ok && result.success) {
                 this.showVehicleSuccess(result.message || 'הרכב שוחרר בהצלחה');
@@ -1620,7 +1509,6 @@ class CallCounter {
     // Load alert and medical codes for dropdowns
     async loadCodes() {
         try {
-            console.log('📋 Loading codes...');
             
             // Load alert codes
             const alertResponse = await fetch('/api/codes/alert', {
@@ -1630,7 +1518,6 @@ class CallCounter {
             if (alertResponse.ok) {
                 const alertResult = await alertResponse.json();
                 this.alertCodes = alertResult.data || [];
-                console.log('📋 Loaded', this.alertCodes.length, 'alert codes');
                 this.populateAlertCodeDropdowns();
             }
             
@@ -1642,7 +1529,6 @@ class CallCounter {
             if (medicalResponse.ok) {
                 const medicalResult = await medicalResponse.json();
                 this.medicalCodes = medicalResult.data || [];
-                console.log('📋 Loaded', this.medicalCodes.length, 'medical codes');
                 this.populateMedicalCodeDropdowns();
             }
         } catch (error) {
@@ -1768,11 +1654,9 @@ class CallCounter {
     }
 
     updateVehicleDisplay() {
-        console.log('🚗 Updating vehicle display with:', this.currentVehicle);
         
         // Use the HTML updateVehicleBadge function if available for consistency
         if (typeof updateVehicleBadge === 'function') {
-            console.log('🚗 Calling HTML updateVehicleBadge function');
             updateVehicleBadge();
         }
         
@@ -1826,40 +1710,30 @@ class CallCounter {
         // Check if user is admin and add admin panel button
         const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
         if (!token) {
-            console.log('🔐 No token found for admin check');
             return;
         }
 
         // Decode token to check admin status (simple check)
         try {
             const payload = JSON.parse(atob(token.split('.')[1]));
-            console.log('🔐 Token payload:', payload);
-            console.log('🔐 isAdmin status:', payload.isAdmin);
             
             if (payload.isAdmin) {
-                console.log('🔐 User is admin, adding admin button');
                 this.addAdminButton();
                 this.showMobileAdminButton();
             } else {
-                console.log('🔐 User is not admin');
             }
         } catch (error) {
-            console.log('🔐 Could not decode token for admin check:', error);
         }
     }
 
     addAdminButton() {
         // Check if admin button already exists
         if (document.getElementById('adminBtn')) {
-            console.log('🔐 Admin button already exists');
             return;
         }
 
-        console.log('🔐 Creating admin button');
-
         // Add admin button to header actions
         const headerActions = document.querySelector('.header-actions');
-        console.log('🔐 Header actions element:', headerActions);
         
         if (headerActions) {
             const adminBtn = document.createElement('button');
@@ -1868,23 +1742,17 @@ class CallCounter {
             adminBtn.title = 'ממשק מנהל מערכת';
             adminBtn.innerHTML = '<span class="icon">⚙️</span>';
             adminBtn.addEventListener('click', () => {
-                console.log('🔐 Admin button clicked, navigating to admin panel');
                 window.location.href = '/admin.html';
             });
             
             // Insert before refresh button
             const refreshBtn = document.getElementById('refreshBtn');
             if (refreshBtn) {
-                console.log('🔐 Inserting admin button before refresh button');
                 headerActions.insertBefore(adminBtn, refreshBtn);
             } else {
-                console.log('🔐 Appending admin button to header actions');
                 headerActions.appendChild(adminBtn);
             }
-            
-            console.log('🔐 Admin button created successfully');
         } else {
-            console.log('🔐 Header actions element not found');
         }
     }
 
@@ -1892,10 +1760,8 @@ class CallCounter {
         // Show the mobile admin button for admin users
         const mobileAdminBtn = document.getElementById('mobileAdminBtn');
         if (mobileAdminBtn) {
-            console.log('🔐 Showing mobile admin button');
             mobileAdminBtn.style.display = 'flex';
         } else {
-            console.log('🔐 Mobile admin button not found');
         }
     }
 
@@ -2035,8 +1901,6 @@ class CallCounter {
             console.error('Call not found with ID:', callId);
             return;
         }
-
-        console.log('Context menu action:', action, 'for call:', call);
         
         switch (action) {
             case 'edit':
@@ -2052,8 +1916,6 @@ class CallCounter {
     }
 
     openEditModal(call) {
-        console.log('Opening edit modal for call:', call);
-        console.log('Call type value:', call.call_type);
         
         document.getElementById('editCallId').value = call.id;
         
@@ -2111,14 +1973,6 @@ class CallCounter {
             const editCallTypeSelect = document.getElementById('editCallType');
             if (editCallTypeSelect) {
                 editCallTypeSelect.value = normalizedCallType;
-                console.log('Set call type to:', normalizedCallType);
-                console.log('Select element value after setting:', editCallTypeSelect.value);
-                console.log('Available options:', Array.from(editCallTypeSelect.options).map(o => o.value));
-            }
-            
-            // Destroy and reinitialize alert code Select2
-            if (editAlertCode && $(editAlertCode).data('select2')) {
-                $(editAlertCode).select2('destroy');
             }
             if (editAlertCode) {
                 $(editAlertCode).select2({
@@ -2517,17 +2371,14 @@ if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('/sw.js')
             .then(registration => {
-                console.log('SW registered: ', registration);
             })
             .catch(registrationError => {
-                console.log('SW registration failed: ', registrationError);
             });
     });
 }
 
 // Handle online/offline status
 window.addEventListener('online', () => {
-    console.log('Back online');
     // Refresh data when back online
     if (window.callCounter) {
         window.callCounter.loadStats();
@@ -2536,12 +2387,10 @@ window.addEventListener('online', () => {
 });
 
 window.addEventListener('offline', () => {
-    console.log('Gone offline');
 });
 
 // Initialize the application when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('🏍️ MDA CallCounter - Starting initialization...');
     
     // Check authentication first
     if (!checkAuthentication()) {
@@ -2554,7 +2403,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Check admin access after initialization
     setTimeout(() => {
         if (window.callCounter && window.callCounter.updateAdminAccess) {
-            console.log('🔐 Checking admin access after initialization');
             window.callCounter.updateAdminAccess();
         }
     }, 100);
@@ -2574,18 +2422,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Add some helpful dev tools in development
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        console.log('🏍️ MDA CallCounter Development Mode');
-        console.log('Available methods:', {
-            exportData: 'callCounter.exportTodayData()',
-            stats: 'callCounter.stats',
-            calls: 'callCounter.calls',
-            goToAdmin: 'goToAdmin()', // Add manual admin navigation
-            findAdminBtn: 'findAdminBtn()' // Add function to find admin button
-        });
         
         // Manual admin navigation function
         window.goToAdmin = function() {
-            console.log('🔐 Manual admin navigation...');
             window.location.href = '/admin.html';
         };
         
@@ -2593,13 +2432,11 @@ document.addEventListener('DOMContentLoaded', () => {
         window.findAdminBtn = function() {
             const adminBtn = document.getElementById('adminBtn');
             if (adminBtn) {
-                console.log('🔐 Admin button found:', adminBtn);
                 adminBtn.style.border = '3px solid red';
                 adminBtn.style.backgroundColor = 'yellow';
                 adminBtn.scrollIntoView();
                 return adminBtn;
             } else {
-                console.log('❌ Admin button not found');
                 return null;
             }
         };

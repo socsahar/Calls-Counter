@@ -18,8 +18,6 @@ class AdminPanel {
             
             this.bindEvents();
             await this.loadDashboard();
-            
-            console.log('🔧 MDA CallCounter Admin - Initialized successfully');
         } catch (error) {
             console.error('❌ Admin initialization error:', error);
             this.showToast('שגיאה באתחול ממשק המנהל', 'error');
@@ -55,7 +53,6 @@ class AdminPanel {
     checkAuthentication() {
         const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
         if (!token) {
-            console.log('❌ No token found, redirecting to login');
             window.location.href = '/login.html';
             return false;
         }
@@ -235,7 +232,6 @@ class AdminPanel {
             }
 
             const data = await response.json();
-            console.log('📊 Dashboard data loaded:', data);
 
             this.displayDashboardStats(data.data);
             this.displayRecentActivity(data.data.recentCallsData);
@@ -386,8 +382,6 @@ class AdminPanel {
         const vehicleCallsGrid = document.getElementById('vehicleCallsGrid');
         if (!vehicleCallsGrid) return;
 
-        console.log('🚗 Vehicle call stats received:', vehicleCallStats);
-
         vehicleCallsGrid.innerHTML = `
             <div class="stat-card vehicle-calls">
                 <div class="stat-icon">🏍️</div>
@@ -504,10 +498,7 @@ class AdminPanel {
         const usersContainer = document.getElementById('usersContainer');
         if (!usersContainer) return;
 
-        console.log('👥 Users data received:', users);
-
         const usersHtml = users.map(user => {
-            console.log('👤 User:', user.full_name, 'Username:', user.username);
             const joinDate = new Date(user.created_at).toLocaleDateString('he-IL');
             let vehicleType = 'לא צוין';
             let vehicleEmoji = '🚑';
@@ -603,8 +594,6 @@ class AdminPanel {
         }
 
         try {
-            console.log(`🗑️ Deleting user: ${userId} (${username})`);
-            const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
             const response = await fetch(`/api/admin/users/${userId}`, {
                 method: 'DELETE',
                 headers: {
@@ -612,8 +601,6 @@ class AdminPanel {
                     'Content-Type': 'application/json'
                 }
             });
-
-            console.log(`🗑️ Delete response status: ${response.status}`);
             
             if (!response.ok) {
                 const errorData = await response.json();
@@ -622,7 +609,6 @@ class AdminPanel {
             }
             
             const data = await response.json();
-            console.log('✅ Delete successful:', data);
             this.showToast(data.message, 'success');
             
             // Hide the section first to force a complete refresh
@@ -634,7 +620,6 @@ class AdminPanel {
             // Force a fresh fetch by calling showUsersSection after a small delay
             setTimeout(async () => {
                 await this.showUsersSection();
-                console.log('✅ Users list refreshed');
             }, 100);
 
 
@@ -1620,7 +1605,6 @@ class AdminPanel {
 
 // Initialize admin panel when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('🔧 MDA CallCounter Admin - Starting initialization...');
     window.adminPanel = new AdminPanel();
 });
 

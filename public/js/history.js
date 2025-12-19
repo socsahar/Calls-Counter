@@ -97,6 +97,43 @@ class HistoryViewer {
         };
     }
 
+    // Load vehicle settings from API
+    async loadVehicleSettings() {
+        try {
+            const response = await fetch('/api/vehicle/current', {
+                headers: this.getAuthHeaders()
+            });
+            
+            if (!response.ok) {
+                if (response.status === 401) {
+                    // Don't redirect here, just use fallback
+                } else {
+                    console.error('🚗 Vehicle settings API error:', response.status);
+                }
+                throw new Error(`HTTP ${response.status}`);
+            }
+            
+            const result = await response.json();
+
+            if (result.success && result.data) {
+                this.currentVehicle = {
+                    number: result.data.vehicle_number,
+                    type: result.data.vehicle_type
+                };
+                
+                // Update the UI as well
+                await this.updateVehicleFilterInfo();
+            }
+        } catch (error) {
+            console.error('🚗 Error loading vehicle settings, using fallback:', error);
+            // Fallback to user's MDA code if API fails
+            this.currentVehicle = {
+                number: this.getUserVehicleNumber(),
+                type: this.getUserVehicleType()
+            };
+        }
+    }
+
     // Update vehicle filter info display
     async updateVehicleFilterInfo() {
         try {
@@ -157,7 +194,6 @@ class HistoryViewer {
 
     // Open vehicle selection modal
     async openVehicleSelectionModal() {
-        console.log('🚗 Opening vehicle selection modal');
         
         // Clear previous messages
         const errorDiv = document.getElementById('vehicleSelectionError');
@@ -306,7 +342,6 @@ class HistoryViewer {
 
     // Select a vehicle from recent history
     async selectRecentVehicle(vehicleNumber, vehicleType) {
-        console.log('🚗 Selecting recent vehicle:', vehicleNumber, vehicleType);
         
         // Clear previous messages
         this.hideVehicleMessages();
@@ -322,7 +357,6 @@ class HistoryViewer {
             });
             
             const result = await response.json();
-            console.log('🚗 Vehicle selection result:', result);
             
             if (response.ok && result.success) {
                 this.showVehicleSuccess(result.message || 'הרכב נבחר בהצלחה!');
@@ -379,7 +413,6 @@ class HistoryViewer {
     // Handle vehicle selection form submission
     async handleVehicleSelection(e) {
         e.preventDefault();
-        console.log('🚗 Submitting vehicle selection');
         
         const vehicleInput = document.getElementById('vehicleNumberInput');
         const vehicleNumber = vehicleInput ? vehicleInput.value.trim() : '';
@@ -391,7 +424,6 @@ class HistoryViewer {
         
         // Auto-detect vehicle type
         const vehicleType = this.detectVehicleType(vehicleNumber);
-        console.log('🚗 Auto-detected vehicle type:', vehicleType, 'for number:', vehicleNumber);
         
         // Clear previous messages
         this.hideVehicleMessages();
@@ -407,7 +439,6 @@ class HistoryViewer {
             });
             
             const result = await response.json();
-            console.log('🚗 Vehicle selection result:', result);
             
             if (response.ok && result.success) {
                 // Success!
@@ -454,8 +485,6 @@ class HistoryViewer {
         if (!await customConfirm('האם אתה בטוח שברצונך לשחרר את הרכב?', 'שחרור רכב')) {
             return;
         }
-        
-        console.log('🚗 Releasing vehicle');
         this.hideVehicleMessages();
         
         try {
@@ -465,7 +494,6 @@ class HistoryViewer {
             });
             
             const result = await response.json();
-            console.log('🚗 Vehicle release result:', result);
             
             if (response.ok && result.success) {
                 this.showVehicleSuccess(result.message || 'הרכב שוחרר בהצלחה');
@@ -619,8 +647,6 @@ class HistoryViewer {
             
             // Auto-load current month's data
             this.autoLoadCurrentMonth();
-            
-            console.log('🏍️ MDA CallCounter History - Initialized successfully');
         } catch (error) {
             console.error('❌ Initialization error:', error);
             this.showToast('שגיאה באתחול המערכת', 'error');
@@ -1007,11 +1033,8 @@ class HistoryViewer {
             
             // Show search container if there are calls
             const searchContainer = document.getElementById('searchContainer');
-            console.log('🔍 Search container element:', searchContainer);
-            console.log('🔍 Number of calls:', this.allCalls.length);
             if (searchContainer) {
                 searchContainer.style.display = this.allCalls.length > 0 ? 'block' : 'none';
-                console.log('🔍 Search container display set to:', searchContainer.style.display);
             }
             
             // Show/hide export PDF button
@@ -1244,6 +1267,7 @@ class HistoryViewer {
         if (!searchLower) {
             // Show all calls if search is empty
             this.displayFilteredCalls(this.allCalls);
+            this.updateFilteredCount(this.allCalls.length, false);
             return;
         }
         
@@ -1296,6 +1320,17 @@ class HistoryViewer {
         });
         
         this.displayFilteredCalls(filteredCalls);
+        this.updateFilteredCount(filteredCalls.length, true);
+    }
+
+    updateFilteredCount(count, isFiltered) {
+        const filteredCountEl = document.getElementById('filteredCount');
+        const countTextEl = document.getElementById('filteredCallsCount');
+        
+        if (!filteredCountEl || !countTextEl) return;
+        
+        countTextEl.textContent = count;
+        filteredCountEl.style.display = isFiltered ? 'flex' : 'none';
     }
 
     displayFilteredCalls(calls) {
@@ -1657,7 +1692,6 @@ class HistoryViewer {
 
     async loadCodes() {
         try {
-            console.log('📋 Loading codes...');
             
             // Load alert codes
             const alertResponse = await fetch('/api/codes/alert', {
@@ -1667,7 +1701,6 @@ class HistoryViewer {
             if (alertResponse.ok) {
                 const alertResult = await alertResponse.json();
                 this.alertCodes = alertResult.data || [];
-                console.log('📋 Loaded', this.alertCodes.length, 'alert codes');
                 this.populateAlertCodeDropdowns();
             }
             
@@ -1679,7 +1712,6 @@ class HistoryViewer {
             if (medicalResponse.ok) {
                 const medicalResult = await medicalResponse.json();
                 this.medicalCodes = medicalResult.data || [];
-                console.log('📋 Loaded', this.medicalCodes.length, 'medical codes');
                 this.populateMedicalCodeDropdowns();
             }
         } catch (error) {
@@ -1735,11 +1767,26 @@ class HistoryViewer {
             const periodText = month ? `${monthNames[parseInt(month)]} ${year}` : `שנת ${year}`;
             const vehicleText = `רכב ${this.currentVehicle.number}`;
             
+            // Sort calls from oldest to newest by date and start time
+            const sortedCalls = [...this.allCalls].sort((a, b) => {
+                // Compare dates first
+                const dateA = new Date(a.call_date || a.created_at);
+                const dateB = new Date(b.call_date || b.created_at);
+                const dateDiff = dateA - dateB;
+                
+                if (dateDiff !== 0) return dateDiff;
+                
+                // If same date, compare start times
+                const timeA = a.start_time || '00:00:00';
+                const timeB = b.start_time || '00:00:00';
+                return timeA.localeCompare(timeB);
+            });
+            
             // Calculate statistics
-            const stats = this.calculateStats(this.allCalls);
+            const stats = this.calculateStats(sortedCalls);
             
             // Create calls rows HTML
-            const callsRows = this.allCalls.map((call, index) => {
+            const callsRows = sortedCalls.map((call, index) => {
                 const callDate = new Date(call.call_date || call.created_at);
                 const formattedDate = callDate.toLocaleDateString('he-IL', {
                     day: '2-digit',
@@ -1748,6 +1795,7 @@ class HistoryViewer {
                 });
                 
                 const startTime = call.start_time ? call.start_time.substring(0, 5) : '-';
+                const arrivalTime = call.arrival_time ? call.arrival_time.substring(0, 5) : '-';
                 const endTime = call.end_time ? call.end_time.substring(0, 5) : '-';
                 const duration = call.duration_minutes ? `${call.duration_minutes} דק'` : '-';
                 
@@ -1761,6 +1809,7 @@ class HistoryViewer {
                         <td style="padding: 6px; border: 1px solid #ddd;">${call.call_type || '-'}</td>
                         <td style="padding: 6px; border: 1px solid #ddd;">${formattedDate}</td>
                         <td style="padding: 6px; border: 1px solid #ddd;">${startTime}</td>
+                        <td style="padding: 6px; border: 1px solid #ddd;">${arrivalTime}</td>
                         <td style="padding: 6px; border: 1px solid #ddd;">${endTime}</td>
                         <td style="padding: 6px; border: 1px solid #ddd;">${duration}</td>
                         <td style="padding: 6px; border: 1px solid #ddd; font-size: 10px;">${location}</td>
@@ -1820,12 +1869,13 @@ class HistoryViewer {
             <tr><td>קריאות ארן:</td><td>${stats.aranCalls}</td></tr>
             <tr><td>קריאות נתב״ג:</td><td>${stats.netbagCalls || 0}</td></tr>
             <tr><td>סה״כ שעות:</td><td>${this.formatHoursAndMinutes(stats.totalHours)}</td></tr>
+            ${stats.averageArrivalTime ? `<tr><td>זמן הגעה ממוצע:</td><td>${stats.averageArrivalTime}</td></tr>` : ''}
         </table>
     </div>
     <div class="section">
         <h2 class="section-title">פירוט קריאות</h2>
         <table class="calls-table">
-            <thead><tr><th>#</th><th>סוג</th><th>תאריך</th><th>התחלה</th><th>סיום</th><th>משך</th><th>מיקום</th><th>קוד הזנקה</th><th>קוד רפואי</th></tr></thead>
+            <thead><tr><th>#</th><th>סוג</th><th>תאריך</th><th>יציאה</th><th>הגעה</th><th>סיום</th><th>משך</th><th>מיקום</th><th>קוד הזנקה</th><th>קוד רפואי</th></tr></thead>
             <tbody>${callsRows}</tbody>
         </table>
     </div>
@@ -1863,8 +1913,11 @@ class HistoryViewer {
             atanCalls: 0,
             aranCalls: 0,
             netbagCalls: 0,
-            totalHours: 0
+            totalHours: 0,
+            averageArrivalTime: null
         };
+
+        const arrivalTimes = [];
 
         calls.forEach(call => {
             // Count by type
@@ -1878,7 +1931,34 @@ class HistoryViewer {
             if (call.duration_minutes) {
                 stats.totalHours += call.duration_minutes / 60;
             }
+
+            // Calculate arrival times for average
+            if (call.start_time && call.arrival_time) {
+                const [startHour, startMin] = call.start_time.split(':').map(Number);
+                const [arrivalHour, arrivalMin] = call.arrival_time.split(':').map(Number);
+                
+                const startMinutes = startHour * 60 + startMin;
+                const arrivalMinutes = arrivalHour * 60 + arrivalMin;
+                
+                let diff = arrivalMinutes - startMinutes;
+                if (diff < 0) diff += 24 * 60; // Handle midnight crossing
+                
+                arrivalTimes.push(diff);
+            }
         });
+
+        // Calculate average arrival time
+        if (arrivalTimes.length > 0) {
+            const avgMinutes = Math.round(arrivalTimes.reduce((a, b) => a + b, 0) / arrivalTimes.length);
+            const hours = Math.floor(avgMinutes / 60);
+            const minutes = avgMinutes % 60;
+            
+            if (hours > 0) {
+                stats.averageArrivalTime = `${hours}h ${minutes}m`;
+            } else {
+                stats.averageArrivalTime = `${minutes}m`;
+            }
+        }
 
         return stats;
     }
@@ -1897,7 +1977,6 @@ class HistoryViewer {
 
 // Initialize the history viewer when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('🏍️ MDA CallCounter History - Starting initialization...');
     window.historyViewer = new HistoryViewer();
 });
 
