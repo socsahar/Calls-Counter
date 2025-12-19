@@ -999,6 +999,7 @@ class CallCounter {
             
             const result = await response.json();
             console.log('📊 Stats result:', result);
+            console.log('📊 Average Arrival Time from server:', result.data?.averageArrivalTime);
 
             if (result.success) {
                 this.stats = result.data;
@@ -1071,12 +1072,19 @@ class CallCounter {
         const monthlyHoursEl = document.getElementById('monthlyHours');
         const averageArrivalTimeEl = document.getElementById('averageArrivalTime');
 
+        console.log('📊 Updating stats display with:', this.stats);
+        console.log('📊 Average Arrival Time value:', this.stats.averageArrivalTime);
+
         if (totalCallsEl) totalCallsEl.textContent = this.stats.totalCalls || 0;
         if (weeklyCallsEl) weeklyCallsEl.textContent = this.stats.weeklyCalls || 0;
         if (monthlyCallsEl) monthlyCallsEl.textContent = this.stats.monthlyCalls || 0;
         if (weeklyHoursEl) weeklyHoursEl.textContent = this.formatHoursAndMinutes(this.stats.weeklyHours);
         if (monthlyHoursEl) monthlyHoursEl.textContent = this.formatHoursAndMinutes(this.stats.monthlyHours);
-        if (averageArrivalTimeEl) averageArrivalTimeEl.textContent = this.stats.averageArrivalTime || '-';
+        if (averageArrivalTimeEl) {
+            const displayValue = this.stats.averageArrivalTime || '-';
+            averageArrivalTimeEl.textContent = displayValue;
+            console.log('📊 Set average arrival time display to:', displayValue);
+        }
     }
 
     updateCallsDisplay() {

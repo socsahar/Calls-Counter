@@ -1753,7 +1753,7 @@ app.get('/api/stats', authenticateToken, async (req, res) => {
         // Note: This shows only THIS USER's calls on the vehicle, not all users' calls
         let weeklyQuery = supabase
             .from('calls')
-            .select('id, duration_minutes')
+            .select('id, duration_minutes, start_time, arrival_time')
             .eq('user_id', req.user.user_id)  // CRITICAL: Only user's own data
             .gte('call_date', weekStartStr)
             .lt('call_date', weekEndStr);
@@ -1785,7 +1785,7 @@ app.get('/api/stats', authenticateToken, async (req, res) => {
         // Note: This shows only THIS USER's calls on the vehicle, not all users' calls
         let monthlyQuery = supabase
             .from('calls')
-            .select('id, duration_minutes')
+            .select('id, duration_minutes, start_time, arrival_time')
             .eq('user_id', req.user.user_id)  // CRITICAL: Only user's own data
             .gte('call_date', monthStartStr)
             .lt('call_date', monthEndStr);
