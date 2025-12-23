@@ -749,19 +749,10 @@ class CallCounter {
 
     async handleFormSubmit(event) {
         event.preventDefault();
-        
-        if (this.isLoading) return; // Prevent multiple submissions
-        
+
         const formData = this.getFormData();
-        
-        // Check if getFormData returned null (validation failed)
-        if (!formData) {
-            return;
-        }
-        
-        if (!this.validateFormData(formData)) {
-            return;
-        }
+        if (!formData) return;
+        if (!this.validateFormData(formData)) return;
 
         await this.submitCall(formData);
     }
@@ -863,26 +854,20 @@ class CallCounter {
         return true;
     }
 
-    async handleSubmit(e) {
-        e.preventDefault();
-        
-        const data = this.getFormData();
-        
-        if (!this.validateFormData(data)) {
-            return;
-        }
-        
+    async submitCall(data) {
+        if (this.isLoading) return;
+
         try {
             this.setLoading(true);
-            
+
             const response = await fetch('/api/calls', {
                 method: 'POST',
                 headers: this.getAuthHeaders(),
                 body: JSON.stringify(data)
             });
-            
+
             const result = await response.json();
-            
+
             if (!response.ok) {
                 throw new Error(result.message || 'שגיאה ברישום הקריאה');
             }
@@ -891,13 +876,23 @@ class CallCounter {
             this.resetForm();
             await this.loadStats();
             await this.loadCalls();
-            
+
         } catch (error) {
             console.error('Error submitting call:', error);
             this.showError(error.message || 'שגיאה ברישום הנסיעה');
         } finally {
             this.setLoading(false);
         }
+    }
+
+    async handleSubmit(e) {
+        e.preventDefault();
+
+        const data = this.getFormData();
+        if (!data) return;
+        if (!this.validateFormData(data)) return;
+
+        await this.submitCall(data);
     }
 
     async loadStats() {

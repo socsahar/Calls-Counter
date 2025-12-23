@@ -24,6 +24,7 @@ const fs = require('fs');
 const { createClient } = require('@supabase/supabase-js');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
+const axios = require('axios');
 
 // Initialize Express app
 const app = express();
@@ -2836,6 +2837,426 @@ app.post('/api/v1/calls', authenticateAPIKey, async (req, res) => {
         });
     }
 });
+
+// ============================================================================
+// AI CHAT ENDPOINTS (Grok Integration)
+// ============================================================================
+
+// Helper function to get user stats by period
+async function getUserStatsByPeriod(userId, period = 'month') {
+    try {
+        const now = new Date();
+        let startDate;
+        
+        switch(period) {
+            case 'day':
+                startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                break;
+            case 'week':
+                startDate = new Date(now);
+                startDate.setDate(now.getDate() - 7);
+                break;
+            case 'month':
+                startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+                break;
+            case 'year':
+                startDate = new Date(now.getFullYear(), 0, 1);
+                break;
+            default:
+                startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        }
+        
+        const startDateStr = startDate.toISOString().split('T')[0];
+        
+        // Fetch calls for the period
+        const { data: calls, error } = await supabase
+            .from('calls')
+            .select('*')
+            .eq('user_id', userId)
+            .gte('call_date', startDateStr)
+            .order('call_date', { ascending: false });
+            
+        if (error) throw error;
+        
+        // Calculate stats
+        let totalHours = 0;
+        let totalMinutes = 0;
+        const callTypes = {};
+        
+        calls.forEach(call => {
+            // Count by call type
+            callTypes[call.call_type] = (callTypes[call.call_type] || 0) + 1;
+            
+            // Calculate duration
+            if (call.start_time && call.end_time) {
+                const [startHour, startMin] = call.start_time.split(':').map(Number);
+                const [endHour, endMin] = call.end_time.split(':').map(Number);
+                
+                let durationMinutes;
+                const startMinutes = startHour * 60 + startMin;
+                const endMinutes = endHour * 60 + endMin;
+                
+                if (endMinutes < startMinutes) {
+                    durationMinutes = (endMinutes + 24 * 60) - startMinutes;
+                } else {
+                    durationMinutes = endMinutes - startMinutes;
+                }
+                
+                totalMinutes += durationMinutes;
+            }
+        });
+        
+        totalHours = Math.floor(totalMinutes / 60);
+        const remainingMinutes = totalMinutes % 60;
+        
+        return {
+            period,
+            totalCalls: calls.length,
+            totalHours,
+            totalMinutes: remainingMinutes,
+            callTypes,
+            calls: calls.slice(0, 10) // Return last 10 calls
+        };
+    } catch (error) {
+        console.error('Error getting user stats:', error);
+        throw error;
+    }
+}
+
+// Helper function to analyze screenshot and extract call data
+async function analyzeCallScreenshot(imageBase64) {
+    try {
+        const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+        
+        if (!OPENAI_API_KEY || OPENAI_API_KEY === 'your_openai_api_key_here') {
+            throw new Error('נדרש מפתח OpenAI API לניתוח תמונות. אנא הוסף OPENAI_API_KEY לקובץ .env');
+        }
+        
+        const response = await axios.post('https://api.openai.com/v1/chat/completions', {
+            model: 'gpt-4o',
+            messages: [
+                {
+                    role: 'system',
+                    content: `אתה Josh, עוזר AI למד"א המתמחה בחילוץ נתונים מתמונות של קריאות.
+עליך לחלץ את הפרטים הבאים מהתמונה:
+- תאריך (call_date)
+- דחיפות/סוג קריאה (call_type): דחוף/אטן/ארן/נתבג
+- מונה (meter_visa_number)
+- עיר (city)
+- רחוב (street)
+- קוד הזנקה (alert_code_id)
+- קוד רפואי (medical_code_id)
+- יציאה/שעת התחלה (start_time)
+- במקום/שעת הגעה (arrival_time)
+- סיום/שעת סיום (end_time)
+
+החזר JSON בפורמט הבא:
+{
+  "call_date": "2025-12-21",
+  "call_type": "דחוף",
+  "meter_visa_number": "12345",
+  "city": "תל אביב",
+  "street": "דיזנגוף 100",
+  "alert_code_id": null,
+  "medical_code_id": null,
+  "start_time": "08:30",
+  "arrival_time": "08:45",
+  "end_time": "09:15"
+}
+
+אם שדה לא נמצא בתמונה, החזר null עבורו.
+חשוב: החזר רק JSON, ללא טקסט נוסף.`
+                },
+                {
+                    role: 'user',
+                    content: [
+                        {
+                            type: 'text',
+                            text: 'נא לחלץ את פרטי הקריאה מתמונה זו:'
+                        },
+                        {
+                            type: 'image_url',
+                            image_url: {
+                                url: `data:image/jpeg;base64,${imageBase64}`
+                            }
+                        }
+                    ]
+                }
+            ],
+            temperature: 0.1,
+            max_tokens: 1000
+        }, {
+            headers: {
+                'Authorization': `Bearer ${OPENAI_API_KEY}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const content = response.data.choices[0].message.content;
+        // Try to extract JSON from the response
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+            return JSON.parse(jsonMatch[0]);
+        }
+        throw new Error('לא הצלחתי לחלץ נתונים מהתמונה');
+    } catch (error) {
+        console.error('Screenshot analysis error:', error);
+        throw error;
+    }
+}
+
+// AI Chat endpoint
+app.post('/api/ai/chat', authenticateToken, async (req, res) => {
+    try {
+        const { message, image, context } = req.body;
+        const userId = req.user.user_id;
+        
+        if (!message && !image) {
+            return res.status(400).json({
+                success: false,
+                message: 'חסר הודעה או תמונה'
+            });
+        }
+        
+        const GROK_API_KEY = process.env.GROK_API_KEY;
+        
+        if (!GROK_API_KEY) {
+            return res.status(500).json({
+                success: false,
+                message: 'Grok API key not configured'
+            });
+        }
+        
+        // Handle image-based call creation
+        if (image) {
+            try {
+                const callData = await analyzeCallScreenshot(image);
+                
+                // Add user_id and vehicle info
+                const vehicleNumber = req.user.mda_code || req.user.mdaCode;
+                callData.user_id = userId;
+                callData.vehicle_number = vehicleNumber;
+                
+                // Detect vehicle type
+                callData.vehicle_type = detectVehicleTypeFromCode(vehicleNumber);
+                
+                return res.json({
+                    success: true,
+                    type: 'call_extracted',
+                    data: callData,
+                    message: 'מצאתי את הפרטים הבאים מהתמונה. האם לרשום את הקריאה?'
+                });
+            } catch (error) {
+                return res.status(400).json({
+                    success: false,
+                    message: `שגיאה בניתוח התמונה: ${error.message}`
+                });
+            }
+        }
+        
+        // Handle text-based queries
+        // Get user context
+        const userStats = await getUserStatsByPeriod(userId, 'month');
+        
+        // Format call types breakdown nicely
+        const callTypesFormatted = Object.entries(userStats.callTypes)
+            .map(([type, count]) => `  * ${type}: ${count}`)
+            .join('\n');
+        
+        const systemPrompt = `אתה Josh (ג'וש), עוזר AI חכם של מד"א (מגן דוד אדום).
+אתה מסייע ל-${req.user.full_name} (קוד מד"א: ${req.user.mda_code}).
+
+מה אתה יכול לעשות:
+1. להציג סטטיסטיקות על קריאות (יום/שבוע/חודש/שנה)
+2. לעזור לרשום קריאה חדשה - תאסוף את הפרטים הבאים:
+   - תאריך
+   - דחיפות (דחוף/אטן/ארן/נתבג)
+   - מספר מונה
+   - כתובת (עיר ורחוב)
+   - קוד הזנקה
+   - קוד רפואי
+   - יציאה (שעת התחלה)
+   - במקום (שעת הגעה)
+   - סיום (שעת סיום)
+3. לענות על שאלות כלליות
+
+📊 סטטיסטיקות חודש זה:
+• סה"כ קריאות: ${userStats.totalCalls}
+• סה"כ שעות: ${userStats.totalHours} שעות ו-${userStats.totalMinutes} דקות
+• פילוח לפי סוג:
+${callTypesFormatted}
+
+איך לרשום קריאה:
+1. אסוף את כל הפרטים הנדרשים שלב אחר שלב
+2. כשיש לך את כל הפרטים, החזר JSON בפורמט:
+{"action":"create_call","data":{"call_date":"2025-12-21","call_type":"דחוף","meter_visa_number":"12345","city":"תל אביב","street":"דיזנגוף 100","alert_code_id":null,"medical_code_id":null,"start_time":"08:30","arrival_time":"08:45","end_time":"09:15"}}
+
+חשוב:
+- דבר בעברית טבעית וידידותית
+- תמיד היה תמציתי
+- שאל שאלה אחת בכל תשובה
+- אל תמציא מידע - אם אין לך, שאל
+- כאשר יש לך את כל הפרטים לקריאה, החזר רק את ה-JSON`;
+
+        const response = await axios.post('https://api.groq.com/openai/v1/chat/completions', {
+            model: 'llama-3.3-70b-versatile',
+            messages: [
+                {
+                    role: 'system',
+                    content: systemPrompt
+                },
+                ...(context || []),
+                {
+                    role: 'user',
+                    content: message
+                }
+            ],
+            temperature: 0.7,
+            max_tokens: 1500
+        }, {
+            headers: {
+                'Authorization': `Bearer ${GROK_API_KEY}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const aiResponse = response.data.choices[0].message.content;
+        
+        // Check if AI returned a call creation JSON
+        const jsonMatch = aiResponse.match(/\{"action":"create_call"[\s\S]*?\}/);
+        if (jsonMatch) {
+            try {
+                const callAction = JSON.parse(jsonMatch[0]);
+                if (callAction.action === 'create_call' && callAction.data) {
+                    // Extract the JSON and return it as a call to be confirmed
+                    const callData = callAction.data;
+                    
+                    // Build full location
+                    callData.location = `${callData.city || ''}, ${callData.street || ''}`;
+                    
+                    return res.json({
+                        success: true,
+                        type: 'call_extracted',
+                        data: callData,
+                        message: 'מצאתי את הפרטים הבאים. האם לרשום את הקריאה?',
+                        context: [
+                            ...(context || []),
+                            { role: 'user', content: message },
+                            { role: 'assistant', content: aiResponse }
+                        ]
+                    });
+                }
+            } catch (e) {
+                console.error('Error parsing call JSON:', e);
+            }
+        }
+        
+        // Check if the user is asking for stats for a different period
+        let additionalData = null;
+        if (message.includes('שבוע') || message.includes('שבועי')) {
+            additionalData = await getUserStatsByPeriod(userId, 'week');
+        } else if (message.includes('שנה') || message.includes('שנתי')) {
+            additionalData = await getUserStatsByPeriod(userId, 'year');
+        } else if (message.includes('היום') || message.includes('יומי')) {
+            additionalData = await getUserStatsByPeriod(userId, 'day');
+        }
+        
+        res.json({
+            success: true,
+            message: aiResponse,
+            data: additionalData,
+            context: [
+                ...(context || []),
+                { role: 'user', content: message },
+                { role: 'assistant', content: aiResponse }
+            ]
+        });
+        
+    } catch (error) {
+        console.error('AI Chat error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'שגיאה בתקשורת עם Grok',
+            error: error.message
+        });
+    }
+});
+
+// Helper function to detect vehicle type
+function detectVehicleTypeFromCode(mdaCode) {
+    if (!mdaCode) return 'ambulance';
+    
+    const codeStr = mdaCode.toString().trim();
+    const firstDigit = codeStr.charAt(0);
+    
+    if (codeStr.length === 5 && (firstDigit === '1' || firstDigit === '2')) {
+        return 'personal_standby';
+    }
+    
+    if (codeStr.length === 4) {
+        if (firstDigit === '5') return 'motorcycle';
+        if (firstDigit === '6') return 'picanto';
+    }
+    
+    return 'ambulance';
+}
+
+// Create call from AI extracted data
+app.post('/api/ai/create-call', authenticateToken, async (req, res) => {
+    try {
+        const callData = req.body;
+        const userId = req.user.user_id;
+        
+        // Validate required fields
+        if (!callData.call_type || !callData.call_date || !callData.start_time) {
+            return res.status(400).json({
+                success: false,
+                message: 'חסרים שדות חובה (סוג קריאה, תאריך, שעת התחלה)'
+            });
+        }
+        
+        // Ensure user_id and vehicle info
+        callData.user_id = userId;
+        if (!callData.vehicle_number) {
+            callData.vehicle_number = req.user.mda_code || req.user.mdaCode;
+        }
+        if (!callData.vehicle_type) {
+            callData.vehicle_type = detectVehicleTypeFromCode(callData.vehicle_number);
+        }
+        
+        // Normalize call type
+        callData.call_type = normalizeCallType(callData.call_type);
+        
+        // Insert the call
+        const { data, error } = await supabase
+            .from('calls')
+            .insert([callData])
+            .select()
+            .single();
+            
+        if (error) {
+            throw error;
+        }
+        
+        res.json({
+            success: true,
+            message: 'נסיעה נרשמה בהצלחה!',
+            data
+        });
+        
+    } catch (error) {
+        console.error('Create call from AI error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'שגיאה ברישום הקריאה',
+            error: error.message
+        });
+    }
+});
+
+// ============================================================================
+// CALLS API
+// ============================================================================
 
 // Get calls via API with filtering
 app.get('/api/v1/calls', authenticateAPIKey, async (req, res) => {
