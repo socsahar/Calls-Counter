@@ -10,11 +10,11 @@
     <!-- Content Security Policy -->
     <meta http-equiv="Content-Security-Policy" content="
         default-src 'self';
-        script-src 'self' 'unsafe-inline' 'unsafe-eval' https://code.jquery.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com;
+        script-src 'self' 'unsafe-inline' 'unsafe-eval' https://code.jquery.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://*.unpkg.com;
         script-src-attr 'unsafe-inline';
         style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net;
         font-src 'self' https://fonts.gstatic.com;
-        connect-src 'self' https://*.supabase.co https://fonts.googleapis.com https://fonts.gstatic.com https://cdnjs.cloudflare.com https://unpkg.com;
+        connect-src 'self' https://*.supabase.co https://fonts.googleapis.com https://fonts.gstatic.com https://cdnjs.cloudflare.com https://unpkg.com https://*.unpkg.com;
         img-src 'self' data: https: blob:;
         worker-src 'self' blob:;
     ">
@@ -215,7 +215,7 @@
                         </div>
                         <div class="form-group">
                             <label for="meterVisaNumber" class="form-label">מספר מונה/ויזה (אופציונלי)</label>
-                            <input type="text" id="meterVisaNumber" class="form-input" placeholder="רק מספרים" pattern="[0-9]*" inputmode="numeric" autocomplete="off">
+                            <input type="text" id="meterVisaNumber" class="form-input" placeholder="רק מספרים" pattern="[0-9]*" inputmode="numeric" autocomplete="off" data-validation="numbers-only">
                         </div>
                     </div>
 
@@ -238,17 +238,17 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label for="city" class="form-label">עיר</label>
-                            <input type="text" id="city" class="form-input" placeholder="התחל להקליד שם עיר..." required autocomplete="off">
+                            <input type="text" id="city" class="form-input" placeholder="התחל להקליד שם עיר..." required autocomplete="off" data-validation="letters-apostrophe-dash">
                         </div>
                         <div class="form-group">
                             <label for="street" class="form-label">רחוב</label>
-                            <input type="text" id="street" class="form-input" placeholder="התחל להקליד שם רחוב..." required autocomplete="off">
+                            <input type="text" id="street" class="form-input" placeholder="התחל להקליד שם רחוב..." required autocomplete="off" data-validation="letters-apostrophe-dash">
                         </div>
                     </div>
 
                     <div class="form-group">
                         <label for="location" class="form-label">פרטים נוספים (אופציונלי)</label>
-                        <input type="text" id="location" class="form-input" placeholder="מספר בית, כניסה, קומה..." autocomplete="off">
+                        <input type="text" id="location" class="form-input" placeholder="מספר בית, כניסה, קומה..." autocomplete="off" data-validation="letters-apostrophe-dash-comma">
                     </div>
 
                     <div class="form-group">
@@ -416,7 +416,7 @@
                         </div>
                         <div class="form-group">
                             <label for="editMeterVisaNumber" class="form-label">מספר מונה/ויזה (אופציונלי)</label>
-                            <input type="text" id="editMeterVisaNumber" class="form-input" placeholder="רק מספרים" pattern="[0-9]*" inputmode="numeric" autocomplete="off">
+                            <input type="text" id="editMeterVisaNumber" class="form-input" placeholder="רק מספרים" pattern="[0-9]*" inputmode="numeric" autocomplete="off" data-validation="numbers-only">
                         </div>
                     </div>
 
@@ -439,17 +439,17 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label for="editCity" class="form-label">עיר</label>
-                            <input type="text" id="editCity" class="form-input" required autocomplete="off">
+                            <input type="text" id="editCity" class="form-input" required autocomplete="off" data-validation="letters-apostrophe-dash">
                         </div>
                         <div class="form-group">
                             <label for="editStreet" class="form-label">רחוב</label>
-                            <input type="text" id="editStreet" class="form-input" required autocomplete="off">
+                            <input type="text" id="editStreet" class="form-input" required autocomplete="off" data-validation="letters-apostrophe-dash">
                         </div>
                     </div>
 
                     <div class="form-group">
                         <label for="editLocation" class="form-label">פרטים נוספים (אופציונלי)</label>
-                        <input type="text" id="editLocation" class="form-input" placeholder="מספר בית, כניסה, קומה..." autocomplete="off">
+                        <input type="text" id="editLocation" class="form-input" placeholder="מספר בית, כניסה, קומה..." autocomplete="off" data-validation="letters-apostrophe-dash-comma">
                     </div>
 
                     <div class="form-group">
@@ -495,9 +495,9 @@
     </footer>
 
     <!-- Loading Overlay -->
-    <div id="loadingOverlay" class="loading-overlay hidden">
+    <div id="loadingOverlay" class="loading-overlay">
         <div class="loading-spinner"></div>
-        <p class="loading-text">שומר נתונים...</p>
+        <p class="loading-text">טוען נתונים...</p>
     </div>
 
     <!-- Success Toast -->

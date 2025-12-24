@@ -29,7 +29,9 @@ self.addEventListener('fetch', (event) => {
         'maps.googleapis.com',
         'maps.gstatic.com',
         'fonts.googleapis.com',
-        'fonts.gstatic.com'
+        'fonts.gstatic.com',
+        'unpkg.com',
+        'cdnjs.cloudflare.com'
     ];
     
     if (cdnDomains.some(domain => event.request.url.includes(domain))) {

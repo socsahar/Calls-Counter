@@ -77,6 +77,137 @@ function checkAuthentication() {
     return true;
 }
 
+// Input validation functions
+function setupInputValidation() {
+    // Validation rules for different field types
+    const validationRules = {
+        'numbers-only': {
+            regex: /^[0-9]*$/,
+            onInvalidChar: (char) => 'רק ספרות מותרות',
+            allowedChars: '0123456789'
+        },
+        'letters-apostrophe-dash': {
+            regex: /^[\u0590-\u05FF\s\-']*$/,  // Hebrew letters, space, dash, apostrophe
+            onInvalidChar: (char) => 'יש להשתמש רק באותיות, מינוס (-) וגרש (\')',
+            allowedChars: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZאבגדהוזחטיכלמנסעפצקרשתן -\''
+        },
+        'letters-apostrophe-dash-comma': {
+            regex: /^[\u0590-\u05FF\s\-',]*$/,  // Hebrew letters, space, dash, apostrophe, comma
+            onInvalidChar: (char) => 'יש להשתמש רק באותיות, מינוס (-), גרש (\') וקומה (,)',
+            allowedChars: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZאבגדהוזחטיכלמנסעפצקרשתן -\','
+        }
+    };
+
+    // Attach input validation to all fields with data-validation attribute
+    document.querySelectorAll('[data-validation]').forEach(input => {
+        const validationType = input.getAttribute('data-validation');
+        const rule = validationRules[validationType];
+
+        if (!rule) return;
+
+        // Handle paste events - clean invalid characters
+        input.addEventListener('paste', (e) => {
+            e.preventDefault();
+            const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+            const cleanedText = pastedText.split('').filter(char => {
+                if (validationType === 'numbers-only') {
+                    return /\d/.test(char);
+                } else if (validationType === 'letters-apostrophe-dash') {
+                    return /^[\u0590-\u05FF\s\-']$/.test(char) || /[a-zA-Z]/.test(char);
+                } else if (validationType === 'letters-apostrophe-dash-comma') {
+                    return /^[\u0590-\u05FF\s\-',]$/.test(char) || /[a-zA-Z]/.test(char);
+                }
+                return false;
+            }).join('');
+            
+            input.value = cleanedText;
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+
+        // Handle keyboard input - prevent invalid characters
+        input.addEventListener('keypress', (e) => {
+            const char = String.fromCharCode(e.which);
+            
+            if (validationType === 'numbers-only') {
+                if (!/\d/.test(char)) {
+                    e.preventDefault();
+                    showInputError(input, 'רק ספרות מותרות');
+                }
+            } else if (validationType === 'letters-apostrophe-dash') {
+                // Allow Hebrew letters, English letters, space, dash, apostrophe
+                if (!/^[\u0590-\u05FF\s\-'a-zA-Z]$/.test(char)) {
+                    e.preventDefault();
+                    showInputError(input, 'יש להשתמש רק באותיות, מינוס (-) וגרש (\')');
+                }
+            } else if (validationType === 'letters-apostrophe-dash-comma') {
+                // Allow Hebrew letters, English letters, space, dash, apostrophe, comma
+                if (!/^[\u0590-\u05FF\s\-',a-zA-Z]$/.test(char)) {
+                    e.preventDefault();
+                    showInputError(input, 'יש להשתמש רק באותיות, מינוס (-), גרש (\') וקומה (,)');
+                }
+            }
+        });
+
+        // Handle input changes - clean up any invalid characters that might have slipped through
+        input.addEventListener('input', (e) => {
+            let cleanedValue = e.target.value;
+            let hasInvalid = false;
+
+            if (validationType === 'numbers-only') {
+                const newValue = e.target.value.replace(/[^\d]/g, '');
+                if (newValue !== e.target.value) {
+                    hasInvalid = true;
+                }
+                e.target.value = newValue;
+            } else if (validationType === 'letters-apostrophe-dash') {
+                const newValue = e.target.value.replace(/[^\u0590-\u05FF\s\-'a-zA-Z]/g, '');
+                if (newValue !== e.target.value) {
+                    hasInvalid = true;
+                }
+                e.target.value = newValue;
+            } else if (validationType === 'letters-apostrophe-dash-comma') {
+                const newValue = e.target.value.replace(/[^\u0590-\u05FF\s\-',a-zA-Z]/g, '');
+                if (newValue !== e.target.value) {
+                    hasInvalid = true;
+                }
+                e.target.value = newValue;
+            }
+
+            // Show error feedback if invalid characters were removed
+            if (hasInvalid) {
+                showInputError(input, rule.onInvalidChar());
+            } else {
+                clearInputError(input);
+            }
+        });
+    });
+
+    // Helper functions for error display
+    function showInputError(input, message) {
+        input.classList.add('input-error');
+        
+        // Remove existing error message if present
+        const existingError = input.parentElement.querySelector('.input-error-msg');
+        if (existingError) {
+            existingError.remove();
+        }
+        
+        // Add new error message
+        const errorMsg = document.createElement('div');
+        errorMsg.className = 'input-error-msg';
+        errorMsg.textContent = message;
+        input.parentElement.appendChild(errorMsg);
+    }
+
+    function clearInputError(input) {
+        input.classList.remove('input-error');
+        const errorMsg = input.parentElement.querySelector('.input-error-msg');
+        if (errorMsg) {
+            errorMsg.remove();
+        }
+    }
+}
+
 // Context menu initialization will be handled in CallCounter init
 
 // MDA CallCounter - Client-side JavaScript
@@ -272,15 +403,34 @@ class CallCounter {
             
             // Bind events first
             this.bindEvents();
+            
+            // Setup input validation for form fields
+            setupInputValidation();
+            
             this.setCurrentTime();
             
             // Wait a moment for authentication to complete, then load data
             setTimeout(async () => {
-                await this.loadVehicleSettings();
-                this.updateVehicleDisplay();
-                await this.loadCodes(); // Load alert and medical codes
-                await this.loadStats();
-                await this.loadCalls();
+                try {
+                    await this.loadVehicleSettings();
+                    this.updateVehicleDisplay();
+                    await this.loadCodes(); // Load alert and medical codes
+                    await this.loadStats();
+                    await this.loadCalls();
+                    
+                    // Hide loading indicator once all data is loaded
+                    const loadingOverlay = document.getElementById('loadingOverlay');
+                    if (loadingOverlay) {
+                        loadingOverlay.classList.add('hidden');
+                    }
+                } catch (error) {
+                    console.error('Error loading initial data:', error);
+                    // Still hide overlay on error so user can see the app
+                    const loadingOverlay = document.getElementById('loadingOverlay');
+                    if (loadingOverlay) {
+                        loadingOverlay.classList.add('hidden');
+                    }
+                }
             }, 500);
             
             // Refresh data every 30 seconds
@@ -922,11 +1072,12 @@ class CallCounter {
             
             const result = await response.json();
 
-            if (result.success) {
+            // FIX: Add null checks for API response
+            if (result && result.success && result.data) {
                 this.stats = result.data;
                 this.updateStatsDisplay();
-            } else {
-                console.error('📊 Error in stats result:', result.message);
+            } else if (result) {
+                console.error('📊 Error in stats result:', result.message || 'Invalid response format');
             }
         } catch (error) {
             console.error('📊 Error loading stats:', error);
@@ -951,15 +1102,22 @@ class CallCounter {
             
             const result = await response.json();
 
-            if (result.success) {
+            // FIX: Add null checks for API response and data array
+            if (result && result.success && Array.isArray(result.data)) {
                 this.calls = result.data;
                 this.filteredCalls = [...this.calls];
                 this.updateCallsDisplay();
-            } else {
-                console.error('📞 Error in calls result:', result.message);
+            } else if (result) {
+                console.error('📞 Error in calls result:', result.message || 'Invalid response format');
+                // Set empty calls on error to prevent crashes
+                this.calls = [];
+                this.filteredCalls = [];
             }
         } catch (error) {
             console.error('📞 Error loading calls:', error);
+            // Set empty calls on error
+            this.calls = [];
+            this.filteredCalls = [];
         }
     }
 
@@ -1006,22 +1164,145 @@ class CallCounter {
             ? this.filteredCalls 
             : this.calls;
 
+        // Clear the list
+        callsList.innerHTML = '';
+
         if (callsToShow.length === 0) {
             const emptyMessage = Object.values(this.currentFilters).some(f => f) 
                 ? 'לא נמצאו נסיעות התואמות לסינון'
                 : 'אין נסיעות שנרשמו היום';
-                
-            callsList.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-icon">📋</div>
-                    <p class="empty-text">${emptyMessage}</p>
-                </div>
-            `;
+            
+            // Create empty state using DOM methods instead of innerHTML
+            const emptyState = document.createElement('div');
+            emptyState.className = 'empty-state';
+            
+            const emptyIcon = document.createElement('div');
+            emptyIcon.className = 'empty-icon';
+            emptyIcon.textContent = '📋';
+            
+            const emptyText = document.createElement('p');
+            emptyText.className = 'empty-text';
+            emptyText.textContent = emptyMessage;
+            
+            emptyState.appendChild(emptyIcon);
+            emptyState.appendChild(emptyText);
+            callsList.appendChild(emptyState);
             return;
         }
 
-        const callsHTML = callsToShow.map(call => this.createCallHTML(call)).join('');
-        callsList.innerHTML = callsHTML;
+        // Build DOM elements instead of setting innerHTML to prevent XSS and improve performance
+        const fragment = document.createDocumentFragment();
+        callsToShow.forEach(call => {
+            const callElement = this.createCallElement(call);
+            fragment.appendChild(callElement);
+        });
+        callsList.appendChild(fragment);
+    }
+
+
+    createCallElement(call) {
+        const callTypeNames = {
+            'דחוף': 'דחוף',
+            'אט״ן': 'אט״ן', 
+            'אט"ן': 'אט״ן',
+            'ארן': 'ארן',
+            'נתבג': 'נתבג',
+            // Backward compatibility with English values
+            urgent: 'דחוף',
+            atan: 'אט״ן',
+            aran: 'ארן',
+            natbag: 'נתבג'
+        };
+
+        const vehicleTypeNames = {
+            motorcycle: 'אופנוע',
+            picanto: 'פיקנטו',
+            ambulance: 'אמבולנס',
+            personal_standby: 'כונן אישי'
+        };
+
+        const duration = call.duration_minutes 
+            ? `${call.duration_minutes} דקות`
+            : 'בביצוע';
+
+        const timeRange = call.end_time 
+            ? `${call.start_time} - ${call.end_time}`
+            : `${call.start_time} - בביצוע`;
+
+        const callDate = new Date(call.call_date).toLocaleDateString('he-IL');
+        const vehicleType = vehicleTypeNames[call.vehicle_type] || call.vehicle_type;
+
+        // Create element using DOM methods to prevent XSS
+        const callItem = document.createElement('div');
+        callItem.className = 'call-item';
+        callItem.setAttribute('data-call-id', call.id);
+
+        const callHeader = document.createElement('div');
+        callHeader.className = 'call-header';
+
+        const callTypeSpan = document.createElement('span');
+        callTypeSpan.className = 'call-type';
+        callTypeSpan.textContent = callTypeNames[call.call_type] || call.call_type;
+
+        const callActions = document.createElement('div');
+        callActions.className = 'call-actions';
+
+        const callTimeSpan = document.createElement('span');
+        callTimeSpan.className = 'call-time';
+        callTimeSpan.textContent = timeRange;
+
+        const menuBtn = document.createElement('button');
+        menuBtn.className = 'call-menu-btn';
+        menuBtn.setAttribute('data-call-id', call.id);
+        menuBtn.innerHTML = '<span class="menu-dots">⋮</span>'; // Only emoji is safe
+
+        callActions.appendChild(callTimeSpan);
+        callActions.appendChild(menuBtn);
+        callHeader.appendChild(callTypeSpan);
+        callHeader.appendChild(callActions);
+
+        const callDateDiv = document.createElement('div');
+        callDateDiv.className = 'call-date';
+        callDateDiv.textContent = `📅 ${callDate}`;
+
+        const callLocationDiv = document.createElement('div');
+        callLocationDiv.className = 'call-location';
+        callLocationDiv.textContent = `📍 ${call.location}`; // User input - use textContent
+
+        const callVehicleDiv = document.createElement('div');
+        callVehicleDiv.className = 'call-vehicle';
+        callVehicleDiv.textContent = `${this.getVehicleEmoji(vehicleType)} ${vehicleType} ${call.vehicle_number}`; // User data - use textContent
+
+        callItem.appendChild(callHeader);
+        callItem.appendChild(callDateDiv);
+        callItem.appendChild(callLocationDiv);
+        callItem.appendChild(callVehicleDiv);
+
+        // Add codes display
+        const codesHTML = this.getCodeDisplayHTML(call);
+        if (codesHTML) {
+            const codesDiv = document.createElement('div');
+            codesDiv.innerHTML = codesHTML; // Safe: codes are system-generated
+            callItem.appendChild(codesDiv);
+        }
+
+        // Add description if present
+        if (call.description) {
+            const descDiv = document.createElement('div');
+            descDiv.className = 'call-description';
+            descDiv.textContent = `💬 ${call.description}`; // User input - use textContent
+            callItem.appendChild(descDiv);
+        }
+
+        const callFooter = document.createElement('div');
+        callFooter.className = 'call-footer';
+        const durationSpan = document.createElement('span');
+        durationSpan.className = 'call-duration';
+        durationSpan.textContent = duration;
+        callFooter.appendChild(durationSpan);
+        callItem.appendChild(callFooter);
+
+        return callItem;
     }
 
     createCallHTML(call) {
@@ -1120,11 +1401,18 @@ class CallCounter {
             
             const result = await response.json();
 
-            if (result.success && result.data) {
-                this.currentVehicle = {
-                    number: result.data.vehicle_number,
-                    type: result.data.vehicle_type
-                };
+            // FIX: Null check result and result.data with proper property validation
+            if (result && result.success && result.data) {
+                if (result.data.vehicle_number && result.data.vehicle_type) {
+                    this.currentVehicle = {
+                        number: result.data.vehicle_number,
+                        type: result.data.vehicle_type
+                    };
+                } else {
+                    throw new Error('Invalid vehicle data from server');
+                }
+            } else {
+                throw new Error('Invalid API response');
             }
         } catch (error) {
             console.error('🚗 Error loading vehicle settings, using fallback:', error);
@@ -1141,8 +1429,12 @@ class CallCounter {
         const vehicleNumber = document.getElementById('vehicleNumber');
         const vehicleType = document.getElementById('vehicleType');
         
-        if (vehicleNumber) vehicleNumber.value = this.currentVehicle.number;
-        if (vehicleType) vehicleType.value = this.currentVehicle.type;
+        if (vehicleNumber && this.currentVehicle && this.currentVehicle.number) {
+            vehicleNumber.value = this.currentVehicle.number;
+        }
+        if (vehicleType && this.currentVehicle && this.currentVehicle.type) {
+            vehicleType.value = this.currentVehicle.type;
+        }
     }
 
     // Open vehicle selection modal
@@ -1296,8 +1588,15 @@ class CallCounter {
     // Select a vehicle from recent history
     async selectRecentVehicle(vehicleNumber, vehicleType) {
         
+        // FIX: Prevent race condition - check if already loading
+        if (this.isLoading) {
+            console.warn('Vehicle selection already in progress');
+            return;
+        }
+        
         // Clear previous messages
         this.hideVehicleMessages();
+        this.setLoading(true);
         
         try {
             const response = await fetch('/api/vehicle/current', {
@@ -1311,33 +1610,43 @@ class CallCounter {
             
             const result = await response.json();
             
-            if (response.ok && result.success) {
-                this.showVehicleSuccess(result.message || 'הרכב נבחר בהצלחה!');
-                
-                this.currentVehicle = {
-                    number: result.data.vehicle_number,
-                    type: result.data.vehicle_type
-                };
-                
-                // Save to recent
-                this.saveRecentVehicle(vehicleNumber, vehicleType);
-                
-                this.updateVehicleDisplay();
-                await this.loadStats();
-                await this.loadCalls();
-                
-                setTimeout(() => {
-                    const modal = document.getElementById('vehicleSelectionModal');
-                    if (modal) modal.classList.add('hidden');
-                }, 1500);
+            // FIX: Add null checks for response data
+            if (response.ok && result && result.success && result.data) {
+                if (result.data.vehicle_number && result.data.vehicle_type) {
+                    this.showVehicleSuccess(result.message || 'הרכב נבחר בהצלחה!');
+                    
+                    this.currentVehicle = {
+                        number: result.data.vehicle_number,
+                        type: result.data.vehicle_type
+                    };
+                    
+                    // Save to recent
+                    this.saveRecentVehicle(vehicleNumber, vehicleType);
+                    
+                    // FIX: Parallel load instead of sequential (eliminates race condition)
+                    this.updateVehicleDisplay();
+                    await Promise.all([
+                        this.loadStats(),
+                        this.loadCalls()
+                    ]);
+                    
+                    setTimeout(() => {
+                        const modal = document.getElementById('vehicleSelectionModal');
+                        if (modal) modal.classList.add('hidden');
+                    }, 1500);
+                } else {
+                    this.showVehicleError('תגובה לא תקינה מהשרת');
+                }
             } else if (response.status === 409) {
-                this.showVehicleError(result.message || 'רכב זה כבר בשימוש על ידי משתמש אחר');
+                this.showVehicleError(result?.message || 'רכב זה כבר בשימוש על ידי משתמש אחר');
             } else {
-                this.showVehicleError(result.message || 'שגיאה בבחירת רכב');
+                this.showVehicleError(result?.message || 'שגיאה בבחירת רכב');
             }
         } catch (error) {
             console.error('🚗 Error selecting vehicle:', error);
             this.showVehicleError('שגיאה בתקשורת עם השרת');
+        } finally {
+            this.setLoading(false);
         }
     }
 
@@ -1661,6 +1970,12 @@ class CallCounter {
 
     updateVehicleDisplay() {
         
+        // FIX: Null check currentVehicle before accessing properties
+        if (!this.currentVehicle || !this.currentVehicle.number || !this.currentVehicle.type) {
+            console.warn('Invalid currentVehicle object:', this.currentVehicle);
+            return;
+        }
+        
         // Use the HTML updateVehicleBadge function if available for consistency
         if (typeof updateVehicleBadge === 'function') {
             updateVehicleBadge();
@@ -1684,6 +1999,7 @@ class CallCounter {
         const currentVehicleEl = document.getElementById('currentVehicle');
         const currentVehicleTypeEl = document.getElementById('currentVehicleType');
         
+        // FIX: Add null checks before updating DOM elements
         if (currentVehicleEl) {
             currentVehicleEl.textContent = this.currentVehicle.number;
         }
@@ -1702,7 +2018,8 @@ class CallCounter {
             mobileVehicleEl.textContent = this.currentVehicle.number;
         }
         
-        if (mobileVehicleTypeEl) {
+        // Only update mobile vehicle type if it's a different element to avoid duplicate updates
+        if (mobileVehicleTypeEl && mobileVehicleTypeEl !== currentVehicleTypeEl) {
             const emoji = vehicleEmojis[this.currentVehicle.type] || '🚑';
             const name = vehicleTypeNames[this.currentVehicle.type] || this.currentVehicle.type;
             mobileVehicleTypeEl.innerHTML = `${emoji} ${name}`;
