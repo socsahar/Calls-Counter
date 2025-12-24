@@ -882,6 +882,17 @@ class CallCounter {
             this.showError(error.message || 'שגיאה ברישום הנסיעה');
         } finally {
             this.setLoading(false);
+            // Defensive check - ensure button is always re-enabled
+            setTimeout(() => {
+                const submitBtn = document.querySelector('.submit-btn');
+                if (submitBtn && submitBtn.disabled) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = `
+                        <span class="btn-icon">✅</span>
+                        רשום נסיעה
+                    `;
+                }
+            }, 200);
         }
     }
 
@@ -1886,6 +1897,18 @@ class CallCounter {
             
             // Set current date and time
             this.setCurrentDateTime();
+            
+            // Explicitly ensure submit button is enabled and ready
+            setTimeout(() => {
+                const submitBtn = document.querySelector('.submit-btn');
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = `
+                        <span class="btn-icon">✅</span>
+                        רשום נסיעה
+                    `;
+                }
+            }, 150);
         }
     }
 
@@ -2147,13 +2170,17 @@ class CallCounter {
             }
         } else {
             overlay?.classList.add('hidden');
-            if (submitBtn) {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = `
-                    <span class="btn-icon">✅</span>
-                    רשום נסיעה
-                `;
-            }
+            // Add small delay for mobile to ensure DOM is ready
+            setTimeout(() => {
+                const btn = document.querySelector('.submit-btn');
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = `
+                        <span class="btn-icon">✅</span>
+                        רשום נסיעה
+                    `;
+                }
+            }, 100);
         }
     }
 
