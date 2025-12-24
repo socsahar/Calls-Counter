@@ -533,26 +533,20 @@
             const firstDigit = codeStr.charAt(0);
             const firstTwoDigits = codeStr.substring(0, 2);
             
-            console.log('🚗 Detecting vehicle type for:', codeStr, 'Length:', codeStr.length, 'First digit:', firstDigit, 'First two:', firstTwoDigits);
-            
             // Personal standby detection - 5-digit codes starting with 1 or 2
             if (codeStr.length === 5 && (firstDigit === '1' || firstDigit === '2')) {
-                console.log('🚗 Detected: personal_standby (5-digit 1xxxx or 2xxxx)');
                 return 'personal_standby';
             }
             
             // 4-digit codes
             if (codeStr.length === 4) {
                 if (firstDigit === '5') {
-                    console.log('🚗 Detected: motorcycle');
                     return 'motorcycle';
                 }
                 if (firstDigit === '6') {
-                    console.log('🚗 Detected: picanto');
                     return 'picanto';
                 }
                 if (['1', '2', '3', '4', '7', '8', '9'].includes(firstDigit)) {
-                    console.log('🚗 Detected: ambulance (4-digit)');
                     return 'ambulance';
                 }
             }
@@ -560,11 +554,9 @@
             // 2 or 3 digit codes starting with 1,2,3,4,7,8,9 are ambulances
             if ((codeStr.length === 2 || codeStr.length === 3) && 
                 ['1', '2', '3', '4', '7', '8', '9'].includes(firstDigit)) {
-                console.log('🚗 Detected: ambulance (2-3 digit)');
                 return 'ambulance';
             }
             
-            console.log('🚗 Detected: ambulance (default)');
             return 'ambulance'; // default
         }
         
@@ -588,20 +580,18 @@
             }
         }
 
+        // Cache to prevent redundant updates
+        let lastVehicleUpdate = null;
+        
         // Wait for app.js to complete authentication, then update UI
         document.addEventListener('DOMContentLoaded', function() {
             // Initial update attempt
             updateVehicleBadge();
             
-            // Wait a bit for app.js authentication to complete
+            // Single delayed update to catch auth completion
             setTimeout(() => {
                 updateVehicleBadge();
-            }, 500);
-
-            // Update again after a longer delay to catch any delayed auth updates
-            setTimeout(() => {
-                updateVehicleBadge();
-            }, 2000);
+            }, 1000);
         });
 
         function updateUserBadge(user) {
@@ -654,6 +644,12 @@
         // Initialize vehicle badge with user data
         function updateVehicleBadge() {
             const userDataString = localStorage.getItem('userData') || sessionStorage.getItem('userData');
+            
+            // Use cache to prevent redundant updates
+            if (lastVehicleUpdate === userDataString) {
+                return; // No change, skip update
+            }
+            lastVehicleUpdate = userDataString;
             
             if (!userDataString) {
                 document.getElementById('currentVehicle').textContent = '-';
