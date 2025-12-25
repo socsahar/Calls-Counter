@@ -95,6 +95,16 @@ function setupInputValidation() {
             regex: /^[\u0590-\u05FF\s\-',]*$/,  // Hebrew letters, space, dash, apostrophe, comma
             onInvalidChar: (char) => 'יש להשתמש רק באותיות, מינוס (-), גרש (\') וקומה (,)',
             allowedChars: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZאבגדהוזחטיכלמנסעפצקרשתן -\','
+        },
+        'letters-numbers-apostrophe-dash': {
+            regex: /^[\u0590-\u05FF0-9\s\-']*$/,  // Hebrew letters, numbers, space, dash, apostrophe
+            onInvalidChar: (char) => 'יש להשתמש רק באותיות, ספרות, מינוס (-) וגרש (\')',
+            allowedChars: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789אבגדהוזחטיכלמנסעפצקרשתן -\''
+        },
+        'letters-numbers-apostrophe-dash-comma': {
+            regex: /^[\u0590-\u05FF0-9\s\-',]*$/,  // Hebrew letters, numbers, space, dash, apostrophe, comma
+            onInvalidChar: (char) => 'יש להשתמש רק באותיות, ספרות, מינוס (-), גרש (\') וקומה (,)',
+            allowedChars: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789אבגדהוזחטיכלמנסעפצקרשתן -\','
         }
     };
 
@@ -116,6 +126,10 @@ function setupInputValidation() {
                     return /^[\u0590-\u05FF\s\-']$/.test(char) || /[a-zA-Z]/.test(char);
                 } else if (validationType === 'letters-apostrophe-dash-comma') {
                     return /^[\u0590-\u05FF\s\-',]$/.test(char) || /[a-zA-Z]/.test(char);
+                } else if (validationType === 'letters-numbers-apostrophe-dash') {
+                    return /^[\u0590-\u05FF0-9\s\-']$/.test(char) || /[a-zA-Z0-9]/.test(char);
+                } else if (validationType === 'letters-numbers-apostrophe-dash-comma') {
+                    return /^[\u0590-\u05FF0-9\s\-',]$/.test(char) || /[a-zA-Z0-9]/.test(char);
                 }
                 return false;
             }).join('');
@@ -145,6 +159,18 @@ function setupInputValidation() {
                     e.preventDefault();
                     showInputError(input, 'יש להשתמש רק באותיות, מינוס (-), גרש (\') וקומה (,)');
                 }
+            } else if (validationType === 'letters-numbers-apostrophe-dash') {
+                // Allow Hebrew letters, English letters, numbers, space, dash, apostrophe
+                if (!/^[\u0590-\u05FF0-9\s\-'a-zA-Z]$/.test(char)) {
+                    e.preventDefault();
+                    showInputError(input, 'יש להשתמש רק באותיות, ספרות, מינוס (-) וגרש (\')');
+                }
+            } else if (validationType === 'letters-numbers-apostrophe-dash-comma') {
+                // Allow Hebrew letters, English letters, numbers, space, dash, apostrophe, comma
+                if (!/^[\u0590-\u05FF0-9\s\-',a-zA-Z]$/.test(char)) {
+                    e.preventDefault();
+                    showInputError(input, 'יש להשתמש רק באותיות, ספרות, מינוס (-), גרש (\') וקומה (,)');
+                }
             }
         });
 
@@ -167,6 +193,18 @@ function setupInputValidation() {
                 e.target.value = newValue;
             } else if (validationType === 'letters-apostrophe-dash-comma') {
                 const newValue = e.target.value.replace(/[^\u0590-\u05FF\s\-',a-zA-Z]/g, '');
+                if (newValue !== e.target.value) {
+                    hasInvalid = true;
+                }
+                e.target.value = newValue;
+            } else if (validationType === 'letters-numbers-apostrophe-dash') {
+                const newValue = e.target.value.replace(/[^\u0590-\u05FF0-9\s\-'a-zA-Z]/g, '');
+                if (newValue !== e.target.value) {
+                    hasInvalid = true;
+                }
+                e.target.value = newValue;
+            } else if (validationType === 'letters-numbers-apostrophe-dash-comma') {
+                const newValue = e.target.value.replace(/[^\u0590-\u05FF0-9\s\-',a-zA-Z]/g, '');
                 if (newValue !== e.target.value) {
                     hasInvalid = true;
                 }
