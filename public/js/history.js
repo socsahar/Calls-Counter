@@ -1164,7 +1164,13 @@ class HistoryViewer {
                 } else if (vehicleNumber.toString().startsWith('6')) {
                     vehicleTypeHebrew = 'פיקנטו';
                     vehicleEmoji = '🚗';
-                } else if (vehicleNumber.toString().length === 5 && (vehicleNumber.toString().startsWith('1') || vehicleNumber.toString().startsWith('2'))) {
+                } else if (
+                    vehicleNumber.toString().length === 5 &&
+                    (
+                        ['1','2','3'].some(prefix => vehicleNumber.toString().startsWith(prefix)) ||
+                        vehicleNumber.toString() === '99999'
+                    )
+                ) {
                     vehicleTypeHebrew = 'כונן אישי';
                     vehicleEmoji = '👨‍⚕️';
                 } else {
@@ -1377,7 +1383,13 @@ class HistoryViewer {
                 } else if (vehicleNumber.toString().startsWith('6')) {
                     vehicleTypeHebrew = 'פיקנטו';
                     vehicleEmoji = '🚗';
-                } else if (vehicleNumber.toString().length === 5 && (vehicleNumber.toString().startsWith('1') || vehicleNumber.toString().startsWith('2'))) {
+                } else if (
+                    vehicleNumber.toString().length === 5 &&
+                    (
+                        ['1','2','3'].some(prefix => vehicleNumber.toString().startsWith(prefix)) ||
+                        vehicleNumber.toString() === '99999'
+                    )
+                ) {
                     vehicleTypeHebrew = 'כונן אישי';
                     vehicleEmoji = '👨‍⚕️';
                 } else {

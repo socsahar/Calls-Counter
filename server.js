@@ -818,8 +818,8 @@ function detectVehicleType(mdaCode) {
     const firstDigit = codeStr.charAt(0);
     const firstTwoDigits = codeStr.substring(0, 2);
     
-    // Personal standby detection - 5-digit codes starting with 1 or 2
-    if (codeStr.length === 5 && (firstDigit === '1' || firstDigit === '2')) {
+    // Personal standby detection - 5-digit codes starting with 1, 2, or 3, or the special code 99999
+    if (codeStr.length === 5 && (['1', '2', '3'].includes(firstDigit) || codeStr === '99999')) {
         return 'personal_standby';
     }
     
@@ -3298,7 +3298,7 @@ function detectVehicleTypeFromCode(mdaCode) {
     const codeStr = mdaCode.toString().trim();
     const firstDigit = codeStr.charAt(0);
     
-    if (codeStr.length === 5 && (firstDigit === '1' || firstDigit === '2')) {
+    if (codeStr.length === 5 && (['1', '2', '3'].includes(firstDigit) || codeStr === '99999')) {
         return 'personal_standby';
     }
     

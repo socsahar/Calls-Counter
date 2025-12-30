@@ -520,7 +520,13 @@ class AdminPanel {
                 } else if (num.startsWith('6')) {
                     vehicleType = 'פיקנטו';
                     vehicleEmoji = '🚗';
-                } else if (num.length === 5 && (num.startsWith('1') || num.startsWith('2'))) {
+                } else if (
+                    num.length === 5 &&
+                    (
+                        ['1','2','3'].some(prefix => num.startsWith(prefix)) ||
+                        num === '99999'
+                    )
+                ) {
                     vehicleType = 'כונן אישי';
                     vehicleEmoji = '👨‍⚕️';
                 }
