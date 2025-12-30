@@ -163,6 +163,10 @@ class AdminPanel {
             this.showUsersSection();
         });
 
+        document.getElementById('viewUserCallStatsBtn')?.addEventListener('click', () => {
+            this.showUserCallStatsSection();
+        });
+
         document.getElementById('viewAllCallsBtn')?.addEventListener('click', () => {
             this.showAllCallsSection();
         });
@@ -184,6 +188,10 @@ class AdminPanel {
             document.getElementById('usersSection').style.display = 'none';
         });
 
+        document.getElementById('closeUserCallStatsBtn')?.addEventListener('click', () => {
+            document.getElementById('userCallStatsSection').style.display = 'none';
+        });
+
         document.getElementById('closeCallsBtn')?.addEventListener('click', () => {
             document.getElementById('allCallsSection').style.display = 'none';
         });
@@ -202,6 +210,7 @@ class AdminPanel {
 
     closeAllSections() {
         document.getElementById('usersSection').style.display = 'none';
+        document.getElementById('userCallStatsSection').style.display = 'none';
         document.getElementById('allCallsSection').style.display = 'none';
         document.getElementById('codesSection').style.display = 'none';
         document.getElementById('entryCodesSection').style.display = 'none';
@@ -627,6 +636,305 @@ class AdminPanel {
             console.error('Error deleting user:', error);
             this.showToast('שגיאה במחיקת המשתמש', 'error');
         }
+    }
+
+    async showUserCallStatsSection() {
+        try {
+            this.setLoading(true);
+            
+            // Close all other sections first
+            this.closeAllSections();
+            
+            // Populate year options
+            this.populateYearOptions();
+            
+            // Load initial data
+            await this.loadUserCallStats();
+            
+            document.getElementById('userCallStatsSection').style.display = 'block';
+            document.getElementById('userCallStatsSection').scrollIntoView({ behavior: 'smooth' });
+
+        } catch (error) {
+            console.error('Error loading user call stats:', error);
+            this.showToast('שגיאה בטעינת סטטיסטיקת הקריאות', 'error');
+        } finally {
+            this.setLoading(false);
+        }
+    }
+
+    populateYearOptions() {
+        const yearSelect = document.getElementById('userStatsYear');
+        if (!yearSelect) return;
+
+        const currentYear = new Date().getFullYear();
+        yearSelect.innerHTML = '<option value="">כל השנים</option>';
+        
+        // Add years from current year back to 2025
+        for (let year = currentYear; year >= 2025; year--) {
+            const option = document.createElement('option');
+            option.value = year;
+            option.textContent = year;
+            yearSelect.appendChild(option);
+        }
+        
+        // Add event listener to update months when year changes
+        yearSelect.addEventListener('change', () => {
+            this.updateMonthOptions();
+        });
+        
+        // Update month options for the initially selected year
+        this.updateMonthOptions();
+    }
+
+    updateMonthOptions() {
+        const yearSelect = document.getElementById('userStatsYear');
+        const monthSelect = document.getElementById('userStatsMonth');
+        if (!yearSelect || !monthSelect) return;
+        
+        const selectedYear = parseInt(yearSelect.value);
+        const currentDate = new Date();
+        const currentYear = currentDate.getFullYear();
+        const currentMonth = currentDate.getMonth() + 1; // 1-12
+        
+        // Get all month options (skip the first "all months" option)
+        const monthOptions = monthSelect.querySelectorAll('option:not([value=""])');
+        
+        if (selectedYear === 0 || !selectedYear) {
+            // No year selected - show all months
+            monthOptions.forEach(option => {
+                option.style.display = '';
+                option.disabled = false;
+            });
+        } else {
+            monthOptions.forEach(option => {
+                const monthValue = parseInt(option.value);
+                
+                if (selectedYear === 2025) {
+                    // For 2025: only show October (10) onwards
+                    option.style.display = monthValue >= 10 ? '' : 'none';
+                    option.disabled = monthValue < 10;
+                } else if (selectedYear === currentYear) {
+                    // For current year: show months from January up to current month
+                    option.style.display = monthValue <= currentMonth ? '' : 'none';
+                    option.disabled = monthValue > currentMonth;
+                } else if (selectedYear < currentYear) {
+                    // For past years: show all months
+                    option.style.display = '';
+                    option.disabled = false;
+                } else {
+                    // For future years: hide all months
+                    option.style.display = 'none';
+                    option.disabled = true;
+                }
+            });
+        }
+        
+        // If currently selected month is now hidden/disabled, reset to "all months"
+        const selectedMonth = parseInt(monthSelect.value);
+        if (selectedMonth) {
+            const selectedOption = monthSelect.querySelector(`option[value="${selectedMonth}"]`);
+            if (selectedOption && (selectedOption.style.display === 'none' || selectedOption.disabled)) {
+                monthSelect.value = ''; // Reset to "all months"
+            }
+        }
+    }
+
+    async loadUserCallStats() {
+        const year = document.getElementById('userStatsYear').value;
+        const month = document.getElementById('userStatsMonth').value;
+
+        try {
+            this.setLoading(true);
+            
+            // Build fetch URL with year/month parameters
+            const params = new URLSearchParams();
+            if (year) {
+                params.append('year', year);
+            }
+            if (month) {
+                params.append('month', month);
+            }
+
+            const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+            const url = `/api/admin/user-call-stats${params.toString() ? '?' + params.toString() : ''}`;
+            
+            const response = await fetch(url, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) throw new Error('Failed to fetch user call stats');
+            
+            const data = await response.json();
+            
+            // Store for client-side filtering
+            this.userCallStatsData = data.userStats;
+            
+            // Bind filters and display
+            this.bindUserStatsFilters(data.userStats);
+
+        } catch (error) {
+            console.error('Error loading user call stats:', error);
+            this.showToast('שגיאה בטעינת סטטיסטיקת הקריאות', 'error');
+        } finally {
+            this.setLoading(false);
+        }
+    }
+
+    displayUserCallStats(stats) {
+        const container = document.getElementById('userCallStatsContainer');
+        if (!container) return;
+
+        // Get the selected year and month to determine what period is being displayed
+        const year = document.getElementById('userStatsYear').value;
+        const month = document.getElementById('userStatsMonth').value;
+        
+        // Determine the period label and what to call the stats
+        let periodLabel = 'כל הזמן';
+        let todaysCallsLabel = 'קריאות היום';
+        
+        if (year && month) {
+            const monthNames = ['', 'ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני', 
+                               'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר'];
+            periodLabel = `${monthNames[month]} ${year}`;
+            todaysCallsLabel = 'קריאות בחודש זה';
+        } else if (year) {
+            periodLabel = `שנת ${year}`;
+            todaysCallsLabel = 'קריאות בשנה זו';
+        }
+
+        const statsHtml = stats.map(user => {
+            const vehicleEmoji = this.getVehicleEmoji(user.mda_code);
+            const vehicleType = this.getVehicleType(user.mda_code);
+            const joinDate = new Date(user.created_at).toLocaleDateString('he-IL');
+            
+            // Format call type breakdown
+            const callTypeItems = Object.entries(user.callTypeBreakdown)
+                .map(([type, count]) => `<div class="call-type-item"><span class="call-type-name">${type}</span><span class="call-type-count">${count}</span></div>`)
+                .join('');
+
+            return `
+                <div class="user-stats-card" data-user-id="${user.user_id}" data-user-name="${user.full_name}" data-total-calls="${user.totalCalls}" data-todays-calls="${user.todaysCalls}" data-hours="${user.totalHours}">
+                    <div class="stats-card-header">
+                        <div class="user-info">
+                            <div class="user-name">${user.full_name || user.username}</div>
+                            <div class="user-details">
+                                <span class="username">@${user.username}</span>
+                                <span class="vehicle-info">${vehicleEmoji} ${vehicleType} ${user.mda_code || 'N/A'}</span>
+                                ${user.is_admin ? '<span class="admin-badge-small">מנהל</span>' : ''}
+                            </div>
+                        </div>
+                        <div class="period-indicator">${periodLabel}</div>
+                    </div>
+                    
+                    <div class="stats-grid-card">
+                        <div class="stat-box">
+                            <div class="stat-label">סה"כ קריאות</div>
+                            <div class="stat-value">${user.totalCalls}</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">${todaysCallsLabel}</div>
+                            <div class="stat-value">${user.todaysCalls}</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">סה"כ שעות</div>
+                            <div class="stat-value">${user.totalHours}</div>
+                        </div>
+                    </div>
+                    
+                    ${callTypeItems ? `
+                    <div class="call-types-breakdown">
+                        <div class="breakdown-title">חלוקה לפי סוג קריאה</div>
+                        <div class="call-types-list">
+                            ${callTypeItems}
+                        </div>
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+        }).join('');
+
+        container.innerHTML = statsHtml || '<p class="empty-message">אין נתונים להצגה</p>';
+    }
+
+    getVehicleEmoji(mdaCode) {
+        if (!mdaCode) return '🚑';
+        const num = mdaCode.toString();
+        if (num.startsWith('5')) return '🏍️';
+        if (num.startsWith('6')) return '🚗';
+        if (num.length === 5 && (num.startsWith('1') || num.startsWith('2'))) return '👨‍⚕️';
+        return '🚑';
+    }
+
+    getVehicleType(mdaCode) {
+        if (!mdaCode) return 'לא צוין';
+        const num = mdaCode.toString();
+        if (num.startsWith('5')) return 'אופנוע';
+        if (num.startsWith('6')) return 'פיקנטו';
+        if (num.length === 5 && (num.startsWith('1') || num.startsWith('2'))) return 'כונן אישי';
+        return 'לא צוין';
+    }
+
+    bindUserStatsFilters(allStats) {
+        const searchInput = document.getElementById('userStatsSearchInput');
+        const yearSelect = document.getElementById('userStatsYear');
+        const monthSelect = document.getElementById('userStatsMonth');
+        const sortSelect = document.getElementById('userStatsSortBy');
+
+        const filterAndSort = () => {
+            const searchTerm = (searchInput?.value || '').toLowerCase();
+            const sortBy = sortSelect?.value || 'name';
+            
+            let filteredStats = allStats.filter(user => {
+                const name = (user.full_name || user.username).toLowerCase();
+                const username = user.username.toLowerCase();
+                return name.includes(searchTerm) || username.includes(searchTerm);
+            });
+
+            // Sort
+            filteredStats.sort((a, b) => {
+                switch (sortBy) {
+                    case 'totalCalls':
+                        return b.totalCalls - a.totalCalls;
+                    case 'todaysCalls':
+                        return b.todaysCalls - a.todaysCalls;
+                    case 'hours':
+                        return b.totalHours - a.totalHours;
+                    case 'name':
+                    default:
+                        return (a.full_name || a.username).localeCompare(b.full_name || b.username, 'he');
+                }
+            });
+
+            this.displayUserCallStats(filteredStats);
+        };
+
+        // Search and sort event listeners
+        if (searchInput) {
+            searchInput.addEventListener('input', filterAndSort);
+        }
+        if (sortSelect) {
+            sortSelect.addEventListener('change', filterAndSort);
+        }
+
+        // Year and month change event listeners
+        if (yearSelect) {
+            yearSelect.addEventListener('change', () => {
+                this.updateMonthOptions();
+                this.loadUserCallStats();
+            });
+        }
+
+        if (monthSelect) {
+            monthSelect.addEventListener('change', () => {
+                this.loadUserCallStats();
+            });
+        }
+
+        // Initial display
+        filterAndSort();
     }
 
     async showAllCallsSection() {

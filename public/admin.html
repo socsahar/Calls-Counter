@@ -128,6 +128,10 @@
                     <span class="icon">👥</span>
                     <span class="text">ניהול משתמשים</span>
                 </button>
+                <button id="viewUserCallStatsBtn" class="admin-action-btn">
+                    <span class="icon">📊</span>
+                    <span class="text">סטטיסטיקת קריאות</span>
+                </button>
                 <button id="viewAllCallsBtn" class="admin-action-btn">
                     <span class="icon">📞</span>
                     <span class="text">כל הקריאות</span>
@@ -317,6 +321,54 @@
             
             <div class="users-container" id="usersContainer">
                 <!-- Users will be populated by JavaScript -->
+            </div>
+        </section>
+
+        <!-- User Call Statistics -->
+        <section class="user-call-stats-section" id="userCallStatsSection" style="display: none;">
+            <div class="section-header">
+                <h2 class="section-title">סטטיסטיקת קריאות לפי משתמש</h2>
+                <button id="closeUserCallStatsBtn" class="close-section-btn">✕</button>
+            </div>
+            
+            <div class="user-stats-filters">
+                <div class="filter-group">
+                    <input type="text" id="userStatsSearchInput" class="search-input" placeholder="חפש משתמש...">
+                </div>
+                <div class="filter-group">
+                    <select id="userStatsYear" class="sort-select">
+                        <option value="">בחר שנה</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <select id="userStatsMonth" class="sort-select">
+                        <option value="">כל החודשים</option>
+                        <option value="1">ינואר</option>
+                        <option value="2">פברואר</option>
+                        <option value="3">מרץ</option>
+                        <option value="4">אפריל</option>
+                        <option value="5">מאי</option>
+                        <option value="6">יוני</option>
+                        <option value="7">יולי</option>
+                        <option value="8">אוגוסט</option>
+                        <option value="9">ספטמבר</option>
+                        <option value="10">אוקטובר</option>
+                        <option value="11">נובמבר</option>
+                        <option value="12">דצמבר</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <select id="userStatsSortBy" class="sort-select">
+                        <option value="name">שם המשתמש</option>
+                        <option value="totalCalls">סה"כ קריאות</option>
+                        <option value="todaysCalls">קריאות היום</option>
+                        <option value="hours">סה"כ שעות</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="user-stats-container" id="userCallStatsContainer">
+                <!-- User call statistics will be populated by JavaScript -->
             </div>
         </section>
 

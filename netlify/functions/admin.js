@@ -33,8 +33,25 @@ exports.handler = async (event) => {
 
     const path = event.path.replace('/.netlify/functions/admin', '').replace('/api/admin', '');
     console.log('🔧 Admin function - Path:', event.path, 'Parsed:', path);
+    console.log('🔧 HTTP Method:', event.httpMethod);
 
     try {
+        // Debug endpoint
+        if (event.httpMethod === 'GET' && path === '/debug') {
+            return {
+                statusCode: 200,
+                headers,
+                body: JSON.stringify({ 
+                    success: true, 
+                    debug: {
+                        fullPath: event.path,
+                        parsedPath: path,
+                        method: event.httpMethod
+                    }
+                })
+            };
+        }
+
         // GET /api/admin/dashboard
         if (event.httpMethod === 'GET' && path === '/dashboard') {
             const today = new Date().toISOString().split('T')[0];
@@ -224,6 +241,83 @@ exports.handler = async (event) => {
                 statusCode: 200,
                 headers,
                 body: JSON.stringify({ success: true, data: codes || [] })
+            };
+        }
+
+        // GET /api/admin/user-call-stats
+        if (event.httpMethod === 'GET' && path === '/user-call-stats') {
+            // Get all users
+            const { data: users, error: usersError } = await supabase
+                .from('users')
+                .select('id, full_name, username, mda_code, email, is_admin, created_at')
+                .order('full_name', { ascending: true });
+
+            if (usersError) {
+                return {
+                    statusCode: 500,
+                    headers,
+                    body: JSON.stringify({ success: false, message: 'שגיאה בטעינת רשימת המשתמשים' })
+                };
+            }
+
+            // Get call stats for each user
+            const { data: allCalls, error: callsError } = await supabase
+                .from('calls')
+                .select('user_id, call_type, duration_minutes, call_date, status');
+
+            if (callsError) {
+                return {
+                    statusCode: 500,
+                    headers,
+                    body: JSON.stringify({ success: false, message: 'שגיאה בטעינת נתוני הקריאות' })
+                };
+            }
+
+            // Calculate stats for each user
+            const userStats = users.map(user => {
+                const userCalls = allCalls.filter(call => call.user_id === user.id);
+                
+                // Count calls by type
+                const callTypeCount = {};
+                let totalHours = 0;
+                let totalCalls = userCalls.length;
+                let todaysCalls = 0;
+                const today = new Date().toISOString().split('T')[0];
+
+                userCalls.forEach(call => {
+                    // Count by call type
+                    if (call.call_type) {
+                        callTypeCount[call.call_type] = (callTypeCount[call.call_type] || 0) + 1;
+                    }
+                    // Calculate total hours
+                    if (call.duration_minutes) {
+                        totalHours += call.duration_minutes / 60;
+                    }
+                    // Count today's calls
+                    if (call.call_date === today) {
+                        todaysCalls++;
+                    }
+                });
+
+                return {
+                    user_id: user.id,
+                    full_name: user.full_name,
+                    username: user.username,
+                    mda_code: user.mda_code,
+                    email: user.email,
+                    is_admin: user.is_admin,
+                    created_at: user.created_at,
+                    totalCalls: totalCalls,
+                    todaysCalls: todaysCalls,
+                    totalHours: parseFloat(totalHours.toFixed(2)),
+                    callTypeBreakdown: callTypeCount
+                };
+            });
+
+            return {
+                statusCode: 200,
+                headers,
+                body: JSON.stringify({ success: true, userStats: userStats })
             };
         }
 

@@ -2226,6 +2226,113 @@ app.get('/api/admin/calls', authenticateToken, requireAdmin, async (req, res) =>
     }
 });
 
+// Get user call statistics
+app.get('/api/admin/user-call-stats', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { year, month } = req.query;
+        
+        // Get all users
+        const { data: users, error: usersError } = await supabase
+            .from('users')
+            .select('id, full_name, username, mda_code, email, is_admin, created_at')
+            .order('full_name', { ascending: true });
+        
+        if (usersError) throw usersError;
+        
+        // Get call stats for each user
+        let query = supabase
+            .from('calls')
+            .select('user_id, call_type, duration_minutes, call_date, status');
+        
+        // Apply year/month filtering if provided
+        if (year) {
+            const startOfYear = `${year}-01-01`;
+            const endOfYear = `${year}-12-31`;
+            query = query.gte('call_date', startOfYear).lte('call_date', endOfYear);
+        }
+        
+        if (month && year) {
+            // Add month filtering
+            const monthStr = String(month).padStart(2, '0');
+            const startOfMonth = `${year}-${monthStr}-01`;
+            
+            // Calculate end of month
+            const lastDay = new Date(year, month, 0).getDate();
+            const endOfMonth = `${year}-${monthStr}-${lastDay}`;
+            
+            query = query.gte('call_date', startOfMonth).lte('call_date', endOfMonth);
+        }
+        
+        const { data: allCalls, error: callsError } = await query;
+        
+        if (callsError) throw callsError;
+        
+        // Calculate stats for each user
+        const userStats = users.map(user => {
+            const userCalls = allCalls.filter(call => call.user_id === user.id);
+            
+            // Count calls by type
+            const callTypeCount = {};
+            let totalHours = 0;
+            let totalCalls = userCalls.length;
+            let todaysCalls = 0;
+            const today = new Date().toISOString().split('T')[0];
+            
+            userCalls.forEach(call => {
+                // Count by call type
+                if (call.call_type) {
+                    callTypeCount[call.call_type] = (callTypeCount[call.call_type] || 0) + 1;
+                }
+                // Calculate total hours
+                if (call.duration_minutes) {
+                    totalHours += call.duration_minutes / 60;
+                }
+                // Count today's calls or calls in filtered period
+                if (!year && !month) {
+                    // No filters - count calls from today only
+                    if (call.call_date === today) {
+                        todaysCalls++;
+                    }
+                } else if (month && year) {
+                    // If filtering by specific month - count all calls in that month
+                    todaysCalls = totalCalls;
+                } else if (year && !month) {
+                    // If filtering by year only - count calls from today if it's in that year
+                    if (call.call_date === today) {
+                        todaysCalls++;
+                    }
+                }
+            });
+            
+            return {
+                user_id: user.id,
+                full_name: user.full_name,
+                username: user.username,
+                mda_code: user.mda_code,
+                email: user.email,
+                is_admin: user.is_admin,
+                created_at: user.created_at,
+                totalCalls: totalCalls,
+                todaysCalls: todaysCalls,
+                totalHours: parseFloat(totalHours.toFixed(2)),
+                callTypeBreakdown: callTypeCount
+            };
+        });
+        
+        res.json({
+            success: true,
+            userStats: userStats
+        });
+        
+    } catch (error) {
+        console.error('❌ Get user call stats error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'שגיאה בטעינת סטטיסטיקת הקריאות'
+        });
+    }
+});
+
 // Update user admin status
 app.patch('/api/admin/users/:userId/admin', authenticateToken, requireAdmin, async (req, res) => {
     try {
