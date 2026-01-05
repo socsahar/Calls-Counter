@@ -609,6 +609,7 @@ class AdminPanel {
         }
 
         try {
+            const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
             const response = await fetch(`/api/admin/users/${userId}`, {
                 method: 'DELETE',
                 headers: {
