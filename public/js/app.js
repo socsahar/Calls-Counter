@@ -538,14 +538,6 @@ class CallCounter {
             });
         }
 
-        // Entry codes button
-        const entryCodesBtn = document.getElementById('entryCodesBtn');
-        if (entryCodesBtn) {
-            entryCodesBtn.addEventListener('click', () => {
-                window.location.href = '/entry-codes.html';
-            });
-        }
-
         // Admin button - show only for admin users
         const adminBtn = document.getElementById('adminBtn');
         const isAdmin = this.currentUser && (this.currentUser.isAdmin || this.currentUser.is_admin);
@@ -950,7 +942,6 @@ class CallCounter {
         const street = document.getElementById('street').value.trim();
         const locationDetails = document.getElementById('location').value.trim();
         const meterVisaNumber = document.getElementById('meterVisaNumber').value.trim();
-        const entryCode = document.getElementById('entryCode').value.trim();
         
         // Validate meter/visa number is numeric only if provided
         if (meterVisaNumber && !/^\d+$/.test(meterVisaNumber)) {
@@ -976,7 +967,6 @@ class CallCounter {
             alert_code_id: document.getElementById('alertCode').value || null,
             medical_code_id: document.getElementById('medicalCode').value || null,
             meter_visa_number: meterVisaNumber || null,
-            entry_code: entryCode || null,
             description: document.getElementById('description').value || null
         };
     }
@@ -2325,9 +2315,6 @@ class CallCounter {
         // Set meter/visa number
         document.getElementById('editMeterVisaNumber').value = call.meter_visa_number || '';
         
-        // Set entry code
-        document.getElementById('editEntryCode').value = call.entry_code || '';
-        
         // Set code dropdowns - set values before reinitializing Select2
         const editAlertCode = document.getElementById('editAlertCode');
         const editMedicalCode = document.getElementById('editMedicalCode');
@@ -2391,7 +2378,6 @@ class CallCounter {
         const street = document.getElementById('editStreet').value.trim();
         const locationDetails = document.getElementById('editLocation').value.trim();
         const meterVisaNumber = document.getElementById('editMeterVisaNumber').value.trim();
-        const entryCode = document.getElementById('editEntryCode').value.trim();
         
         // Validate meter/visa number is numeric only if provided
         if (meterVisaNumber && !/^\d+$/.test(meterVisaNumber)) {
@@ -2415,7 +2401,6 @@ class CallCounter {
             city: city,
             street: street,
             meter_visa_number: meterVisaNumber || null,
-            entry_code: entryCode || null,
             alert_code_id: document.getElementById('editAlertCode').value || null,
             medical_code_id: document.getElementById('editMedicalCode').value || null,
             description: document.getElementById('editDescription').value || null
@@ -2624,19 +2609,12 @@ class CallCounter {
         
         // Mobile menu items
         const mobileHistoryBtn = document.getElementById('mobileHistoryBtn');
-        const mobileEntryCodesBtn = document.getElementById('mobileEntryCodesBtn');
         const mobileAdminBtn = document.getElementById('mobileAdminBtn');
         const mobileLogoutBtn = document.getElementById('mobileLogoutBtn');
         
         if (mobileHistoryBtn) {
             mobileHistoryBtn.addEventListener('click', () => {
                 window.location.href = '/history.html';
-            });
-        }
-        
-        if (mobileEntryCodesBtn) {
-            mobileEntryCodesBtn.addEventListener('click', () => {
-                window.location.href = '/entry-codes.html';
             });
         }
         

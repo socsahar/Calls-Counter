@@ -60,10 +60,6 @@
                     <span class="settings-icon">🏠</span>
                     עמוד ראשי
                 </button>
-                <button class="settings-btn" id="entryCodesBtn">
-                    <span class="settings-icon">🔑</span>
-                    קודי כניסה
-                </button>
                 <button class="settings-btn" id="historyBtn">
                     <span class="settings-icon">📊</span>
                     היסטוריה
@@ -91,10 +87,6 @@
                     <button class="mobile-menu-item" id="mobileMainPageBtn">
                         <span class="mobile-menu-icon">🏠</span>
                         <span class="mobile-menu-text">עמוד ראשי</span>
-                    </button>
-                    <button class="mobile-menu-item" id="mobileEntryCodesBtn">
-                        <span class="mobile-menu-icon">🔑</span>
-                        <span class="mobile-menu-text">קודי כניסה</span>
                     </button>
                     <button class="mobile-menu-item" id="mobileHistoryBtn">
                         <span class="mobile-menu-icon">📊</span>
@@ -139,14 +131,6 @@
                 <button id="manageCodesBtn" class="admin-action-btn">
                     <span class="icon">🏷️</span>
                     <span class="text">ניהול סוגי קריאות</span>
-                </button>
-                <button id="manageEntryCodesBtn" class="admin-action-btn">
-                    <span class="icon">🔑</span>
-                    <span class="text">ניהול קודי כניסה</span>
-                </button>
-                <button id="manageApiKeysBtn" class="admin-action-btn">
-                    <span class="icon">🔐</span>
-                    <span class="text">ניהול מפתחות API</span>
                 </button>
             </div>
         </section>
@@ -217,98 +201,6 @@
                 <div id="medicalCodesContainer" class="codes-container">
                     <!-- Medical codes will be populated by JavaScript -->
                 </div>
-            </div>
-        </section>
-
-        <!-- Entry Codes Management -->
-        <section class="entry-codes-section" id="entryCodesSection" style="display: none;">
-            <div class="section-header">
-                <h2 class="section-title">ניהול קודי כניסה</h2>
-                <button id="closeEntryCodesBtn" class="close-section-btn">✕</button>
-            </div>
-            
-            <div class="entry-codes-header">
-                <button id="addEntryCodeBtn" class="add-code-btn">+ הוסף קוד כניסה חדש</button>
-                <div class="entry-codes-info">
-                    <p>קודי כניסה לבניינים ומתחמים - יופיעו בדף קודי הכניסה לכל המשתמשים</p>
-                </div>
-            </div>
-            
-            <!-- Add/Edit Entry Code Form -->
-            <div class="entry-code-form-container" id="entryCodeFormContainer" style="display: none;">
-                <form id="entryCodeForm" class="entry-code-form">
-                    <h3 id="formTitle">הוספת קוד כניסה חדש</h3>
-                    <input type="hidden" id="entryCodeId">
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="entryCodeInput">קוד כניסה *</label>
-                            <input type="text" id="entryCodeInput" required placeholder="למשל: 1234#">
-                        </div>
-                        <div class="form-group">
-                            <label for="cityInput">עיר *</label>
-                            <input type="text" id="cityInput" required placeholder="למשל: תל אביב">
-                        </div>
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="streetInput">רחוב *</label>
-                            <input type="text" id="streetInput" required placeholder="למשל: דיזנגוף">
-                        </div>
-                        <div class="form-group">
-                            <label for="locationDetailsInput">פרטים נוספים</label>
-                            <input type="text" id="locationDetailsInput" placeholder="למשל: בניין 10, כניסה ב'">
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="notesInput">הערות (למנהלים בלבד)</label>
-                        <textarea id="notesInput" rows="3" placeholder="הערות פנימיות למנהלים..."></textarea>
-                    </div>
-                    
-                    <div class="form-actions">
-                        <button type="submit" class="submit-btn">שמור</button>
-                        <button type="button" id="cancelFormBtn" class="cancel-btn">ביטול</button>
-                    </div>
-                </form>
-            </div>
-            
-            <div class="entry-codes-table-container" id="entryCodesTableContainer">
-                <table class="entry-codes-table">
-                    <thead>
-                        <tr>
-                            <th>קוד כניסה</th>
-                            <th>עיר</th>
-                            <th>רחוב</th>
-                            <th>פרטים נוספים</th>
-                            <th>הערות</th>
-                            <th>פעולות</th>
-                        </tr>
-                    </thead>
-                    <tbody id="entryCodesTableBody">
-                        <!-- Entry codes will be populated by JavaScript -->
-                    </tbody>
-                </table>
-            </div>
-        </section>
-
-        <!-- API Keys Management -->
-        <section class="api-keys-section" id="apiKeysSection" style="display: none;">
-            <div class="section-header">
-                <h2 class="section-title">ניהול מפתחות API</h2>
-                <button id="closeApiKeysBtn" class="close-section-btn">✕</button>
-            </div>
-            
-            <div class="api-keys-header">
-                <button id="generateApiKeyBtn" class="add-code-btn">+ צור מפתח API חדש</button>
-                <div class="api-keys-info">
-                    <p>מפתחות API מאפשרים לבוטים חיצוניים (כמו Discord) לגשת למערכת ולהוסיף קריאות</p>
-                </div>
-            </div>
-            
-            <div class="api-keys-container" id="apiKeysContainer">
-                <!-- API Keys will be populated by JavaScript -->
             </div>
         </section>
 
@@ -407,76 +299,6 @@
                         <button type="submit" class="btn-primary">אישור</button>
                     </div>
                 </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- API Key Details Modal -->
-    <div id="apiKeyModal" class="modal hidden">
-        <div class="modal-overlay"></div>
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title">צור מפתח API</h3>
-                <button class="modal-close" id="apiKeyModalClose">×</button>
-            </div>
-            <div class="modal-body">
-                <form id="apiKeyForm" class="admin-form">
-                    <div class="form-group">
-                        <label for="keyName" class="form-label">שם המפתח</label>
-                        <input type="text" id="keyName" class="form-input" required placeholder="לדוגמה: Discord Bot - Production">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">הרשאות</label>
-                        <div class="permissions-group">
-                            <label class="checkbox-label">
-                                <input type="checkbox" name="permission" value="calls:read" checked>
-                                <span>קריאה של קריאות</span>
-                            </label>
-                            <label class="checkbox-label">
-                                <input type="checkbox" name="permission" value="calls:write" checked>
-                                <span>יצירת קריאות חדשות</span>
-                            </label>
-                            <label class="checkbox-label">
-                                <input type="checkbox" name="permission" value="stats:read" checked>
-                                <span>קריאת סטטיסטיקות</span>
-                            </label>
-                        </div>
-                    </div>
-                    
-                    <div class="modal-actions">
-                        <button type="button" class="btn-secondary" id="apiKeyModalCancel">ביטול</button>
-                        <button type="submit" class="btn-primary">צור מפתח</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Generated API Key Display Modal -->
-    <div id="generatedKeyModal" class="modal hidden">
-        <div class="modal-overlay"></div>
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title">מפתח API נוצר בהצלחה</h3>
-            </div>
-            <div class="modal-body">
-                <div class="warning-box">
-                    <strong>⚠️ חשוב מאוד:</strong>
-                    <p>זו ההזדמנות היחידה לראות את המפתח. העתק אותו עכשיו ושמור אותו במקום בטוח!</p>
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label">המפתח שלך:</label>
-                    <div class="api-key-display">
-                        <input type="text" id="generatedApiKey" class="form-input" readonly>
-                        <button type="button" id="copyApiKeyBtn" class="btn-copy">📋 העתק</button>
-                    </div>
-                </div>
-                
-                <div class="modal-actions">
-                    <button type="button" class="btn-primary" id="generatedKeyModalClose">הבנתי, סגור</button>
-                </div>
             </div>
         </div>
     </div>

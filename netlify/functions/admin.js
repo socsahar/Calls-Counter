@@ -321,30 +321,6 @@ exports.handler = async (event) => {
             };
         }
 
-        // GET /api/admin/api-keys
-        if (event.httpMethod === 'GET' && path === '/api-keys') {
-            const { data, error } = await supabase
-                .from('api_keys')
-                .select('id, key_name, permissions, is_active, last_used_at, created_at, updated_at')
-                .eq('user_id', authResult.user.user_id)
-                .order('created_at', { ascending: false });
-
-            if (error) {
-                console.error('Error fetching API keys:', error);
-                return {
-                    statusCode: 500,
-                    headers,
-                    body: JSON.stringify({ success: false, message: 'שגיאה בטעינת מפתחות API' })
-                };
-            }
-
-            return {
-                statusCode: 200,
-                headers,
-                body: JSON.stringify({ success: true, api_keys: data || [] })
-            };
-        }
-
         // POST /api/admin/codes/alert
         if (event.httpMethod === 'POST' && path === '/codes/alert') {
             const { code } = JSON.parse(event.body);

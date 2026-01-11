@@ -682,14 +682,6 @@ class HistoryViewer {
             });
         }
 
-        // Entry codes button
-        const entryCodesBtn = document.getElementById('entryCodesBtn');
-        if (entryCodesBtn) {
-            entryCodesBtn.addEventListener('click', () => {
-                window.location.href = '/entry-codes.html';
-            });
-        }
-
         // Admin button - show only for admin users
         const userData = localStorage.getItem('userData') || sessionStorage.getItem('userData');
         if (userData) {
@@ -743,14 +735,7 @@ class HistoryViewer {
             });
         }
 
-        // Mobile menu buttons
-        const mobileEntryCodesBtn = document.getElementById('mobileEntryCodesBtn');
-        if (mobileEntryCodesBtn) {
-            mobileEntryCodesBtn.addEventListener('click', () => {
-                window.location.href = '/entry-codes.html';
-            });
-        }
-
+        // Mobile admin button
         const mobileAdminBtn = document.getElementById('mobileAdminBtn');
         if (mobileAdminBtn && userData) {
             try {
@@ -1598,9 +1583,6 @@ class HistoryViewer {
         
         document.getElementById('editMeterVisaNumber').value = callData.meter_visa_number || '';
         
-        // Set entry code
-        document.getElementById('editEntryCode').value = callData.entry_code || '';
-        
         // Set code dropdowns
         document.getElementById('editAlertCode').value = callData.alert_code_id || '';
         document.getElementById('editMedicalCode').value = callData.medical_code_id || '';
@@ -1639,7 +1621,6 @@ class HistoryViewer {
             const street = document.getElementById('editStreet').value.trim();
             const locationDetails = document.getElementById('editLocation').value.trim();
             const meterVisaNumber = document.getElementById('editMeterVisaNumber').value.trim();
-            const entryCode = document.getElementById('editEntryCode').value.trim();
             
             // Validate meter/visa number is numeric only if provided
             if (meterVisaNumber && !/^\d+$/.test(meterVisaNumber)) {
@@ -1663,7 +1644,6 @@ class HistoryViewer {
                 city: city,
                 street: street,
                 meter_visa_number: meterVisaNumber || null,
-                entry_code: entryCode || null,
                 alert_code_id: document.getElementById('editAlertCode').value || null,
                 medical_code_id: document.getElementById('editMedicalCode').value || null,
                 description: document.getElementById('editDescription').value || null
